@@ -1,0 +1,3 @@
+# Prompt library (~60 MB) is downloaded, not committed: node scripts/setup.js
+references/*.json
+!references/manifest.json
