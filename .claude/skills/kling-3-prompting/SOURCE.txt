@@ -1,0 +1,3 @@
+Source: https://github.com/aedev-tools/kling-3-prompting-skill.git (skills/kling-3-prompting)
+Commit: 3beb4cb
+Imported: 2026-11-09, unmodified (reviewed: Markdown only, MIT).

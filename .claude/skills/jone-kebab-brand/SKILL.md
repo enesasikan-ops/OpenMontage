@@ -157,6 +157,24 @@ whoosh SFX on every cut, end on a kebab hero (A) + logo.
 cream knit sleeve lifting one fry / red JONE KEBAB coffee cup with white lid on a weathered wooden
 bench next to sunglasses and acid-wash jeans}. Hard warm sunlight, shallow depth of field. {lock line}`
 
+## Chinese video and image models (preferred for motion)
+
+One `FAL_KEY` reaches all of them through the OpenMontage registry. Direct keys also work:
+`KLING_API_KEY` (Kling official), `ARK_API_KEY` (Seedance via Volcengine Ark), `MINIMAX_API_KEY`
+(Hailuo), `DASHSCOPE_API_KEY` (Qwen-Image), `VOLC_ACCESSKEY`/`VOLC_SECRETKEY` (Jimeng).
+
+| Shot | 1st choice | 2nd choice | Prompt skill |
+|------|-----------|-----------|--------------|
+| FOOH giant bag arc (F) | Kling 3.0 - `kling_official_video` / `kling_video` | Seedance 2.5 - `seedance_video` / `seedance_ark` | `kling-3-prompting`; `video-prompting` (seedance2-5) |
+| Ingredient splash, knife cuts (H) | Seedance 2.5 | Hailuo H3 - `minimax_video` / `minimax_fal_video` | `video-prompting` (seedance2-5, minimax-h3) |
+| Cheese pull, sauce drip, steam (E) | Kling 3.0 | Vidu Q4 - `vidu_video` (image-to-video) | `kling-3-prompting` |
+| Keep the exact pack across shots | Vidu Q4 or Seedance 2.5 reference-to-video | Wan 3.0 - `wan_fal_video` | `video-prompting` |
+| Stills | Nano Banana Pro (best logo fidelity) | Seedream - `seedream_image`; Kling image; Qwen-Image - `dashscope_image` | `ai-ad-prompt-guide` |
+
+Always image-to-video from an approved still (logo already correct), 5 s clips, logo overlay in post.
+Kling negative prompt for food: `morphing, melting packaging, blurry text, extra fingers, cartoonish,
+oversaturated, stock photo aesthetic`.
+
 ## Which skills to use (routing)
 
 | Job | Skills (read before calling tools) | Tool |
