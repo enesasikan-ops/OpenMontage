@@ -1,0 +1,3 @@
+Source: https://github.com/skillsh/skills.git (skill ai-video-generation)
+Installed: 2026-11-09 via `npx -y skills add skillsh/skills --skill ai-video-generation --agent claude-code`, unmodified.
+Reviewed: one Markdown file, no scripts. Needs the inference.sh `belt` CLI + an inference.sh account (separate paid service). Frontmatter pre-approves `belt *` commands.

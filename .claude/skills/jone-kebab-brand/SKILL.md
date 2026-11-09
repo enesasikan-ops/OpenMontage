@@ -171,6 +171,11 @@ bench next to sunglasses and acid-wash jeans}. Hard warm sunlight, shallow depth
 | Reel / teaser production | OpenMontage `cinematic` pipeline | - |
 | Publishing | `ig-reel` (hook + beats), `ig-caption`, `ig-carousel` (stills in 4:5), `ig-human` | - |
 
+Alternative gateway: `ai-video-generation` (skillsh/inference.sh) runs Veo 3.1, Seedance 2.0, Wan,
+HappyHorse and MMAudio foley through one inference.sh account and the `belt` CLI. Use it only if the
+user picks that account over GEMINI_API_KEY / FAL_KEY; it bypasses the OpenMontage registry, so save
+outputs under `projects/<project-id>/assets/video/` and log the provider in `decision_log`.
+
 Note: `ai-ad-prompt-guide` part 3 advertises the Creatify paid API. Ignore it; generate through the
 OpenMontage tools above (same models, keys already handled by the registry).
 
