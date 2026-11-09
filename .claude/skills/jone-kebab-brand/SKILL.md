@@ -136,6 +136,9 @@ cobbles, blue sky. {lock line}`
 Video prompt: `The camera slowly arcs around the giant bag at ground level, light motion blur,
 pedestrians keep walking, the bag stays perfectly still and rigid. No cuts, no text.`
 Use a well-known public place only as a backdrop; no other brands or shop signs in frame.
+FOOH rules (from hermoso.ai FOOH guide): always start from a real photo of the pack, one single
+impossible beat only, prefer reveal / roll / unfold / slow arc over tosses and drops (AI physics
+breaks on ballistic motion), steady or slow-drift camera, logo and text added in post.
 
 **G. Frozen product concept (like 08)**
 `Surreal photoreal summer ad, {4:5}. A {red JONE KEBAB dessert cup with soft-serve and caramel
@@ -159,13 +162,17 @@ bench next to sunglasses and acid-wash jeans}. Hard warm sunlight, shallow depth
 | Job | Skills (read before calling tools) | Tool |
 |-----|-----------------------------------|------|
 | Any JONE visual | `jone-kebab-brand` (this file) | - |
+| Every generation prompt | `ai-ad-prompt-guide` (SLCT checklist, camera vocabulary, pass³ test before showing the user) | - |
 | Stills A-D, F-I | `nano-banana-prompts` (product-marketing), `.agents/skills/flux-best-practices` only if falling back to FLUX | `google_imagen` (Nano Banana Pro) |
-| FOOH camera arc (F) | `.agents/skills/kling-official` or `.agents/skills/seedance-2-5` (best camera control) | image-to-video |
-| Splash / slow-mo / cheese pull (E, H) | `.agents/skills/gemini-omni` (Veo physics), `ai-video-gen` | image-to-video / text-to-video |
+| FOOH camera arc (F) | `.agents/skills/kling-official` or `.agents/skills/seedance-2-5` (best camera control); prompt format from `video-prompting` (Seedance 2.5 guide) | image-to-video |
+| Splash / slow-mo / cheese pull (E, H) | `.agents/skills/gemini-omni` (Veo physics), `video-prompting` (Veo 3 guide: image-to-video prompts describe motion, not the image), `ai-video-gen` | image-to-video / text-to-video |
 | Cut, slow down, 9:16 / 4:5 crops, logo overlay | `video-edit`, `ffmpeg`, `remotion-best-practices` | `video_compose` |
 | Splash, whoosh, knife SFX + music bed | `sound-effects`, `music` (ElevenLabs) or `acestep` | - |
 | Reel / teaser production | OpenMontage `cinematic` pipeline | - |
 | Publishing | `ig-reel` (hook + beats), `ig-caption`, `ig-carousel` (stills in 4:5), `ig-human` | - |
+
+Note: `ai-ad-prompt-guide` part 3 advertises the Creatify paid API. Ignore it; generate through the
+OpenMontage tools above (same models, keys already handled by the registry).
 
 Not useful for this brand: avatars / HeyGen / faceswap (faces stay cropped), Manim, Three.js,
 dataviz, character animation.

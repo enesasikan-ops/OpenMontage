@@ -1,0 +1,3 @@
+Source: https://github.com/Square-Zero-Labs/video-prompting-skill.git
+Commit: 3f55fd7
+Imported: 2026-11-09, unmodified (reviewed: Markdown/CSV only, no scripts).

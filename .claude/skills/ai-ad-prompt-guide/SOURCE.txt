@@ -1,0 +1,3 @@
+Source: https://github.com/Creatify-AI/ai-ad-prompt-guide.git
+Commit: 115b398
+Imported: 2026-11-09, unmodified (reviewed: Markdown/CSV only, no scripts).
