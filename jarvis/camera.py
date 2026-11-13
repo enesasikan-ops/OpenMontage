@@ -18,6 +18,32 @@ from typing import Callable
 GRAB_TIMEOUT_S = 25
 
 
+def _clip_cmd(url: str, path: str, seconds: int) -> list[str]:
+    cmd = ["ffmpeg", "-y", "-loglevel", "error",
+           "-protocol_whitelist", "rtsp,rtp,tcp,udp,https,tls,http"]   # jamais file:// (anti lecture disque)
+    if url.lower().startswith("rtsp://"):
+        cmd += ["-rtsp_transport", "tcp"]
+    cmd += ["-i", url, "-t", str(seconds), "-c", "copy", "-movflags", "+faststart", path]
+    return cmd
+
+
+def grab_clip(url: str, seconds: int = 8, run: Callable = subprocess.run) -> "str | None":
+    """Enregistre un court clip (mp4) d'un flux caméra. Renvoie le chemin, ou None."""
+    import os
+    import tempfile
+    if not url.lower().startswith(("rtsp://", "http://", "https://")):
+        return None
+    path = tempfile.mkstemp(suffix=".mp4")[1]
+    try:
+        run(_clip_cmd(url, path, seconds), capture_output=True, timeout=seconds + 20)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    try:
+        return path if os.path.getsize(path) > 0 else None
+    except OSError:
+        return None
+
+
 def grab_frame(url: str, run: Callable = subprocess.run, timeout: int = GRAB_TIMEOUT_S) -> "bytes | None":
     """Capture une seule image du flux (via ffmpeg). Renvoie un JPEG, ou None."""
     # Seules les caméras réseau sont permises : pas de file:// (lecture de fichiers locaux).

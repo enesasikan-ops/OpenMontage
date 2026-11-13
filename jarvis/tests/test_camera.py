@@ -104,3 +104,29 @@ def test_tools_registered(tmp_path):
     tools = {t.name: t for t in build_camera_tools(m)}
     assert {"regarder_camera", "ajouter_camera", "lister_cameras", "oublier_camera"} <= set(tools)
     assert tools["regarder_camera"].confirm is None   # regarder une caméra publique : pas de confirmation
+
+
+# --- Capture d'un clip vidéo (grab_clip) ---
+
+def test_clip_cmd_rtsp_sans_file():
+    c = cam._clip_cmd("rtsp://x/stream", "/tmp/o.mp4", 8)
+    assert "-rtsp_transport" in c and "tcp" in c
+    assert c[c.index("-t") + 1] == "8"
+    wl = c[c.index("-protocol_whitelist") + 1]
+    assert "file" not in wl and "rtsp" in wl        # pas de lecture de fichiers locaux
+
+
+def test_grab_clip_refuse_file_scheme():
+    appels = []
+    assert cam.grab_clip("file:///etc/passwd", run=lambda *a, **k: appels.append(a)) is None
+    assert appels == []                              # ffmpeg jamais lancé sur file://
+
+
+def test_grab_clip_rend_le_chemin_si_ok(tmp_path, monkeypatch):
+    # Simule ffmpeg qui écrit un fichier non vide
+    def faux_run(cmd, **k):
+        chemin = cmd[cmd.index("+faststart") + 1]
+        Path(chemin).write_bytes(b"video")
+    out = cam.grab_clip("rtsp://x/stream", seconds=2, run=faux_run)
+    assert out and Path(out).read_bytes() == b"video"
+    Path(out).unlink()

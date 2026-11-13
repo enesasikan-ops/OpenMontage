@@ -459,6 +459,17 @@ def main() -> None:
                     texte += f" J'y jette un œil : {desc}"
             jarvis.notify_owner(texte)
             watchdog.sur_intrusion(nom, cam, connu)        # réaction active si armé + inconnu
+            # Sur intrusion (armé + inconnu) : filmer la zone et t'envoyer la vidéo.
+            if watchdog.arme and not connu and cameras is not None:
+                import os as _os
+                from camera import grab_clip
+                url = cameras.book.find(cam)
+                clip = grab_clip(url) if url else None
+                if clip:
+                    try:
+                        jarvis.envoyer(f"🚨 {cam} filmé pendant l'intrusion.", piece_jointe=clip)
+                    finally:
+                        _os.remove(clip)
 
         ArrivalWatcher(_sur_arrivee, host=config.MQTT_HOST, port=config.MQTT_PORT,
                        topic=config.MQTT_TOPIC, username=config.MQTT_USER,
