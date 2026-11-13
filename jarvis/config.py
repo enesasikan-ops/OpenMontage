@@ -15,7 +15,10 @@ def _env(name: str, default: str) -> str:
 
 # --- Cerveau local (Ollama) ---
 OLLAMA_HOST = _env("JARVIS_OLLAMA_HOST", "http://localhost:11434")
-LOCAL_MODEL = _env("JARVIS_MODELE_LOCAL", "mistral-small3.2")
+# Qwen3-30B-A3B : modèle « mixture of experts » (30B au total, 3B actifs par mot) : malin
+# comme un gros, rapide comme un petit — idéal sur un mini PC sans GPU dédié. Le code dur
+# part de toute façon au renfort (Claude/Gemini). Alternative plus fine mais plus lente : qwen3:32b.
+LOCAL_MODEL = _env("JARVIS_MODELE_LOCAL", "qwen3:30b-a3b")
 # Réflexion du modèle local (Qwen3 et autres modèles « qui pensent ») :
 # "0" = répond directement (plus rapide, conseillé pour la voix), "1" = réfléchit,
 # vide = comportement par défaut du modèle (ne rien envoyer).
