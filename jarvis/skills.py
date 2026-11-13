@@ -115,6 +115,18 @@ class Reminders:
             self.store.save()
         return f"Rappel n°{numero} annulé."
 
+    def today(self) -> list[str]:
+        """Rappels prévus d'ici la fin de la journée, avec leur heure."""
+        now = self.now()
+        with self.store.lock:
+            items = sorted(self.store.data["rappels"], key=lambda r: r["echeance"])
+        out = []
+        for r in items:
+            due = datetime.fromisoformat(r["echeance"])
+            if due.date() == now.date():
+                out.append(f"{r['message']} à {due.hour}h{due.minute:02d}")
+        return out
+
     def pop_due(self) -> list[str]:
         """Retire et renvoie les rappels arrivés à échéance."""
         now = self.now()
@@ -337,6 +349,26 @@ def _defender_status(run: Callable = subprocess.run) -> str:
     if age > 3:
         return f"Antivirus actif, mais ses définitions ont {age} jours : lance Windows Update."
     return "Antivirus actif et à jour."
+
+
+def pc_alerts(run: Callable = subprocess.run) -> dict[str, str]:
+    """Problèmes qui méritent de prévenir l'utilisateur : {clé: message}. Ne modifie rien."""
+    import psutil
+
+    alerts = {}
+    disk = shutil.disk_usage(Path.home())
+    if disk.free / disk.total < 0.1:
+        alerts["disque"] = f"le disque est presque plein, il ne reste que {disk.free / 1e9:.0f} Go"
+    defender = _defender_status(run)
+    if defender.startswith("ATTENTION"):
+        alerts["antivirus"] = "la protection antivirus en temps réel est désactivée"
+    elif "définitions" in defender:
+        alerts["antivirus_ancien"] = "les définitions de l'antivirus datent, un passage par Windows Update s'impose"
+    days = (time.time() - psutil.boot_time()) / 86400
+    if days > 14:
+        alerts["redemarrage"] = (f"l'ordinateur tourne depuis {days:.0f} jours, "
+                                 "un redémarrage terminerait les mises à jour")
+    return alerts
 
 
 def pc_status(run: Callable = subprocess.run) -> str:

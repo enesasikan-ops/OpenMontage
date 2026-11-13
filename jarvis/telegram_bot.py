@@ -32,6 +32,7 @@ import persona  # noqa: E402
 from brain import Brain  # noqa: E402
 from claude_bridge import ClaudeBridge  # noqa: E402
 from memory import Memory  # noqa: E402
+from proactive import Proactive  # noqa: E402
 from skills import Lists, Reminders, ReminderWatcher  # noqa: E402
 from tools import build_tools  # noqa: E402
 
@@ -256,6 +257,7 @@ def main() -> None:
            .post_init(jarvis.on_startup).build())
     jarvis.register(app)
     ReminderWatcher(reminders, notify=jarvis.notify_owner).start()
+    Proactive(reminders, lists, notify=jarvis.notify_owner).start()
     log.info("Jarvis est en ligne sur Telegram (Ctrl+C pour arrêter).")
     if allowed_id is None:
         log.info("Envoie /start au bot : il te donnera ton identifiant à mettre dans .env.")

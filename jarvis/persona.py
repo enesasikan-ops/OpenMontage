@@ -85,3 +85,16 @@ def asking_claude() -> str:
 
 def not_understood() -> str:
     return f"Je vous demande pardon, {title()} ?" if is_film() else "Pardon, tu peux répéter ?"
+
+
+def briefing_intro(hour: int) -> str:
+    if is_film():
+        hello = "Bonjour" if hour < 18 else "Bonsoir"
+        return f"{hello} {title()}. Voici votre point du jour."
+    return f"Bonjour {config.USER_NAME} ! Voici ton point du jour."
+
+
+def alert_intro() -> str:
+    if is_film():
+        return f"Pardonnez l'interruption, {title()}, mais"
+    return "Petit signalement :"

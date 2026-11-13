@@ -79,6 +79,15 @@ CITY = _env("JARVIS_VILLE", "")  # ville par défaut pour la météo
 STYLE = _env("JARVIS_STYLE", "film").strip().lower()  # "film" (majordome) | "ami"
 TITLE = _env("JARVIS_TITRE", "").strip()  # ex. Monsieur, Madame, Patron ; vide = prénom
 
+# --- Initiatives de Jarvis ---
+# Heure du briefing du matin (HH:MM). Vide = pas de briefing.
+BRIEFING_TIME = _env("JARVIS_BRIEFING", "08:00").strip()
+# Alertes sur l'état du PC (disque plein, antivirus coupé...). "0" pour les couper.
+ALERTS = _env("JARVIS_ALERTES", "1") == "1"
+# Heures de silence : ni briefing ni alerte (les rappels, eux, passent toujours).
+QUIET_HOURS = _env("JARVIS_SILENCE", "22:00-07:00").strip()
+PROACTIVE_FILE = DATA_DIR / "initiatives.json"
+
 # Mode mains libres : secondes d'écoute après une réponse, sans redire « Jarvis ».
 AWAKE_SECONDS = float(_env("JARVIS_ECOUTE_SECONDES", "30"))
 

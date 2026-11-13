@@ -169,6 +169,19 @@ Exemples à essayer :
 Jarvis **surveille** l'antivirus, il ne le remplace pas : la protection reste
 celle de Windows Defender.
 
+## Les initiatives de Jarvis (il parle en premier)
+
+| Initiative | Quand | Réglage dans `.env` |
+|---|---|---|
+| **Briefing du matin** : météo, rappels du jour, liste de courses, état du PC | À l'heure choisie. Si le PC était éteint, il le donne à l'allumage dans les 3 heures, sinon il le saute. | `JARVIS_BRIEFING=08:00` (vide = jamais). La météo demande `JARVIS_VILLE`. |
+| **Alertes** : disque presque plein, antivirus désactivé ou pas à jour, redémarrage conseillé | Vérifié toutes les heures ; chaque problème est signalé une fois par jour au plus. | `JARVIS_ALERTES=1` (0 = aucune) |
+| **Rappels** | À l'heure demandée, toujours. | — |
+| **Heures de silence** | Ni briefing ni alerte la nuit. | `JARVIS_SILENCE=22:00-07:00` |
+
+Les messages arrivent là où Jarvis tourne : à voix haute en mode vocal, sur
+Telegram si le bot est lancé. Si les deux tournent, le briefing n'est donné
+qu'une fois. Jarvis ne fait que **prévenir** : il ne corrige rien tout seul.
+
 ## Trouver la configuration la plus rapide (banc d'essai)
 
 Plutôt que de deviner, **mesure** sur ton ordinateur :
