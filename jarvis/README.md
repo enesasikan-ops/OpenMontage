@@ -202,8 +202,9 @@ celle de Windows Defender.
 
 `python -m scaffold generer ma-capacite.yaml` écrit le code répétitif d'une capacité
 (outils, confirmations, tests, doc) à partir d'une config YAML ; tu complètes la logique
-dans les zones « manuel ». Détails et création de packs pour d'autres architectures :
-[scaffold/README.md](scaffold/README.md).
+dans les zones « manuel ». Si Jarvis tourne, la capacité est **chargée à chaud** en
+quelques secondes (et rechargée à chaque modification), sans redémarrage. Détails et
+création de packs pour d'autres architectures : [scaffold/README.md](scaffold/README.md).
 
 ## Jarvis s'améliore avec le temps
 

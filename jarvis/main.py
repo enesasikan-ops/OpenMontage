@@ -187,8 +187,19 @@ def main() -> None:
                             sentinel=sentinel, home=home,
                             agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
                             faces=faces, face_frame=face_frame, cameras=cameras, growth=growth,
-                            proposals=proposals)
+                            proposals=proposals, plugins=not config.PLUGINS_HOT)
+    plugins = None
+    if config.PLUGINS_HOT:
+        from plugin_manager import PluginManager, build_plugin_tools
+
+        plugins = PluginManager(interval_s=config.PLUGINS_INTERVAL)
+        tools.update({t.name: t for t in build_plugin_tools(plugins)})
     brain = Brain(client, tools, memory, confirm)
+    if plugins is not None:
+        plugins.attach(brain)          # le cœur = les outils actuels ; les extensions s'y ajoutent
+        plugins.reload()
+        plugins.start()                # surveille plugins/ : charge, recharge, décharge à chaud
+        proposals.hot_reload = plugins.reload
     ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,
               notify=lambda text: say(f"\n{text}")).start()

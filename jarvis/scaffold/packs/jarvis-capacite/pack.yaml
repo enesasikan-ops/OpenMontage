@@ -55,4 +55,4 @@ fichiers:
 
 notes:
   - "Complète les zones « # >>> manuel » (la logique métier), puis lance : python -m pytest plugins"
-  - "Relance Jarvis : la capacité est chargée automatiquement depuis plugins/."
+  - "Si Jarvis tourne, la capacité est chargée à chaud en quelques secondes (sinon, au prochain démarrage)."

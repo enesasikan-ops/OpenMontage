@@ -344,12 +344,20 @@ def main() -> None:
     growth = GrowthJournal(config.GROWTH_FILE)
     proposals = Proposals(growth)
 
+    plugins = None
+    if config.PLUGINS_HOT:
+        from plugin_manager import PluginManager, build_plugin_tools
+
+        plugins = PluginManager(interval_s=config.PLUGINS_INTERVAL)
+
     def brain_factory(confirm, on_status):
         tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
                             agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
                             faces=faces, face_frame=face_frame, cameras=cameras, growth=growth,
-                            proposals=proposals)
+                            proposals=proposals, plugins=plugins is None)
+        if plugins is not None:
+            tools.update({t.name: t for t in build_plugin_tools(plugins)})
         return Brain(client, tools, memory, confirm)
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)
@@ -360,6 +368,11 @@ def main() -> None:
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,
               notify=jarvis.notify_owner).start()
     jarvis.proposals = proposals
+    if plugins is not None:
+        plugins.attach(jarvis.brain)
+        plugins.reload()
+        plugins.start()
+        proposals.hot_reload = plugins.reload
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
                         notify=jarvis.send_proposal).start()

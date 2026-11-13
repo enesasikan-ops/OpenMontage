@@ -60,6 +60,29 @@ Modes d'écriture :
 | Fichier identique | rien | rien | rien |
 | Fichier différent | **ignoré** (rien n'est perdu) | régénéré, zones gardées | écrasé |
 
+## Couplé au gestionnaire de plugins (chargement à chaud)
+
+Le générateur écrit dans `plugins/` ; le **gestionnaire de plugins** (`plugin_manager.py`)
+surveille ce dossier pendant que Jarvis tourne :
+
+```
+  config YAML ──► scaffold ──► plugins/<nom>/*.py ──► PluginManager ──► cerveau de Jarvis
+                  (générer)    (tu complètes les       (surveille, charge,     (nouveaux outils
+                                zones « manuel »)       recharge, décharge)     disponibles)
+```
+
+- Tu génères (en ligne de commande ou en disant « génère la capacité depuis marees.yaml »)
+  → la capacité est **disponible en quelques secondes, sans redémarrage**.
+- Tu modifies le code métier → **rechargée à chaud**.
+- Tu fais une erreur → elle est signalée et **la version qui marchait reste active**.
+- Tu supprimes le dossier → **déchargée** (son `on_unload()` est appelé s'il existe).
+- Un plugin ne peut **pas remplacer un outil du cœur** ni un outil d'un autre plugin.
+- Optionnel dans un plugin : `PLUGIN = {"version": "1.2"}` (affiché) et `on_unload()`
+  (libérer threads, connexions…).
+
+Outils côté Jarvis : `extensions_chargees`, `recharger_extensions`, `generer_capacite`.
+Réglages : `JARVIS_RECHARGEMENT_A_CHAUD=1` (défaut), `JARVIS_RECHARGEMENT_SECONDES=2`.
+
 ## Créer un pack pour ton architecture
 
 1. `mkdir scaffold/packs/mon-service`

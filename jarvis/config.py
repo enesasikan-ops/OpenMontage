@@ -116,6 +116,10 @@ GROWTH_FILE = DATA_DIR / "ameliorations.json"
 # plus demandée. Vide = désactivé. Tu valides le matin avant activation.
 IMPROVE_AT = _env("JARVIS_AMELIORATION_NUIT", "03:00").strip()
 
+# Rechargement à chaud des extensions (plugins/) : sans redémarrer Jarvis.
+PLUGINS_HOT = _env("JARVIS_RECHARGEMENT_A_CHAUD", "1") == "1"
+PLUGINS_INTERVAL = float(_env("JARVIS_RECHARGEMENT_SECONDES", "2"))
+
 # --- Drone (Parrot ANAFI) ---
 # "0" = pas de drone, "sim" = simulateur (démo sans matériel), "anafi" = vrai drone.
 DRONE = _env("JARVIS_DRONE", "0").strip().lower()

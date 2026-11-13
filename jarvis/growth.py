@@ -193,6 +193,7 @@ class Proposals:
         self.journal = journal
         self.plugins_dir = plugins_dir
         self.tester = tester
+        self.hot_reload: "Callable[[], object] | None" = None  # branché sur le PluginManager
         self.journal.data.setdefault("propositions", [])
 
     @property
@@ -242,6 +243,10 @@ class Proposals:
         p["statut"], p["plugin"] = "activé", str(dest)
         self.journal.mark_done(p["idee"])
         self.journal._save()
+        if self.hot_reload is not None:
+            self.hot_reload()
+            return (f"Amélioration n°{p['id']} activée ({summary}) et chargée à chaud : "
+                    f"je sais désormais « {p['idee']} », tout de suite.")
         return (f"Amélioration n°{p['id']} activée ({summary}). Relance Jarvis pour qu'il "
                 f"l'utilise : il saura désormais « {p['idee']} ».")
 

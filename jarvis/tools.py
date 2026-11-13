@@ -50,7 +50,7 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
                 on_status: Callable[[str], None], reminders=None, lists=None,
                 sentinel=None, home=None, web=True, agent=None,
                 gemini=None, drone=None, faces=None, face_frame=None,
-                cameras=None, growth=None, proposals=None) -> dict[str, Tool]:
+                cameras=None, growth=None, proposals=None, plugins=True) -> dict[str, Tool]:
     """reminders / lists : stockages des compétences (skills.py). Sans eux, outils de base seuls."""
     def ask_claude(question: str, contexte: str = "") -> str:
         on_status(persona.asking_claude())
@@ -176,9 +176,11 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from growth import build_proposal_tools
 
         tools += build_proposal_tools(proposals)
-    # Capacités validées par l'utilisateur (écrites par le mentor, activées après tests).
-    from growth import load_plugins
+    if plugins:
+        # Chargement simple au démarrage. En fonctionnement normal, c'est le PluginManager
+        # (chargement à chaud) qui s'en charge : build_tools(..., plugins=False).
+        from growth import load_plugins
 
-    known = {t.name for t in tools}
-    tools += [t for t in load_plugins() if t.name not in known]  # le cœur garde la priorité
+        known = {t.name for t in tools}
+        tools += [t for t in load_plugins() if t.name not in known]  # le cœur garde la priorité
     return {t.name: t for t in tools}
