@@ -49,7 +49,7 @@ def _now_text() -> str:
 def build_tools(memory: Memory, claude: ClaudeBridge,
                 on_status: Callable[[str], None], reminders=None, lists=None,
                 sentinel=None, home=None, web=True, agent=None,
-                gemini=None) -> dict[str, Tool]:
+                gemini=None, drone=None) -> dict[str, Tool]:
     """reminders / lists : stockages des compétences (skills.py). Sans eux, outils de base seuls."""
     def ask_claude(question: str, contexte: str = "") -> str:
         on_status(persona.asking_claude())
@@ -117,6 +117,10 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from web import build_web_tools
 
         tools += build_web_tools()
+    if drone is not None:
+        from drone import build_drone_tools
+
+        tools += build_drone_tools(drone)
     if gemini is not None and gemini.available:
         def ask_gemini(question: str, contexte: str = "") -> str:
             on_status("Je demande à Gemini.")

@@ -188,6 +188,7 @@ Exemples à essayer :
 | **Listes** | « Ajoute du lait à la liste de courses », « Lis ma liste », « Retire le lait », « Ajoute Dune à la liste films » | Sur ton ordinateur |
 | **Maison connectée** | « Allume le salon », « ferme le garage » (confirmation), « température du salon » | Sur ton réseau local (Home Assistant) |
 | **Web** | « Cherche les horaires du train », « lis cette page » | DuckDuckGo (nom de la recherche seulement) |
+| **Drone** | « Fais décoller », « avance de 3 m », « qu'est-ce que tu vois ? », « atterris » | Parrot ANAFI (local) + vision Gemini/Claude |
 | **Mentor (code)** | « Écris-moi un script qui… » → Claude l'exécute dans l'atelier (confirmation) | Ton abonnement Claude |
 | **Sécurité** | « Rapport de sécurité », « Lance une analyse antivirus » (avec confirmation) | Sur ton ordinateur |
 | **État du PC** | « Le PC est en bonne santé ? » → disque, mémoire, processeur, durée d'allumage, et sous Windows l'état de l'antivirus Defender | Sur ton ordinateur (lecture seule) |
@@ -236,6 +237,31 @@ Mise en place :
 - Les actions sensibles (serrures, volets, portail, garage) demandent ta confirmation.
 - Si tu dis « allume le salon » et que plusieurs lampes correspondent, il les allume toutes.
 - Le jeton donne le contrôle de ta maison : garde-le comme un mot de passe.
+
+## Piloter un drone (Parrot ANAFI) et voir à travers
+
+Jarvis peut piloter un **Parrot ANAFI** à la voix et décrire ce que voit sa caméra.
+
+Exemples :
+- « Jarvis, fais décoller le drone » *(confirmation demandée)*
+- « Avance de 3 mètres », « tourne à droite », « monte d'un mètre »
+- « Qu'est-ce que tu vois ? » → il analyse l'image du drone et te décrit la scène
+- « Atterris », « Arrête-toi » / « Stop » → **toujours prioritaires**, sans confirmation
+- « Quel est l'état du drone ? » → en vol/au sol, batterie, altitude
+
+Réglages dans `.env` :
+- `JARVIS_DRONE=sim` : **simulateur**, pour tester sans matériel (le drone « vole » pour de faux).
+- `JARVIS_DRONE=anafi` : le vrai drone. Nécessite le SDK Parrot **Olympe** (Linux) :
+  `pip install parrot-olympe`, le PC connecté au Wi-Fi du drone.
+- `JARVIS_DRONE_IP` : l'adresse du drone (par défaut `192.168.42.1`).
+- La **vision** (« qu'est-ce que tu vois ? ») utilise Gemini ou Claude s'ils sont configurés.
+
+Sécurité, toujours :
+- Confirmation avant le décollage ; « atterris » et « stop » passent en priorité.
+- Déplacements bornés (5 m par commande, 30 m d'altitude, 180° par rotation).
+- Jarvis **exécute tes ordres**, il ne vole pas en autonomie (pas de « suis cette personne »
+  tout seul) : analyser une image prend 1 à 3 s, trop lent pour éviter un obstacle en vol.
+- **Garde le drone à vue** et respecte les règles (pas au-dessus des gens, pas en zone interdite).
 
 ## Naviguer sur le web et déléguer à Claude
 

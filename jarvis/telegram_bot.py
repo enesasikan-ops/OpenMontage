@@ -214,6 +214,17 @@ class TelegramJarvis:
         app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, self.on_voice, block=False))
 
 
+def make_drone(gemini):
+    """Le drone : simulateur (démo) ou vrai Parrot ANAFI. La vision passe par Gemini si dispo."""
+    import config as _c
+    if _c.DRONE in ("0", ""):
+        return None
+    from drone import AnafiController, DronePilot, SimDrone
+    controller = SimDrone() if _c.DRONE == "sim" else AnafiController()
+    describe = (lambda frame: gemini.describe_image(frame)) if (gemini and gemini.available) else None
+    return DronePilot(controller, describe=describe)
+
+
 def gemini_advisor():
     """Gemini en « deuxième avis », à côté de Claude. Préfère la clé API, sinon l'abonnement (CLI)."""
     import config as _c
@@ -264,11 +275,12 @@ def main() -> None:
     sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
     home = SmartHome()
     gemini = gemini_advisor()
+    drone = make_drone(gemini)
 
     def brain_factory(confirm, on_status):
         tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
-                            agent=claude if config.AGENT else None, gemini=gemini)
+                            agent=claude if config.AGENT else None, gemini=gemini, drone=drone)
         return Brain(client, tools, memory, confirm)
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)

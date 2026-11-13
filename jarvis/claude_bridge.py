@@ -288,6 +288,34 @@ class GeminiBackend:
         return ("Pour exécuter une vraie tâche sur l'ordinateur, il me faut Claude Code "
                 "(mode abonnement). Gemini ne peut que répondre, pas agir sur la machine.")
 
+    def describe_image(self, image: bytes, question: str = "") -> str:
+        """Décrit une image (ex. la vue du drone). Gemini lit nativement les images."""
+        import base64
+        import urllib.error
+
+        q = question or "Décris ce que tu vois sur cette image, en une ou deux phrases, en français."
+        body = {
+            "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "contents": [{"role": "user", "parts": [
+                {"inline_data": {"mime_type": "image/jpeg",
+                                 "data": base64.b64encode(image).decode("ascii")}},
+                {"text": q},
+            ]}],
+        }
+        try:
+            data = self._request(body)
+        except urllib.error.HTTPError as exc:
+            return "Ma clé Gemini est refusée." if exc.code in (400, 401, 403) else "Gemini a renvoyé une erreur."
+        except (urllib.error.URLError, OSError):
+            return "Je n'arrive pas à joindre Gemini pour analyser l'image."
+        except (json.JSONDecodeError, ValueError):
+            return "Gemini a renvoyé une réponse illisible."
+        candidates = data.get("candidates") or []
+        if not candidates:
+            return "Gemini n'a rien dit sur l'image."
+        parts = (candidates[0].get("content") or {}).get("parts") or []
+        return "".join(pt.get("text", "") for pt in parts).strip() or "Gemini n'a rien dit sur l'image."
+
     def ask(self, question: str, context: str = "") -> str:
         import urllib.error
 
