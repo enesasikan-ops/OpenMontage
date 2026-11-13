@@ -66,6 +66,14 @@ GEMINI_MODEL = _env("JARVIS_MODELE_GEMINI", "gemini-2.5-flash").strip()
 GEMINI_CLI_ENABLE = _env("JARVIS_GEMINI_ABONNEMENT", "0") == "1"
 GEMINI_CLI_MODEL = _env("JARVIS_MODELE_GEMINI_CLI", "").strip()
 
+# --- Repli du renfort : qui code si Claude ne peut pas (quota, non connecté, panne) ---
+# Ne s'applique que si le renfort principal est Claude. Valeurs :
+#   "auto"       : Gemini CLI si l'abonnement est activé, sinon la clé Gemini (défaut) ;
+#   "gemini-cli" : forcer le repli sur Gemini CLI (abonnement Google) ;
+#   "gemini"     : forcer le repli sur la clé Gemini (API) ;
+#   "aucun"      : pas de repli.
+RENFORT_REPLI = _env("JARVIS_RENFORT_REPLI", "auto").strip().lower()
+
 # --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
 # Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais
 # UNIQUEMENT dans l'atelier ci-dessous, et seulement après ta confirmation.

@@ -11,8 +11,10 @@ Modes, choisis avec JARVIS_RENFORT dans le fichier .env :
 
 import json
 import os
+import re
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Callable
 
 import anthropic
@@ -359,12 +361,155 @@ class NoBackend:
         return "Le mode mentor est désactivé (pas de renfort Claude)."
 
 
+# --- Repli automatique : si Claude ne peut pas coder, Gemini prend le relais -----
+
+# Messages d'échec d'un renfort (reconnus pour déclencher le repli). Ce sont des
+# phrases exactes renvoyées par les backends ci-dessus ; si on en change une, la
+# mettre à jour ici aussi. Une « préférence de ne pas répondre » (refus de sécurité)
+# n'en fait PAS partie : on ne contourne jamais un refus en passant à Gemini.
+_ECHECS_EXACTS = frozenset({
+    "Claude Code n'est pas connecté. Lance « claude » dans le Terminal et connecte-toi.",
+    "Tu as atteint la limite de ton abonnement Claude pour le moment. Je réponds avec mes moyens.",
+    "Claude Code a eu un problème. Réessaie plus tard.",
+    "Je ne trouve pas Claude Code sur cet ordinateur.",
+    "Claude met trop de temps à répondre. Réessaie dans un instant.",
+    "La tâche a pris trop de temps, je l'ai arrêtée.",
+    "Ma clé Claude est refusée. Vérifie ANTHROPIC_API_KEY dans le fichier .env.",
+    "Claude est surchargé pour le moment. Réessaie dans une minute.",
+    "Je n'arrive pas à joindre Claude. Vérifie la connexion internet.",
+})
+_ECHECS_PREFIXES = ("Claude a renvoyé une erreur", "Pour exécuter une vraie tâche")
+
+_RE_DOSSIER = re.compile(r"Dossier de travail à utiliser[^:]*:\s*(.+)")
+_RE_ENTETE_FICHIER = r"(?im)^#{1,6}\s*fichier\s*:\s*(.+?)\s*$"
+
+
+def _renfort_a_echoue(reponse: str) -> bool:
+    """True si la réponse est un échec de capacité (quota, non connecté, panne…)."""
+    r = (reponse or "").strip()
+    return r in _ECHECS_EXACTS or r.startswith(_ECHECS_PREFIXES)
+
+
+def _extraire_fichiers(reponse: str) -> dict[str, str]:
+    """Récupère les fichiers d'une réponse « ### fichier: nom » + bloc ``` ``` ```."""
+    bouts = re.split(_RE_ENTETE_FICHIER, reponse)
+    fichiers: dict[str, str] = {}
+    for i in range(1, len(bouts), 2):
+        nom = bouts[i].strip()
+        corps = bouts[i + 1] if i + 1 < len(bouts) else ""
+        bloc = re.search(r"```[a-zA-Z0-9_]*\s*\n(.*?)```", corps, re.DOTALL)
+        contenu = (bloc.group(1) if bloc else corps).strip()
+        if nom and contenu:
+            fichiers[nom] = contenu
+    return fichiers
+
+
+def _ecrire_fichiers(folder: Path, fichiers: dict[str, str]) -> list[str]:
+    """Écrit les fichiers dans le dossier, en refusant toute sortie du dossier (anti-traversée)."""
+    base = folder.resolve()
+    ecrits = []
+    for nom, contenu in fichiers.items():
+        cible = (base / nom).resolve()
+        if base != cible and base not in cible.parents:  # jamais hors du dossier de travail
+            continue
+        cible.parent.mkdir(parents=True, exist_ok=True)
+        cible.write_text(contenu.rstrip("\n") + "\n", encoding="utf-8")
+        ecrits.append(nom)
+    return ecrits
+
+
+class MentorEnCascade:
+    """Renfort principal (Claude) doublé d'un remplaçant (Gemini).
+
+    Si Claude ne peut pas (absent, non connecté, quota épuisé, panne), Gemini prend
+    le relais — pour répondre comme pour coder. Pour coder, Gemini ne pilote PAS la
+    machine : il PROPOSE les fichiers (texte), et c'est ce module de confiance qui les
+    écrit dans l'atelier. La suite est inchangée : sandbox + tes tests + ton ✅.
+    """
+
+    def __init__(self, principal, repli):
+        self.principal = principal
+        self.repli = repli
+
+    @property
+    def available(self) -> bool:
+        return self.principal.available or self.repli.available
+
+    @property
+    def name(self) -> str:
+        if self.principal.available:
+            return f"{self.principal.name} (repli : {self.repli.name})"
+        return self.repli.name
+
+    def unavailable_reason(self) -> str:
+        return f"{self.principal.unavailable_reason()} ; et {self.repli.unavailable_reason()}"
+
+    def ask(self, question: str, context: str = "") -> str:
+        reponse = None
+        if self.principal.available:
+            reponse = self.principal.ask(question, context)
+            if not _renfort_a_echoue(reponse):
+                return reponse
+        if self.repli.available:
+            return self.repli.ask(question, context)
+        if reponse is not None:
+            return reponse
+        return f"Aucun renfort disponible : {self.unavailable_reason()}."
+
+    def delegate(self, task: str) -> str:
+        if self.principal.available:
+            reponse = self.principal.delegate(task)
+            if not _renfort_a_echoue(reponse):
+                return reponse
+            motif = reponse
+        else:
+            motif = self.principal.unavailable_reason()
+        if not self.repli.available:
+            return motif
+        return self._coder_avec_repli(task, motif)
+
+    def _coder_avec_repli(self, task: str, motif: str) -> str:
+        dossier = _RE_DOSSIER.search(task)
+        if not dossier:
+            return self.repli.ask(task)  # tâche libre (mentor) : une simple réponse suffit
+        folder = Path(dossier.group(1).strip())
+        consigne = (
+            task + "\n\nDonne CHAQUE fichier sous cette forme exacte, et rien d'autre :\n"
+            "### fichier: nom_du_fichier.py\n```python\n<contenu complet du fichier>\n```"
+        )
+        reponse = self.repli.ask(consigne)
+        if _renfort_a_echoue(reponse):
+            return f"{motif}\nEt le repli a aussi échoué : {reponse}"
+        fichiers = _extraire_fichiers(reponse)
+        if not fichiers:
+            return f"{motif}\nGemini n'a pas renvoyé de fichiers exploitables."
+        ecrits = _ecrire_fichiers(folder, fichiers)
+        return ("Claude n'a pas pu coder cette fois, Gemini a pris le relais. "
+                f"Fichiers proposés : {', '.join(ecrits)}.")
+
+
+def _choisir_repli(principal):
+    """Un repli Gemini n'a de sens que si le principal est Claude (sinon Gemini est déjà là)."""
+    if config.OFFLINE:
+        return None
+    choix = config.RENFORT_REPLI
+    if choix == "aucun":
+        return None
+    if not isinstance(principal, (SubscriptionBackend, ApiBackend)):
+        return None
+    if choix in ("gemini-cli", "gemini-abonnement") or (choix == "auto" and config.GEMINI_CLI_ENABLE):
+        return GeminiCliBackend()
+    if choix == "gemini" or (choix == "auto" and config.GEMINI_KEY):
+        return GeminiBackend()
+    return None
+
+
 class ClaudeBridge:
     def __init__(self, backend=None):
         self.backend = backend or self._from_config()
 
     @staticmethod
-    def _from_config():
+    def _principal():
         mode = config.RENFORT
         if mode == "api":
             return ApiBackend()
@@ -375,6 +520,12 @@ class ClaudeBridge:
         if mode == "aucun":
             return NoBackend()
         return SubscriptionBackend()
+
+    @staticmethod
+    def _from_config():
+        principal = ClaudeBridge._principal()
+        repli = _choisir_repli(principal)
+        return MentorEnCascade(principal, repli) if repli is not None else principal
 
     @property
     def available(self) -> bool:
