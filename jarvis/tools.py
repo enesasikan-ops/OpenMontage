@@ -118,6 +118,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from web import build_web_tools
 
         tools += build_web_tools()
+    from people import build_people_tools   # mémoire par personne (toujours disponible, local)
+
+    tools += build_people_tools()
     if drone is not None:
         from drone import build_drone_tools
 

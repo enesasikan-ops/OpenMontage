@@ -133,6 +133,7 @@ PIPER_VOICE = Path(_env(
 # --- Mémoire ---
 DATA_DIR = Path(_env("JARVIS_DOSSIER", str(Path.home() / ".jarvis")))
 MEMORY_FILE = DATA_DIR / "memoire.json"
+PEOPLE_FILE = DATA_DIR / "personnes.json"   # mémoire par personne (goûts, relations…)
 REMINDERS_FILE = DATA_DIR / "rappels.json"
 LISTS_FILE = DATA_DIR / "listes.json"
 
