@@ -62,6 +62,15 @@ class PluginError(Exception):
     pass
 
 
+def _public_functions(module) -> dict:
+    """Fonctions publiques DÉFINIES dans le module (pas importées, pas « _privées »)."""
+    import inspect
+
+    return {name: obj for name, obj in vars(module).items()
+            if inspect.isfunction(obj) and not name.startswith("_")
+            and obj.__module__ == module.__name__ and name not in ("build_tools", "on_unload")}
+
+
 class PluginManager:
     def __init__(self, plugins_dir: Path = PLUGINS_DIR, core_names=frozenset(),
                  interval_s: float = 2.0):
@@ -116,8 +125,8 @@ class PluginManager:
                 except Exception as exc:
                     raise PluginError(f"{path.name} : build_tools() a échoué ({exc})") from exc
                 tools += built
-        if not tools:
-            raise PluginError("aucun outil (il faut une fonction build_tools())")
+        if not tools and not any(_public_functions(m) for m in modules):
+            raise PluginError("rien à charger : ni build_tools(), ni fonction publique")
         names = []
         for t in tools:
             if not isinstance(t, Tool):
@@ -191,6 +200,69 @@ class PluginManager:
         if changed:
             log.info("plugins : %s", self.summary(report))
         return report
+
+    # --- API directe : enregistrer du code et appeler ses fonctions ----------------------
+
+    def save_and_load(self, plugin_name: str, source_code: str, file_name: str = "") -> PluginRecord:
+        """Enregistre `source_code` dans plugins/<plugin_name>/ et le charge à chaud.
+
+        Tout ou rien : si le code ne compile pas ou ne se charge pas, rien n'est modifié —
+        ni sur le disque, ni en mémoire — et une PluginError explique pourquoi.
+        """
+        if not NAME_RE.fullmatch(plugin_name or ""):
+            raise PluginError(f"nom de plugin invalide « {plugin_name} » (minuscules, chiffres et _)")
+        file_name = file_name or f"{plugin_name}.py"
+        if not re.fullmatch(r"[a-z][a-z0-9_]*\.py", file_name) or file_name.startswith("test_"):
+            raise PluginError(f"nom de fichier invalide « {file_name} »")
+        try:
+            compile(source_code, f"{plugin_name}/{file_name}", "exec")
+        except SyntaxError as exc:
+            raise PluginError(f"le code ne compile pas (ligne {exc.lineno} : {exc.msg})") from exc
+        folder = self.dir / plugin_name
+        target = folder / file_name
+        with self._lock:
+            new_folder = not folder.exists()
+            previous = target.read_text(encoding="utf-8") if target.exists() else None
+            folder.mkdir(parents=True, exist_ok=True)
+            target.write_text(source_code, encoding="utf-8")
+            report = self.reload()
+            if plugin_name in report["erreurs"]:
+                error = report["erreurs"][plugin_name]
+                if previous is None:                    # retour à l'état d'avant
+                    target.unlink()
+                    if new_folder and not any(folder.iterdir()):
+                        folder.rmdir()
+                else:
+                    target.write_text(previous, encoding="utf-8")
+                self.reload()
+                self.errors.pop(plugin_name, None)
+                self._failed.pop(plugin_name, None)
+                raise PluginError(f"plugin « {plugin_name} » non chargé : {error}")
+            return self.loaded[plugin_name]
+
+    def functions(self, plugin_name: str) -> list[str]:
+        with self._lock:
+            record = self._record(plugin_name)
+            return sorted({name for m in record.modules for name in _public_functions(m)})
+
+    def execute(self, plugin_name: str, function_name: str, *args, **kwargs):
+        """Appelle une fonction publique d'un plugin chargé (toujours la dernière version)."""
+        with self._lock:
+            record = self._record(plugin_name)
+            func = next((_public_functions(m)[function_name] for m in reversed(record.modules)
+                         if function_name in _public_functions(m)), None)
+        if func is None:
+            dispo = ", ".join(self.functions(plugin_name)) or "aucune"
+            raise PluginError(f"pas de fonction « {function_name} » dans « {plugin_name} » "
+                              f"(disponibles : {dispo})")
+        return func(*args, **kwargs)      # appelée hors du verrou : un rechargement peut avoir lieu
+
+    def _record(self, plugin_name: str) -> PluginRecord:
+        record = self.loaded.get(plugin_name)
+        if record is None:
+            hint = f" (erreur : {self.errors[plugin_name]})" if plugin_name in self.errors else ""
+            raise PluginError(f"plugin « {plugin_name} » non chargé{hint}")
+        return record
 
     def tools(self) -> dict[str, Tool]:
         with self._lock:

@@ -116,7 +116,7 @@ def test_removed_plugin_is_unloaded_and_cleans_up(plugins, tmp_path):
 
 
 @pytest.mark.parametrize("body, expected", [
-    ("x = 1\n", "aucun outil"),
+    ("x = 1\n", "rien à charger"),
     ("def build_tools():\n    return ['pas un outil']\n", "doivent renvoyer des Tool"),
     ("def build_tools():\n    raise RuntimeError('boum')\n", "build_tools() a échoué"),
 ])
@@ -244,3 +244,88 @@ def test_plugin_tools(plugins):
     assert "chargé : salut" in tools["recharger_extensions"].run()
     assert "salut" in tools["extensions_chargees"].run()
     assert tools["generer_capacite"].confirm is not None          # écrit du code : confirmation
+
+
+# --- API directe : save_and_load / execute (plugins faits de simples fonctions) -------------
+
+from plugin_manager import PluginError  # noqa: E402
+
+V1 = '''
+def analyser_texte(texte):
+    mots = texte.split()
+    return {"nombre_mots": len(mots), "mots": mots}
+'''
+V2 = '''
+def analyser_texte(texte):
+    mots = texte.split()
+    return {"nombre_mots": len(mots), "mots_uniques": sorted(set(mots))}
+'''
+
+
+def test_save_load_execute_and_hot_update(plugins):
+    m = PluginManager(plugins)
+    m.save_and_load(plugin_name="analyseur", source_code=V1)
+    r1 = m.execute("analyseur", "analyser_texte", texte="Ceci est un test de rechargement dynamique.")
+    assert r1["nombre_mots"] == 7
+    m.save_and_load(plugin_name="analyseur", source_code=V2)        # mise à jour à chaud
+    assert m.execute("analyseur", "analyser_texte", texte="test de test") == \
+        {"nombre_mots": 3, "mots_uniques": ["de", "test"]}
+    assert m.functions("analyseur") == ["analyser_texte"]
+
+
+def test_syntax_error_changes_nothing(plugins):
+    m = PluginManager(plugins)
+    m.save_and_load("analyseur", V1)
+    with pytest.raises(PluginError, match="ne compile pas"):
+        m.save_and_load("analyseur", "def analyser_texte(:\n")
+    assert (plugins / "analyseur" / "analyseur.py").read_text() == V1   # disque intact
+    assert m.execute("analyseur", "analyser_texte", texte="a b")["nombre_mots"] == 2
+
+
+def test_runtime_error_rolls_back_disk_and_memory(plugins):
+    m = PluginManager(plugins)
+    m.save_and_load("analyseur", V1)
+    with pytest.raises(PluginError, match="non chargé"):
+        m.save_and_load("analyseur", "import module_qui_n_existe_pas\n\ndef f():\n    pass\n")
+    assert (plugins / "analyseur" / "analyseur.py").read_text() == V1   # fichier restauré
+    assert m.execute("analyseur", "analyser_texte", texte="a")["nombre_mots"] == 1
+    assert m.errors == {}                                             # état propre
+
+
+def test_failed_new_plugin_leaves_no_trace(plugins):
+    m = PluginManager(plugins)
+    with pytest.raises(PluginError):
+        m.save_and_load("nouveau", "raise RuntimeError('boum')\n")
+    assert not (plugins / "nouveau").exists()
+    with pytest.raises(PluginError, match="non chargé"):
+        m.execute("nouveau", "f")
+
+
+def test_execute_errors(plugins):
+    m = PluginManager(plugins)
+    m.save_and_load("outils", "import os\n\ndef publique():\n    return 1\n\ndef _privee():\n    return 2\n")
+    assert m.execute("outils", "publique") == 1
+    with pytest.raises(PluginError, match="disponibles : publique"):
+        m.execute("outils", "_privee")                                 # privée : non exposée
+    with pytest.raises(PluginError):
+        m.execute("outils", "getcwd")                                  # importée (os) : non exposée
+    with pytest.raises(PluginError, match="non chargé"):
+        m.execute("inconnu", "f")
+
+
+@pytest.mark.parametrize("name, file_name", [("Mauvais", ""), ("ok", "../evil.py"), ("ok", "test_x.py")])
+def test_invalid_names_rejected(plugins, name, file_name):
+    with pytest.raises(PluginError, match="invalide"):
+        PluginManager(plugins).save_and_load(name, V1, file_name=file_name)
+    assert not plugins.exists() or not any(plugins.iterdir())
+
+
+def test_function_plugin_and_tool_plugin_coexist(plugins):
+    brain = fake_brain({"heure": core_tool()})
+    m = PluginManager(plugins)
+    m.attach(brain)
+    m.save_and_load("analyseur", V1)                                   # fonctions seulement
+    write(plugins, "salut")                                            # plugin à outils
+    m.reload()
+    assert "saluer" in brain.tools and "analyser_texte" not in brain.tools
+    assert m.execute("analyseur", "analyser_texte", texte="x")["nombre_mots"] == 1

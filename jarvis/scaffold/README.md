@@ -81,6 +81,28 @@ surveille ce dossier pendant que Jarvis tourne :
   (libérer threads, connexions…).
 
 Outils côté Jarvis : `extensions_chargees`, `recharger_extensions`, `generer_capacite`.
+
+### Utilisation directe en Python
+
+Un plugin peut aussi être un simple module de fonctions (sans `build_tools()`) :
+
+```python
+from plugin_manager import PluginManager, PluginError
+
+manager = PluginManager()
+manager.save_and_load(plugin_name="analyseur", source_code=code)      # enregistre + charge à chaud
+manager.execute("analyseur", "analyser_texte", texte="un deux trois")  # appelle la dernière version
+manager.functions("analyseur")                                          # ['analyser_texte']
+```
+
+`save_and_load` est **tout ou rien** : si le code ne compile pas ou plante au chargement, une
+`PluginError` est levée et rien ne change — ni le fichier sur le disque, ni la version en
+mémoire. `execute` n'expose que les fonctions publiques définies dans le plugin (pas les
+`_privées`, pas celles importées d'ailleurs).
+
+⚠️ `save_and_load` exécute le code reçu, avec les droits de Jarvis. Ne lui donne que du code
+de confiance (le tien, celui du générateur, ou du code généré que tu as relu) — jamais du
+code venu d'internet ou d'un message sans l'avoir lu.
 Réglages : `JARVIS_RECHARGEMENT_A_CHAUD=1` (défaut), `JARVIS_RECHARGEMENT_SECONDES=2`.
 
 ## Créer un pack pour ton architecture
