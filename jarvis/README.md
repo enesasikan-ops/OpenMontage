@@ -117,11 +117,35 @@ l'abonnement, paiement à l'usage, pense à fixer un plafond), colle-la après
 ## 4. Lancer Jarvis
 
 ```bash
-.venv/bin/python main.py          # au clavier (idéal pour tester)
-.venv/bin/python main.py --voix   # à la voix : Entrée pour parler, Entrée pour finir
+.venv/bin/python main.py                 # au clavier (idéal pour tester)
+.venv/bin/python main.py --voix          # à la voix : Entrée pour parler, Entrée pour finir
+.venv/bin/python main.py --mains-libres  # à la voix, sans clavier : dis « Jarvis »
 ```
 
-Sous Windows : `.venv\Scripts\python.exe main.py` (et `--voix`).
+Sous Windows : `.venv\Scripts\python.exe main.py` (mêmes options).
+
+### Mode mains libres
+
+Dis **« Jarvis »** n'importe où dans ta phrase : « Jarvis, quel temps fait-il ? »,
+« Qu'en penses-tu, Jarvis ? ». Après sa réponse, il reste à l'écoute 30 secondes
+(`JARVIS_ECOUTE_SECONDES`) : tu enchaînes sans redire son nom. « Merci Jarvis »
+ou « ce sera tout » le remet en veille. Ce qui ne lui est pas adressé est
+ignoré et jeté aussitôt, jamais enregistré. Tout se passe sur l'ordinateur.
+
+Limites connues : il faut un micro correct (idéalement un micro-haut-parleur de
+conférence qui annule l'écho) ; dans une pièce bruyante ou avec la télé, il peut
+se déclencher à tort ou rater son nom ; on ne peut pas l'interrompre pendant
+qu'il parle.
+
+### Personnalité
+
+Par défaut, Jarvis a le style du **majordome du film** : flegmatique, courtois,
+pince-sans-rire, il vous vouvoie. Réglages dans `.env` :
+- `JARVIS_STYLE=film` ou `ami` (chaleureux, tutoiement) ;
+- `JARVIS_TITRE=Monsieur` (ou Madame, Patron…) : comment il s'adresse à toi.
+  Vide, il utilise ton prénom ;
+- `JARVIS_VOIX_PIPER` : voix d'homme `fr_FR-tom-medium` (défaut) ou de femme
+  `fr_FR-siwis-medium`, toutes deux installées dans `voix/`.
 
 Exemples à essayer :
 - « Quelle heure est-il ? » → outil local
@@ -219,7 +243,8 @@ Les tests simulent Ollama et Claude : ils ne coûtent rien et ne demandent aucun
 
 ## Prochaines étapes
 
-- Mot de réveil « Hey Jarvis » (openWakeWord a un modèle prêt à l'emploi).
+- Mot de réveil plus robuste au bruit (openWakeWord), et pouvoir interrompre Jarvis quand il parle.
+- Idées vues dans d'autres projets Jarvis : recherche web, journal des conversations, dictée dans d'autres applications.
 - Démarrage automatique du bot Telegram à l'allumage du Mac.
 - Outils Notion (QG « Jarvis — QG » et base « Tâches Jarvis »), agenda, mails, domotique (Home Assistant) :
   ils demandent un compte ou un jeton à toi, on les ajoutera un par un.

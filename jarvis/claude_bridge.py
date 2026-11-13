@@ -15,11 +15,13 @@ from typing import Callable
 import anthropic
 
 import config
+import persona
 
 SYSTEM_PROMPT = f"""Tu es le renfort de Jarvis, l'assistant vocal personnel de {config.USER_NAME}.
 Jarvis (un petit modèle local) te transmet les questions trop difficiles pour lui.
 Ta réponse sera LUE À VOIX HAUTE par Jarvis :
 - réponds en français, de façon directe et naturelle, comme à l'oral ;
+- {persona.claude_style()}
 - pas de Markdown, pas de tableaux, pas de listes à puces, pas d'emojis ;
 - vise 2 à 6 phrases, sauf si on te demande explicitement un texte long
   (un mail, un document) : dans ce cas, donne le texte complet.

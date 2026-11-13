@@ -73,10 +73,12 @@ if ($LASTEXITCODE -ne 0) { throw "L'installation des dépendances Python a écho
 
 Step "4/7 Voix française (Piper)"
 New-Item -ItemType Directory -Force -Path "voix" | Out-Null
-$base = "https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium"
-foreach ($f in @("fr_FR-siwis-medium.onnx", "fr_FR-siwis-medium.onnx.json")) {
-    $dest = Join-Path "voix" $f
-    if (-not (Test-Path $dest)) { Invoke-WebRequest -Uri "$base/$f" -OutFile $dest -UseBasicParsing }
+$base = "https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR"
+foreach ($v in @("tom", "siwis")) {  # tom = voix d'homme (défaut), siwis = voix de femme
+    foreach ($f in @("fr_FR-$v-medium.onnx", "fr_FR-$v-medium.onnx.json")) {
+        $dest = Join-Path "voix" $f
+        if (-not (Test-Path $dest)) { Invoke-WebRequest -Uri "$base/$v/medium/$f" -OutFile $dest -UseBasicParsing }
+    }
 }
 
 Step "5/7 Configuration (.env)"
@@ -114,7 +116,7 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
 Write-Host ""
 Write-Host "✅ Jarvis est installé. Pour le lancer :" -ForegroundColor Green
 Write-Host "   .venv\Scripts\python.exe main.py          # au clavier"
-Write-Host "   .venv\Scripts\python.exe main.py --voix   # à la voix"
+Write-Host "   .venv\Scripts\python.exe main.py --mains-libres   # à la voix, sans clavier : dis « Jarvis »"
 Write-Host "   .venv\Scripts\python.exe telegram_bot.py  # sur Telegram"
 Write-Host ""
 Write-Host "Ensuite, pour optimiser le PC (en administrateur) : .\optimiser_windows.ps1"

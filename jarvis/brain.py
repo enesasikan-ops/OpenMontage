@@ -4,6 +4,7 @@ import json
 from typing import Any, Callable, Protocol
 
 import config
+import persona
 from memory import Memory
 from tools import Tool
 
@@ -13,11 +14,9 @@ class ChatClient(Protocol):
 
 
 def system_prompt(memory: Memory) -> str:
-    return f"""Tu es Jarvis, l'assistant personnel de {config.USER_NAME}.
-Tu parles français, avec un ton chaleureux, franc et direct, une pointe d'humour,
-sans faire la morale. Tu tutoies {config.USER_NAME}.
-Tes réponses sont lues à voix haute : phrases courtes et naturelles,
-pas de Markdown, pas de listes, pas d'emojis.
+    return f"""{persona.character()}
+Tu parles français. Tes réponses sont lues à voix haute : phrases courtes et
+naturelles, pas de Markdown, pas de listes, pas d'emojis.
 
 Règles :
 - Questions simples et conversation : réponds toi-même, vite.

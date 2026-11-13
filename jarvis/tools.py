@@ -11,6 +11,7 @@ from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
 import config
+import persona
 from claude_bridge import ClaudeBridge
 from memory import Memory
 
@@ -49,7 +50,7 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
                 on_status: Callable[[str], None], reminders=None, lists=None) -> dict[str, Tool]:
     """reminders / lists : stockages des compétences (skills.py). Sans eux, outils de base seuls."""
     def ask_claude(question: str, contexte: str = "") -> str:
-        on_status("Laisse-moi vérifier, je demande à Claude.")
+        on_status(persona.asking_claude())
         return claude.ask(question, contexte)
 
     tools = [

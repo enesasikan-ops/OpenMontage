@@ -63,7 +63,7 @@ CLAUDE_CLI_MODEL = _env("JARVIS_MODELE_ABONNEMENT", "")
 WHISPER_MODEL = _env("JARVIS_WHISPER", "small")  # tiny | base | small | medium | large-v3
 PIPER_VOICE = Path(_env(
     "JARVIS_VOIX_PIPER",
-    str(Path(__file__).parent / "voix" / "fr_FR-siwis-medium.onnx"),
+    str(Path(__file__).parent / "voix" / "fr_FR-tom-medium.onnx"),
 ))
 
 # --- Mémoire ---
@@ -76,6 +76,11 @@ LISTS_FILE = DATA_DIR / "listes.json"
 USER_NAME = _env("JARVIS_PRENOM", "Enes")
 TIMEZONE = _env("JARVIS_FUSEAU", "Europe/Paris")
 CITY = _env("JARVIS_VILLE", "")  # ville par défaut pour la météo
+STYLE = _env("JARVIS_STYLE", "film").strip().lower()  # "film" (majordome) | "ami"
+TITLE = _env("JARVIS_TITRE", "").strip()  # ex. Monsieur, Madame, Patron ; vide = prénom
+
+# Mode mains libres : secondes d'écoute après une réponse, sans redire « Jarvis ».
+AWAKE_SECONDS = float(_env("JARVIS_ECOUTE_SECONDES", "30"))
 
 # Nombre maximum d'allers-retours avec les outils pour une seule question.
 MAX_TOOL_ROUNDS = 6

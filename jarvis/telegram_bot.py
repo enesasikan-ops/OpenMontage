@@ -28,6 +28,7 @@ from telegram.ext import (
 from main import check_ollama  # charge aussi le fichier .env
 
 import config  # noqa: E402
+import persona  # noqa: E402
 from brain import Brain  # noqa: E402
 from claude_bridge import ClaudeBridge  # noqa: E402
 from memory import Memory  # noqa: E402
@@ -82,7 +83,7 @@ class TelegramJarvis:
             InlineKeyboardButton("❌ Non", callback_data=f"no:{key}"),
         ]])
         self._send_and_wait(self.bot.send_message(
-            self.chat_id, f"⚠️ {description}\nJe confirme ?", reply_markup=buttons))
+            self.chat_id, f"⚠️ {description}\n{persona.confirm_question()}", reply_markup=buttons))
         if not event.wait(CONFIRM_TIMEOUT_S):
             self._send_and_wait(self.bot.send_message(self.chat_id, "⌛ Pas de réponse, j'annule."))
         self._pending.pop(key, None)
@@ -187,7 +188,7 @@ class TelegramJarvis:
     async def on_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if await self._authorized(update):
             await update.effective_message.reply_text(
-                f"Bonjour {config.USER_NAME} ! Écris-moi ou envoie-moi un vocal.\n"
+                f"{persona.greeting()}\nÉcrivez-moi ou envoyez-moi un vocal.\n"
                 "/memoire : ce que je sais de toi\n/nouveau : nouvelle conversation")
 
     async def on_memory(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

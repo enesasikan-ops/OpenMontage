@@ -19,9 +19,11 @@ echo "== 2/5 Environnement Python =="
 
 echo "== 3/5 Voix française (Piper) =="
 mkdir -p voix
-BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium"
-for f in fr_FR-siwis-medium.onnx fr_FR-siwis-medium.onnx.json; do
-  [ -f "voix/$f" ] || curl -fL -o "voix/$f" "$BASE/$f"
+BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR"
+for v in tom siwis; do  # tom = voix d'homme (défaut), siwis = voix de femme
+  for f in "fr_FR-$v-medium.onnx" "fr_FR-$v-medium.onnx.json"; do
+    [ -f "voix/$f" ] || curl -fL -o "voix/$f" "$BASE/$v/medium/$f"
+  done
 done
 
 echo "== 4/5 Fichier de configuration =="
