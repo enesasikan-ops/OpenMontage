@@ -223,14 +223,22 @@ class DronePilot:
     """Couche de sécurité : borne les commandes et garde l'ordre des opérations."""
 
     def __init__(self, controller: Controller, describe: "Callable[[bytes], str] | None" = None,
-                 step_max: float = None, alt_max: float = None):
+                 step_max: float = None, alt_max: float = None,
+                 alt_legal: float = None, dist_legal: float = None, dist_max: float = None):
         self.c = controller
         self.describe = describe
         self.step_max = MAX_STEP_M if step_max is None else float(step_max)
-        self.alt_max = MAX_ALT_M if alt_max is None else float(alt_max)
+        self.alt_max = MAX_ALT_M if alt_max is None else float(alt_max)        # plafond ABSOLU
+        self.dist_max = float("inf") if dist_max is None else float(dist_max)  # éloignement ABSOLU
+        # Limites « normales » (légales) : en dessous, Jarvis vole sans rien demander.
+        # Au-dessus (mais sous le plafond absolu), il demande d'abord « vous êtes sûr ? ».
+        self.alt_legal = self.alt_max if alt_legal is None else float(alt_legal)
+        self.dist_legal = self.dist_max if dist_legal is None else float(dist_legal)
         self._ready = False
         self._flying = False
-        self._alt = 0.0  # estimation de l'altitude, pour faire respecter le plafond
+        self._alt = 0.0
+        self._x = 0.0  # position cumulée depuis le décollage (avant/arrière)
+        self._y = 0.0  # gauche/droite
 
     def _ensure_ready(self) -> "str | None":
         if self._ready:
@@ -265,7 +273,7 @@ class DronePilot:
         except Exception as exc:
             return f"Décollage impossible : {exc}"
         self._flying = True
-        self._alt = 1.2  # altitude de vol stationnaire au décollage
+        self._alt, self._x, self._y = 1.2, 0.0, 0.0
         return "Décollage. Vol stationnaire. Garde le drone à vue."
 
     def land(self) -> str:
@@ -276,7 +284,7 @@ class DronePilot:
         except Exception as exc:
             return f"Atterrissage : {exc}"
         self._flying = False
-        self._alt = 0.0
+        self._alt, self._x, self._y = 0.0, 0.0, 0.0
         return "Atterrissage en cours."
 
     def emergency(self) -> str:
@@ -287,7 +295,7 @@ class DronePilot:
         except Exception as exc:
             return f"Arrêt d'urgence : {exc}"
         self._flying = False
-        self._alt = 0.0
+        self._alt, self._x, self._y = 0.0, 0.0, 0.0
         return "Arrêt d'urgence. Le drone coupe ses moteurs."
 
     def _check_flying(self) -> "str | None":
@@ -295,25 +303,53 @@ class DronePilot:
             return "Le drone n'est pas en vol. Dis « décolle » d'abord."
         return None
 
+    def _clamped(self, forward, right, up):
+        """Déplacement demandé, ramené sous le plafond absolu (altitude et éloignement)."""
+        import math
+
+        f = self._num(forward, self.step_max)
+        r = self._num(right, self.step_max)
+        u = self._num(up, self.step_max)
+        target_alt = round(max(0.0, min(self.alt_max, self._alt + u)), 6)
+        # Éloignement horizontal depuis le décollage, borné au plafond absolu.
+        nx, ny = self._x + f, self._y + r
+        dist = math.hypot(nx, ny)
+        if dist > self.dist_max and dist > 0:
+            scale = self.dist_max / dist
+            nx, ny = nx * scale, ny * scale
+        return (round(nx - self._x, 6), round(ny - self._y, 6),
+                round(target_alt - self._alt, 6), target_alt, round(nx, 6), round(ny, 6))
+
+    def confirm_warning(self, forward: float = 0, right: float = 0, up: float = 0) -> "str | None":
+        """Si le déplacement dépasse la limite normale (légale), renvoie l'avertissement à
+        confirmer. Sinon None : pas besoin de demander."""
+        import math
+
+        _, _, _, target_alt, nx, ny = self._clamped(forward, right, up)
+        target_dist = math.hypot(nx, ny)
+        raisons = []
+        if target_alt > self.alt_legal + 1e-6:
+            raisons.append(f"monter à {target_alt:g} m, au-dessus de votre limite de {self.alt_legal:g} m")
+        if target_dist > self.dist_legal + 1e-6:
+            raisons.append(f"s'éloigner à {target_dist:g} m, au-delà de votre limite de {self.dist_legal:g} m")
+        if not raisons:
+            return None
+        return ("Attention : ça va faire " + " et ".join(raisons)
+                + ". C'est peut-être au-dessus de la loi et vous en êtes responsable. Vous êtes sûr ?")
+
     def move(self, forward: float = 0, right: float = 0, up: float = 0) -> str:
         busy = self._check_flying()
         if busy:
             return busy
-        f = self._num(forward, self.step_max)
-        r = self._num(right, self.step_max)
-        u = self._num(up, self.step_max)
-        # Barrière d'altitude : on ne dépasse ni le plafond, ni le sol.
-        capped = False
-        target_alt = round(max(0.0, min(self.alt_max, self._alt + u)), 6)
-        allowed_u = round(target_alt - self._alt, 6)
-        if abs(allowed_u - u) > 1e-6:
-            capped = True
-        u = allowed_u
+        f, r, u, target_alt, nx, ny = self._clamped(forward, right, up)
+        capped = (abs((self._num(up, self.step_max)) - u) > 1e-6
+                  or abs((self._num(forward, self.step_max)) - f) > 1e-6
+                  or abs((self._num(right, self.step_max)) - r) > 1e-6)
         try:
             self.c.move(f, r, u)
         except Exception as exc:
             return f"Déplacement impossible : {exc}"
-        self._alt = target_alt
+        self._alt, self._x, self._y = target_alt, nx, ny
         bits = []
         if f:
             bits.append(f"{'avance' if f > 0 else 'recule'} de {abs(f):g} m")
@@ -323,7 +359,7 @@ class DronePilot:
             bits.append(f"{'monte' if u > 0 else 'descend'} de {abs(u):g} m")
         msg = "D'accord, le drone " + (", ".join(bits) if bits else "ne bouge pas") + "."
         if capped and self.alt_max != float("inf"):
-            msg += f" (Je reste sous le plafond de {self.alt_max:g} m.)"
+            msg += f" (Je reste sous le plafond absolu de {self.alt_max:g} m.)"
         return msg
 
     def rotate(self, degrees: float) -> str:
@@ -373,7 +409,7 @@ def build_drone_tools(pilot: "DronePilot") -> list:
     def obj(props, required):
         return {"type": "object", "properties": props, "required": required}
 
-    metres = {"type": "number", "description": "Distance en mètres (max 5)."}
+    metres = {"type": "number", "description": "Distance en mètres."}
     return [
         Tool(name="drone_decoller",
              description="Fait décoller le drone. À confirmer.",
@@ -389,10 +425,11 @@ def build_drone_tools(pilot: "DronePilot") -> list:
              parameters=obj({}, []),
              run=pilot.emergency),
         Tool(name="drone_deplacer",
-             description=("Déplace le drone. Valeurs en mètres (max 5) : avant=forward, droite=right, "
+             description=("Déplace le drone. Valeurs en mètres : avant=forward, droite=right, "
                           "haut=up ; négatif pour reculer/gauche/descendre."),
              parameters=obj({"forward": metres, "right": metres, "up": metres}, []),
-             run=pilot.move),
+             run=pilot.move,
+             confirm=pilot.confirm_warning),  # demande confirmation seulement au-delà de la limite
         Tool(name="drone_tourner",
              description="Fait pivoter le drone sur place. Degrés positifs = droite, négatifs = gauche.",
              parameters=obj({"degres": {"type": "number", "description": "Angle en degrés (max 180)."}}, ["degres"]),

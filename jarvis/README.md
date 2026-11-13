@@ -280,9 +280,12 @@ Cette même vision servira aussi, plus tard, pour décrire une capture d'écran 
 
 Sécurité, toujours :
 - Confirmation avant le décollage ; « atterris » et « stop » passent en priorité.
-- **Simulateur** (`JARVIS_DRONE=sim`) : aucune limite, c'est virtuel.
-- **Vrai vol** : limites réglables, altitude par défaut au plafond légal (120 m / 400 ft,
-  `JARVIS_DRONE_ALT_MAX`), 20 m max par commande (`JARVIS_DRONE_PAS_MAX`). À toi de rester légal.
+- **Simulateur** (`JARVIS_DRONE=sim`) : aucune limite ni confirmation, c'est virtuel.
+- **Vrai vol** : sous la **limite normale** (légale, 120 m / 400 ft par défaut), le drone
+  vole librement. **Au-dessus**, Jarvis demande d'abord « c'est au-dessus de votre limite,
+  vous êtes sûr ? » et, si tu confirmes, va jusqu'au **plafond absolu** (500 m par défaut).
+  Réglages : `JARVIS_DRONE_ALT_MAX` (limite normale), `JARVIS_DRONE_ALT_PLAFOND` (plafond),
+  idem pour l'éloignement (`..._DIST_...`). À toi de rester légal — tu es responsable.
 - Jarvis **exécute tes ordres**, il ne vole pas en autonomie (pas de « suis cette personne »
   tout seul) : analyser une image prend 1 à 3 s, trop lent pour éviter un obstacle en vol.
 - **Garde le drone à vue** et respecte les règles (pas au-dessus des gens, pas en zone interdite).

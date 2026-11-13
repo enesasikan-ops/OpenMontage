@@ -55,7 +55,7 @@ def test_altitude_ceiling_is_enforced():
     p = DronePilot(SimDrone(), alt_max=10.0, step_max=20.0)
     p.takeoff()                     # ~1.2 m
     msg = p.move(up=20)             # demande +20 m
-    assert p.c.pos[2] == 10.0 and "plafond de 10 m" in msg
+    assert p.c.pos[2] == 10.0 and "plafond absolu de 10 m" in msg
     p.move(up=20)                   # déjà au plafond : ne monte plus
     assert p.c.pos[2] == 10.0
     p.move(up=-4)                   # redescendre reste possible
@@ -243,3 +243,72 @@ def test_simulator_has_no_ceiling():
     p.takeoff()
     msg = p.move(up=1000)
     assert p.c.pos[2] > 1000 and "plafond" not in msg
+
+
+# --- Confirmation au-delà de la limite légale ---
+
+def real_pilot(alt_legal=120, alt_max=500, dist_legal=120, dist_max=500, step_max=500):
+    return DronePilot(SimDrone(), alt_legal=alt_legal, alt_max=alt_max,
+                      dist_legal=dist_legal, dist_max=dist_max, step_max=step_max)
+
+
+def test_no_confirmation_under_the_legal_limit():
+    p = real_pilot()
+    p.takeoff()
+    assert p.confirm_warning(up=10) is None          # 11 m : largement sous 120
+    assert p.confirm_warning(forward=30) is None      # 30 m : sous 120
+
+
+def test_confirmation_asked_above_altitude_limit():
+    p = real_pilot()
+    p.takeoff()
+    w = p.confirm_warning(up=200)                      # viserait 201 m
+    assert w and "au-dessus de votre limite de 120 m" in w and "sûr" in w
+
+
+def test_confirmation_asked_above_distance_limit():
+    p = real_pilot(step_max=200)
+    p.takeoff()
+    w = p.confirm_warning(forward=200)                 # s'éloigne à 200 m
+    assert w and "au-delà de votre limite de 120 m" in w
+
+
+def test_absolute_ceiling_still_enforced():
+    # Même en confirmant, le drone ne dépasse jamais le plafond absolu.
+    p = real_pilot(alt_max=150, step_max=200)
+    p.takeoff()
+    p.move(up=500)
+    assert p.c.pos[2] == 150.0                         # plafond absolu 150, pas plus
+
+
+def test_distance_ceiling_enforced():
+    p = real_pilot(dist_max=100, step_max=500)
+    p.takeoff()
+    p.move(forward=500)                                # borné à 100 m d'éloignement
+    import math
+    assert round(math.hypot(p.c.pos[0], p.c.pos[1]), 1) == 100.0
+
+
+def test_brain_skips_confirmation_when_not_needed(tmp_path):
+    # Un déplacement sous la limite ne doit PAS déclencher de demande de confirmation.
+    from brain import Brain
+    from memory import Memory
+
+    p = real_pilot()
+    p.takeoff()
+    tools = {t.name: t for t in build_drone_tools(p)}
+    asked = []
+    all_tools = {"drone_deplacer": tools["drone_deplacer"]}
+    replies = [{"content": "", "tool_calls": [{"function": {"name": "drone_deplacer",
+                                               "arguments": {"forward": 10}}}]},
+               {"content": "C'est fait."}]
+
+    class Client:
+        def chat(self, model, messages, tools, **k):
+            return {"message": replies.pop(0)}
+
+    brain = Brain(Client(), all_tools, Memory(tmp_path / "m.json"),
+                  confirm=lambda d: asked.append(d) or True, model="t")
+    brain.reply("avance de 10 mètres")
+    assert asked == []                                 # aucune confirmation demandée
+    assert p.c.pos[0] == 10.0

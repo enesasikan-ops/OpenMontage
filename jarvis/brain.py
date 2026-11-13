@@ -82,7 +82,8 @@ class Brain:
                 description = tool.confirm(**args)
             except TypeError as exc:
                 return f"Arguments invalides pour {name} : {exc}"
-            if not self.confirm(description):
+            # Une confirmation qui renvoie None/"" veut dire : pas besoin de confirmer cette fois.
+            if description and not self.confirm(description):
                 return "L'utilisateur a refusé. Action annulée, ne réessaie pas."
         try:
             return tool.run(**args)

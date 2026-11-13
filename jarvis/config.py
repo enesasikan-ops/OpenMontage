@@ -109,10 +109,14 @@ DRONE = _env("JARVIS_DRONE", "0").strip().lower()
 DRONE_IP = _env("JARVIS_DRONE_IP", "192.168.42.1").strip()  # IP du Parrot ANAFI en Wi-Fi direct
 # Drone DIY (ArduPilot/PX4) via MAVLink. udp:127.0.0.1:14550 = simulateur ArduPilot SITL.
 DRONE_URL = _env("JARVIS_DRONE_URL", "udp:127.0.0.1:14550").strip()
-# Limites de vol. Altitude max par défaut = plafond légal EASA (120 m). À régler selon
-# la loi de ton pays. Le drone est capable de plus, mais c'est à toi de rester légal.
-DRONE_ALT_MAX = float(_env("JARVIS_DRONE_ALT_MAX", "120"))
-DRONE_STEP_MAX = float(_env("JARVIS_DRONE_PAS_MAX", "20"))
+# Limites de vol. En dessous de la limite « normale » (légale), le drone vole librement.
+# Au-dessus — mais sous le PLAFOND absolu — Jarvis demande d'abord « vous êtes sûr ? ».
+# Défauts : limite légale 120 m / 120 m d'éloignement ; plafond absolu 500 m (modèle DJI).
+DRONE_ALT_MAX = float(_env("JARVIS_DRONE_ALT_MAX", "120"))        # limite normale (légale), altitude
+DRONE_ALT_CEILING = float(_env("JARVIS_DRONE_ALT_PLAFOND", "500"))  # plafond absolu, altitude
+DRONE_DIST_MAX = float(_env("JARVIS_DRONE_DIST_MAX", "120"))      # limite normale, éloignement
+DRONE_DIST_CEILING = float(_env("JARVIS_DRONE_DIST_PLAFOND", "500"))  # plafond absolu, éloignement
+DRONE_STEP_MAX = float(_env("JARVIS_DRONE_PAS_MAX", "20"))        # déplacement max par commande
 
 # --- Vision (décrire une image : vue du drone, capture...) ---
 # "auto" (local si dispo, sinon Gemini), "local", "gemini", ou "0" pour couper.
