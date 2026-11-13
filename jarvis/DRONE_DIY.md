@@ -50,10 +50,16 @@ suffit pour voir « de temps en temps » et piloter.
 1. **Contrôleur de vol** : installe **ArduPilot** (ou PX4) sur le Pixhawk, règle-le avec
    *Mission Planner* ou *QGroundControl*. Fais les réglages de sécurité : **geofence**
    (barrière virtuelle), **retour maison** si batterie faible ou liaison perdue.
-2. **Ordinateur de bord** : installe Jarvis (ce dépôt) dessus, avec un modèle local léger
-   et un modèle de vision (`JARVIS_MODELE_VISION`). Règle :
-   - `JARVIS_DRONE=mavlink`
-   - `JARVIS_DRONE_URL=udp:127.0.0.1:14550` (le Pixhawk relié à l'ordinateur de bord)
+2. **Ordinateur de bord** : installe le mini-Jarvis avec le script prévu. Depuis le
+   mini-PC, une fois l'ordinateur de bord relié au réseau :
+   ```bash
+   ssh <user>@<adresse-du-drone> 'bash -s' < installer_embarque.sh
+   ```
+   Il installe un modèle **léger** (`qwen2.5:3b`), un modèle de **vision** (`moondream`),
+   `pymavlink`, et écrit un `.env` embarqué (`JARVIS_DRONE=mavlink`, vision locale,
+   `JARVIS_DRONE_URL=udp:127.0.0.1:14550`). **Claude Code, sur le mini-PC, peut lancer
+   cette installation à distance** pour toi. L'ordinateur de bord est petit : modèle léger
+   pour voir et réagir vite, le difficile part au Jarvis du sol ou au cloud.
 3. **Vision** : la caméra alimente la vision locale de Jarvis (voir [README](README.md)).
 
 ## Tester SANS risque (indispensable)
