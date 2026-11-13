@@ -71,7 +71,26 @@ class GrowthJournal:
         return "Idées d'amélioration en attente :\n" + "\n".join(lignes)
 
 
-def build_growth_tools(journal: GrowthJournal) -> list:
+# Fichiers sensibles que l'auto-amélioration ne doit JAMAIS modifier (sécurité en dur).
+PROTECTED = ("config.py", "claude_bridge.py", "drone.py", "security.py", "brain.py",
+             "main.py", "telegram_bot.py", "tools.py", ".env")
+
+# Consigne donnée au mentor (Claude Code) pour qu'il code une amélioration en autonomie,
+# mais sans jamais toucher au cœur sensible ni retirer les confirmations.
+SELF_IMPROVE_POLICY = """Tu ajoutes une NOUVELLE capacité à Jarvis, en autonomie, dans l'atelier.
+Règles de sécurité STRICTES (non négociables) :
+- Crée un NOUVEAU fichier pour la capacité (ex. atelier/<nom>.py) et SES TESTS (pytest).
+- Ne modifie AUCUN de ces fichiers du cœur : """ + ", ".join(PROTECTED) + """.
+- Ne retire, n'affaiblis ni ne contournes JAMAIS une confirmation : toute action qui
+  envoie, supprime, pilote, paie ou ouvre quelque chose doit demander confirmation.
+- N'ajoute pas d'accès réseau caché, pas de collecte de données, rien qui sorte en douce.
+- Écris des tests qui prouvent que ça marche, lance-les, et ne considère la tâche finie
+  que si les tests passent.
+- Termine par un résumé court en français : ce que tu as créé, où, et le résultat des tests.
+Jarvis n'intègre rien tout seul : l'utilisateur relira et validera avant activation."""
+
+
+def build_growth_tools(journal: GrowthJournal, agent=None) -> list:
     from tools import Tool
 
     s = {"type": "string"}
@@ -79,7 +98,7 @@ def build_growth_tools(journal: GrowthJournal) -> list:
     def obj(props, required):
         return {"type": "object", "properties": props, "required": required}
 
-    return [
+    tools = [
         Tool(name="noter_a_ameliorer",
              description=("Note une capacité qui manque à Jarvis, pour l'ajouter plus tard. "
                           "À utiliser quand tu ne sais pas faire quelque chose, ou quand "
@@ -91,3 +110,26 @@ def build_growth_tools(journal: GrowthJournal) -> list:
              parameters=obj({}, []),
              run=lambda: journal.text()),
     ]
+
+    if agent is not None:
+        def ameliorer(idee: str = "") -> str:
+            idee = idee.strip()
+            if not idee:
+                pend = journal.pending()
+                if not pend:
+                    return "Ma liste d'améliorations est vide, il n'y a rien à ajouter."
+                idee = pend[0]["idee"]
+            task = (f"{SELF_IMPROVE_POLICY}\n\nLa capacité à ajouter : {idee}")
+            return agent.delegate(task)
+
+        tools.append(Tool(
+            name="ameliorer_jarvis",
+            description=("Demande au mentor (Claude) d'ÉCRIRE une nouvelle capacité de Jarvis en "
+                         "autonomie, avec ses tests, dans l'atelier. Prend l'idée donnée, ou la plus "
+                         "demandée du journal. Le code n'est PAS activé : tu le relis et valides après."),
+            parameters=obj({"idee": {**s, "description": "La capacité à coder (vide = la plus demandée)."}}, []),
+            run=ameliorer,
+            confirm=lambda idee="": ("Je vais demander à Claude d'écrire cette capacité (code + tests) "
+                                     "dans l'atelier, sans toucher au cœur de Jarvis. On la validera avant "
+                                     "de l'activer. OK ?")))
+    return tools

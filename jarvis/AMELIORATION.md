@@ -47,6 +47,24 @@ En mode mentor (`JARVIS_MENTOR=1`), Claude Code :
   Jarvis devient plus malin, sans changer son code.
 - **Nouvelles versions du code** : `git pull` récupère les améliorations validées.
 
+## Mode plus autonome (le mentor écrit presque tout)
+
+Avec le mode mentor activé (`JARVIS_MENTOR=1`), Jarvis a l'outil **`ameliorer_jarvis`** :
+
+> « Jarvis, améliore-toi » (ou « ajoute-toi la capacité la plus demandée »)
+
+Claude Code fait alors **en autonomie** : il prend l'idée (ou la plus demandée du journal),
+conçoit la capacité, écrit le code **et ses tests**, lance les tests, documente — tout seul,
+dans l'atelier. Tu n'as rien à écrire.
+
+Ce qui reste à toi : **relire et activer**. Le code auto-écrit attend dans l'atelier ; tu le
+valides avant qu'il entre dans le Jarvis qui pilote le drone, les caméras et le PC.
+
+Deux règles en dur que l'auto-amélioration ne peut pas enfreindre :
+- elle **ne modifie jamais** le cœur sensible (`config.py`, `drone.py`, `security.py`,
+  la logique de confirmation, `.env`...) ;
+- elle **ne retire jamais** une confirmation avant une action dangereuse.
+
 ## Les garde-fous (importants)
 
 - Jarvis **ne modifie pas son propre code sans supervision**. Il propose, un humain dispose.

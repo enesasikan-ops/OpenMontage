@@ -133,7 +133,7 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     if growth is not None:
         from growth import build_growth_tools
 
-        tools += build_growth_tools(growth)
+        tools += build_growth_tools(growth, agent=agent)
     if gemini is not None and gemini.available:
         def ask_gemini(question: str, contexte: str = "") -> str:
             on_status("Je demande à Gemini.")
