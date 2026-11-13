@@ -74,10 +74,19 @@ class Speaker:
             raise RuntimeError(f"Voix introuvable : {voice_path}. Relance l'installeur.")
         self.voice_path = voice_path
 
+    def command(self, path: Path) -> list[str]:
+        """Commande Piper avec la prosodie (pose, pauses, expressivité) pour une voix plus humaine."""
+        return [
+            self.piper, "--model", str(self.voice_path), "--output_file", str(path),
+            "--length_scale", str(config.PIPER_VITESSE),       # débit (plus posé si > 1)
+            "--sentence_silence", str(config.PIPER_PAUSES),    # pauses entre phrases (respiration)
+            "--noise_scale", str(config.PIPER_EXPRESSIVITE),   # variation d'intonation
+        ]
+
     def synthesize(self, text: str, path: Path) -> None:
         """Écrit la voix de Jarvis dans un fichier WAV."""
         subprocess.run(
-            [self.piper, "--model", str(self.voice_path), "--output_file", str(path)],
+            self.command(path),
             input=text.encode("utf-8"), check=True, capture_output=True,
         )
 

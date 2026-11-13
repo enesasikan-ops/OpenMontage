@@ -150,6 +150,11 @@ PIPER_VOICE = Path(_env(
     "JARVIS_VOIX_PIPER",
     str(Path(__file__).parent / "voix" / "fr_FR-tom-medium.onnx"),
 ))
+# Prosodie : rendre la voix plus humaine (pose, pauses pour respirer, expressivité).
+# vitesse > 1 = plus posé ; pauses = silence entre phrases ; expressivité = variation d'intonation.
+PIPER_VITESSE = float(_env("JARVIS_VOIX_VITESSE", "1.06"))      # length_scale
+PIPER_PAUSES = float(_env("JARVIS_VOIX_PAUSES", "0.35"))        # sentence_silence (secondes)
+PIPER_EXPRESSIVITE = float(_env("JARVIS_VOIX_EXPRESSIVITE", "0.7"))  # noise_scale (0.3 = sobre, 1 = ample)
 
 # --- Mémoire ---
 DATA_DIR = Path(_env("JARVIS_DOSSIER", str(Path.home() / ".jarvis")))
