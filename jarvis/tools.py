@@ -47,7 +47,8 @@ def _now_text() -> str:
 
 
 def build_tools(memory: Memory, claude: ClaudeBridge,
-                on_status: Callable[[str], None], reminders=None, lists=None) -> dict[str, Tool]:
+                on_status: Callable[[str], None], reminders=None, lists=None,
+                sentinel=None) -> dict[str, Tool]:
     """reminders / lists : stockages des compétences (skills.py). Sans eux, outils de base seuls."""
     def ask_claude(question: str, contexte: str = "") -> str:
         on_status(persona.asking_claude())
@@ -106,5 +107,5 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     if reminders is not None and lists is not None:
         from skills import build_skills  # import tardif : skills.py importe Tool d'ici
 
-        tools += build_skills(reminders, lists)
+        tools += build_skills(reminders, lists, sentinel)
     return {t.name: t for t in tools}

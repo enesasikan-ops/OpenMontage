@@ -399,9 +399,31 @@ def _obj(properties: dict, required: list[str]) -> dict:
     return {"type": "object", "properties": properties, "required": required}
 
 
-def build_skills(reminders: Reminders, lists: Lists) -> list[Tool]:
+def build_skills(reminders: Reminders, lists: Lists, sentinel=None) -> list[Tool]:
     s = {"type": "string"}
-    return [
+    security_tools = []
+    if sentinel is not None:
+        from security import start_antivirus_scan
+
+        security_tools = [
+            Tool(
+                name="rapport_securite",
+                description=("Fait le point sur la sécurité de l'ordinateur : programmes qui acceptent des "
+                             "connexions du réseau, appareils sur le réseau local, pare-feu, menaces "
+                             "détectées, comptes administrateur. À utiliser pour « rapport de sécurité », "
+                             "« sommes-nous en sécurité ? », « quelqu'un nous attaque ? »."),
+                parameters=_obj({}, []),
+                run=sentinel.report,
+            ),
+            Tool(
+                name="analyse_antivirus",
+                description="Lance une analyse antivirus rapide de l'ordinateur avec Windows Defender.",
+                parameters=_obj({}, []),
+                run=start_antivirus_scan,
+                confirm=lambda: "Je vais lancer une analyse antivirus rapide de l'ordinateur.",
+            ),
+        ]
+    return security_tools + [
         Tool(
             name="rappeler",
             description=("Programme un rappel : Jarvis préviendra l'utilisateur le moment venu. "

@@ -33,6 +33,7 @@ from brain import Brain  # noqa: E402
 from claude_bridge import ClaudeBridge  # noqa: E402
 from memory import Memory  # noqa: E402
 from proactive import Proactive  # noqa: E402
+from security import Sentinel  # noqa: E402
 from skills import Lists, Reminders, ReminderWatcher  # noqa: E402
 from tools import build_tools  # noqa: E402
 
@@ -247,9 +248,11 @@ def main() -> None:
         log.warning("Voix désactivée (%s) : le bot répondra par écrit uniquement.", exc)
 
     reminders, lists = Reminders(config.REMINDERS_FILE), Lists(config.LISTS_FILE)
+    sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
 
     def brain_factory(confirm, on_status):
-        tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists)
+        tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,
+                            sentinel=sentinel)
         return Brain(client, tools, memory, confirm)
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)
@@ -257,7 +260,8 @@ def main() -> None:
            .post_init(jarvis.on_startup).build())
     jarvis.register(app)
     ReminderWatcher(reminders, notify=jarvis.notify_owner).start()
-    Proactive(reminders, lists, notify=jarvis.notify_owner).start()
+    Proactive(reminders, lists, security=sentinel.check if sentinel else None,
+              notify=jarvis.notify_owner).start()
     log.info("Jarvis est en ligne sur Telegram (Ctrl+C pour arrêter).")
     if allowed_id is None:
         log.info("Envoie /start au bot : il te donnera ton identifiant à mettre dans .env.")

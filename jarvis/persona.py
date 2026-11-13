@@ -98,3 +98,11 @@ def alert_intro() -> str:
     if is_film():
         return f"Pardonnez l'interruption, {title()}, mais"
     return "Petit signalement :"
+
+
+def security_alert() -> str:
+    return f"Alerte de sécurité, {title()} :" if is_film() else "Alerte de sécurité :"
+
+
+def security_info() -> str:
+    return f"Pour votre information, {title()} :" if is_film() else "Pour info :"

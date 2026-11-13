@@ -87,6 +87,10 @@ ALERTS = _env("JARVIS_ALERTES", "1") == "1"
 # Heures de silence : ni briefing ni alerte (les rappels, eux, passent toujours).
 QUIET_HOURS = _env("JARVIS_SILENCE", "22:00-07:00").strip()
 PROACTIVE_FILE = DATA_DIR / "initiatives.json"
+# Sentinelle : surveille les signes d'intrusion (nouveaux programmes en écoute, nouveaux
+# appareils sur le réseau, pare-feu coupé, menaces Defender...). "0" pour la couper.
+SENTINEL = _env("JARVIS_SENTINELLE", "1") == "1"
+SENTINEL_FILE = DATA_DIR / "sentinelle.json"
 
 # Mode mains libres : secondes d'écoute après une réponse, sans redire « Jarvis ».
 AWAKE_SECONDS = float(_env("JARVIS_ECOUTE_SECONDES", "30"))

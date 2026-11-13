@@ -162,6 +162,7 @@ Exemples à essayer :
 | **Calcul exact** | « Combien font 1 250 fois 18 % ? », « Racine de 144 » | Sur ton ordinateur |
 | **Météo** | « Quel temps fait-il à Lyon ? », « Il pleut demain ? » | Seul le nom de la ville part vers open-meteo.com (gratuit, sans compte). Règle `JARVIS_VILLE` pour ta ville habituelle. Coupée en mode hors ligne. |
 | **Listes** | « Ajoute du lait à la liste de courses », « Lis ma liste », « Retire le lait », « Ajoute Dune à la liste films » | Sur ton ordinateur |
+| **Sécurité** | « Rapport de sécurité », « Lance une analyse antivirus » (avec confirmation) | Sur ton ordinateur |
 | **État du PC** | « Le PC est en bonne santé ? » → disque, mémoire, processeur, durée d'allumage, et sous Windows l'état de l'antivirus Defender | Sur ton ordinateur (lecture seule) |
 | **Mémoire** | « Retiens que… », « Oublie… » (avec confirmation) | Sur ton ordinateur |
 | **Renfort Claude** | Questions difficiles, rédaction, code | Anthropic, uniquement quand il passe la main |
@@ -181,6 +182,34 @@ celle de Windows Defender.
 Les messages arrivent là où Jarvis tourne : à voix haute en mode vocal, sur
 Telegram si le bot est lancé. Si les deux tournent, le briefing n'est donné
 qu'une fois. Jarvis ne fait que **prévenir** : il ne corrige rien tout seul.
+
+## La sentinelle (sécurité)
+
+Jarvis **ne remplace ni l'antivirus ni le pare-feu** et ne bloque aucune attaque :
+c'est le travail de Windows Defender. Il joue le rôle du veilleur : il mémorise
+l'état normal de la machine, puis vérifie toutes les 5 minutes ce qui a changé.
+
+| Ce qu'il remarque | Gravité | Quand il le dit |
+|---|---|---|
+| Menace détectée par Windows Defender | Critique | Tout de suite, même la nuit |
+| Nouveau compte administrateur | Critique | Tout de suite, même la nuit |
+| Pare-feu Windows désactivé | Critique | Tout de suite, même la nuit |
+| Nouveau programme qui accepte des connexions venant du réseau | Information | Tout de suite, ou au matin si c'est la nuit |
+| Nouveau programme lancé au démarrage | Information | Idem |
+| Appareil inconnu sur le réseau local | Information | Idem |
+
+À la demande : « Jarvis, rapport de sécurité », « sommes-nous en sécurité ? »,
+« lance une analyse antivirus » (après ta confirmation).
+
+Limites à connaître :
+- Au premier lancement, il mémorise l'état actuel **comme normal** : si la machine
+  est déjà compromise, il ne le verra pas. Installe-le sur un PC sain.
+- Chaque nouveauté est signalée une fois. Beaucoup seront légitimes (un logiciel
+  que tu viens d'installer, le téléphone d'un invité) : c'est à toi de juger.
+- Il ne voit que les appareils avec lesquels le PC a déjà échangé, pas tout le réseau.
+- Un pirate qui a pris le contrôle du PC peut aussi arrêter Jarvis.
+- Pare-feu, menaces, comptes et démarrage ne sont surveillés que sous Windows.
+- Tout est en lecture seule et reste sur l'ordinateur. `JARVIS_SENTINELLE=0` la coupe.
 
 ## Trouver la configuration la plus rapide (banc d'essai)
 

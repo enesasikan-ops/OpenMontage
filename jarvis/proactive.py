@@ -6,6 +6,8 @@
 - Alertes (JARVIS_ALERTES=1) : disque presque plein, antivirus désactivé,
   redémarrage conseillé. Chaque problème est signalé au plus une fois par jour.
 - Heures de silence (JARVIS_SILENCE=22:00-07:00) : rien de tout cela la nuit.
+- Sentinelle (JARVIS_SENTINELLE=1, voir security.py) : vérifiée toutes les 5 minutes ;
+  les alertes critiques passent même la nuit, les simples nouveautés attendent le matin.
 
 Les messages sont construits sans le modèle local : ils arrivent même s'il est occupé.
 """
@@ -21,6 +23,7 @@ from skills import JsonStore, Lists, Reminders
 
 BRIEFING_WINDOW = timedelta(hours=3)
 ALERT_EVERY = timedelta(hours=1)
+SECURITY_EVERY = timedelta(minutes=5)
 
 
 def parse_time(text: str) -> dtime | None:
@@ -50,6 +53,7 @@ class Proactive(threading.Thread):
                  now: Callable[[], datetime] = skills._now,
                  weather: Callable[[], str] = skills.weather,
                  alerts: Callable[[], dict] = skills.pc_alerts,
+                 security: Callable[[], list] | None = None,
                  interval_s: float = 60):
         super().__init__(daemon=True, name="jarvis-initiatives")
         self.reminders, self.lists, self.notify = reminders, lists, notify
@@ -58,6 +62,9 @@ class Proactive(threading.Thread):
         self.state = JsonStore(config.PROACTIVE_FILE, {"dernier_briefing": "", "alertes": {}})
         self._halt = threading.Event()
         self._last_alert_check: datetime | None = None
+        self.security = security
+        self._last_security_check: datetime | None = None
+        self._held: list[str] = []  # nouveautés non critiques, gardées pendant les heures de silence
 
     # --- Briefing ------------------------------------------------------------------
 
@@ -104,8 +111,30 @@ class Proactive(threading.Thread):
 
     # --- Boucle ----------------------------------------------------------------------
 
+    def _security_tick(self, now: datetime) -> None:
+        """Sentinelle : les alertes critiques partent tout de suite, même la nuit."""
+        if self.security is None:
+            return
+        due = (self._last_security_check is None
+               or now - self._last_security_check >= SECURITY_EVERY)
+        if due:
+            self._last_security_check = now
+            try:
+                events = self.security()
+            except Exception as exc:
+                print(f"[sentinelle] {exc}")
+                events = []
+            critical = [text for is_critical, text in events if is_critical]
+            self._held += [text for is_critical, text in events if not is_critical]
+            if critical:
+                self.notify(persona.security_alert() + " " + _join(critical) + ".")
+        if self._held and not in_quiet_hours(now):
+            self.notify(persona.security_info() + " " + _join(self._held) + ".")
+            self._held = []
+
     def tick(self) -> None:
         now = self.now()
+        self._security_tick(now)
         if in_quiet_hours(now):
             return
         # Relit l'état sur le disque : si le mode vocal et le bot Telegram tournent

@@ -18,6 +18,7 @@ from brain import Brain  # noqa: E402
 from claude_bridge import ClaudeBridge  # noqa: E402
 from memory import Memory  # noqa: E402
 from proactive import Proactive  # noqa: E402
+from security import Sentinel  # noqa: E402
 from skills import Lists, Reminders, ReminderWatcher  # noqa: E402
 from tools import build_tools  # noqa: E402
 
@@ -110,10 +111,13 @@ def main() -> None:
         return is_yes(answer) if listener else answer.strip().lower() in ("o", "oui", "y", "yes", "ok")
 
     reminders, lists = Reminders(config.REMINDERS_FILE), Lists(config.LISTS_FILE)
-    tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists)
+    sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
+    tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists,
+                            sentinel=sentinel)
     brain = Brain(client, tools, memory, confirm)
     ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
-    Proactive(reminders, lists, notify=lambda text: say(f"\n{text}")).start()
+    Proactive(reminders, lists, security=sentinel.check if sentinel else None,
+              notify=lambda text: say(f"\n{text}")).start()
 
     if claude.available:
         renfort = f"renfort : {claude.name}"
