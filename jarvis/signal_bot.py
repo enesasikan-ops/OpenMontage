@@ -56,6 +56,7 @@ class SignalJarvis:
         self.core = None                       # CoreImprover (changements du cœur), facultatif
         self._core_pending = None              # proposition de cœur en attente de ta validation
         self.integrity = None                  # tripwire d'intégrité du cœur, facultatif
+        self.backup = None                     # CoreBackup : restaurer le cœur si trafiqué
         self.brain = brain_factory(self._confirmer, self._statut)
 
     # --- Sorties vers toi --------------------------------------------------------
@@ -118,6 +119,14 @@ class SignalJarvis:
             else:
                 self.envoyer("La surveillance d'intégrité n'est pas active.")
             return
+        # Défense active : sauvegarder l'état sain du cœur, ou restaurer un fichier trafiqué.
+        if re.match(r"^\s*sauvegarde\s+c(?:œ|oe)ur\b", texte, re.IGNORECASE):
+            self._sauvegarder_coeur()
+            return
+        restaure = re.match(r"^\s*restaure[r]?\s+c(?:œ|oe)ur\s+(?P<fichier>\S+)", texte, re.IGNORECASE)
+        if restaure:
+            self._restaurer_coeur(restaure.group("fichier"))
+            return
 
         # 3. Décision sur une proposition d'amélioration (valide 3 / rejette 3 / oui / non).
         decision = self._decision_proposition(texte)
@@ -170,9 +179,32 @@ class SignalJarvis:
             message = self.core.appliquer(prop)
             if self.integrity is not None:
                 self.integrity.rebaser()   # ce changement est validé : on accepte la nouvelle empreinte
+            if self.backup is not None:
+                self.backup.sauvegarder()  # le nouvel état validé devient la référence saine
             self.envoyer(message)
         except Exception as exc:
             self.envoyer(f"Application impossible : {exc}")
+
+    def _sauvegarder_coeur(self) -> None:
+        if self.backup is None:
+            self.envoyer("La défense du cœur n'est pas active.")
+            return
+        n = self.backup.sauvegarder()
+        self.envoyer(f"🛡️ État sain du cœur sauvegardé ({n} fichiers). "
+                     "Je pourrai restaurer si on les trafique.")
+
+    def _restaurer_coeur(self, fichier: str) -> None:
+        if self.backup is None:
+            self.envoyer("La défense du cœur n'est pas active.")
+            return
+        try:
+            message = self.backup.restaurer(fichier)
+        except Exception as exc:
+            self.envoyer(f"Restauration impossible : {exc}")
+            return
+        if self.integrity is not None:
+            self.integrity.rebaser()   # le fichier est revenu à l'état sain : on réaligne la référence
+        self.envoyer("🛡️ " + message)
 
     def _decision_proposition(self, texte: str) -> "tuple[bool, int] | None":
         m = _PROPOSITION.match(texte)
@@ -346,13 +378,17 @@ def main() -> None:
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,
               notify=jarvis.notify_owner).start()
 
-    # Cybersurveillance continue : la machine ET le code de Jarvis lui-même.
+    # Cybersurveillance continue + défense active : la machine ET le code de Jarvis lui-même.
     if config.CYBERWATCH:
         from core_integrity import CoreIntegrity
         from cyberwatch import SecurityWatcher
+        from defense import CoreBackup, EvidenceLog
         jarvis.integrity = CoreIntegrity(config.DATA_DIR / "integrite_coeur.json")
+        jarvis.backup = CoreBackup(config.DATA_DIR / "sauvegarde_coeur")
+        jarvis.backup.sauvegarder()            # instantané sain au démarrage
+        evidence = EvidenceLog(config.DATA_DIR / "preuves_securite.json")
         SecurityWatcher(jarvis.notify_owner, sentinel=sentinel, integrity=jarvis.integrity,
-                        interval_s=config.CYBERWATCH_INTERVAL).start()
+                        interval_s=config.CYBERWATCH_INTERVAL, evidence=evidence).start()
     if plugins is not None:
         plugins.attach(jarvis.brain)
         plugins.reload()

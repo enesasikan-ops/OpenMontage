@@ -185,6 +185,28 @@ def test_coeur_rejet_n_applique_rien():
     assert not any(a[0] == "appliquer" for a in vu)
 
 
+# --- Défense active : sauvegarde et restauration du cœur ---
+
+def test_sauvegarde_coeur():
+    bot, sorties = _bot()
+    vu = []
+    bot.backup = NS(sauvegarder=lambda: vu.append("save") or 9, restaurer=lambda f: "")
+    bot.traiter(OWNER, "sauvegarde cœur")
+    assert vu == ["save"]
+    assert sorties.attendre("sauvegardé")
+
+
+def test_restaure_coeur_et_realigne_la_reference():
+    bot, sorties = _bot()
+    vu = []
+    bot.backup = NS(sauvegarder=lambda: 1,
+                    restaurer=lambda f: vu.append(("restaure", f)) or f"{f} restauré depuis la sauvegarde.")
+    bot.integrity = NS(rebaser=lambda: vu.append("rebaser") or "ref maj")
+    bot.traiter(OWNER, "restaure cœur brain.py")
+    assert ("restaure", "brain.py") in vu and "rebaser" in vu   # restauré PUIS référence réalignée
+    assert sorties.attendre("restauré")
+
+
 def test_confirmation_prioritaire_sur_proposition():
     # Si une confirmation est en attente, « oui » répond à ELLE, pas à une proposition.
     holder = {}

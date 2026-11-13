@@ -19,13 +19,15 @@ INTERVALLE_S = 300  # 5 min par défaut
 
 class SecurityWatcher(threading.Thread):
     def __init__(self, notify: Callable[[str], None], sentinel=None, integrity=None,
-                 interval_s: float = INTERVALLE_S, quiet: "Callable[[], bool] | None" = None):
+                 interval_s: float = INTERVALLE_S, quiet: "Callable[[], bool] | None" = None,
+                 evidence=None):
         super().__init__(daemon=True, name="jarvis-cyberwatch")
         self.notify = notify
         self.sentinel = sentinel
         self.integrity = integrity
         self.interval_s = interval_s
         self.quiet = quiet
+        self.evidence = evidence          # EvidenceLog : garde une trace des alertes critiques
         self._halt = threading.Event()
         self._vus: set[str] = set()
 
@@ -51,6 +53,11 @@ class SecurityWatcher(threading.Thread):
             nouvelles.append((critique, message))
 
         for critique, message in nouvelles:
+            if critique and self.evidence is not None:    # garder la preuve des alertes critiques
+                try:
+                    self.evidence.consigner(message)
+                except Exception:
+                    log.exception("journal de preuves")
             prefixe = "🚨 ALERTE SÉCURITÉ" if critique else "🛡️"
             try:
                 self.notify(f"{prefixe} {message}")

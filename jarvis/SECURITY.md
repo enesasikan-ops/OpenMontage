@@ -63,7 +63,11 @@ qui est sensible passe par une **confirmation** du propriétaire.
   propriétaire « rebase » la référence (commande `rebase cœur`). Limite : la référence est
   un fichier local — un attaquant qui modifie le code peut aussi la modifier ; c'est un
   signal précoce, à compléter par des droits de fichiers stricts et un compte dédié.
-- ~350 tests automatisés, dont des tests de sécurité dédiés.
+- **Défense active** (`defense.py`, sur la machine, jamais offensive) : journal horodaté
+  des alertes critiques (preuves) et **copie saine du cœur** restaurable si on le trafique
+  (`restaure cœur <fichier>`, sur confirmation ; `sauvegarde cœur` pour refaire la référence
+  après une install/mise à jour saine). Pas de « hack back » : aucune action contre un tiers.
+- ~360 tests automatisés, dont des tests de sécurité dédiés.
 
 ## RCE par conception (le risque principal, assumé)
 

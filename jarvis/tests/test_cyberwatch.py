@@ -29,6 +29,16 @@ def test_ne_notifie_pas_deux_fois_la_meme_alerte():
     assert len(envoyes) == 1    # signalée une seule fois
 
 
+def test_les_alertes_critiques_sont_consignees():
+    preuves = []
+    evidence = NS(consigner=lambda m: preuves.append(m))
+    integrity = NS(verifier=lambda: [(True, "fichier du cœur MODIFIÉ : brain.py")])
+    sentinel = NS(check=lambda: [(False, "info non critique")])
+    w = SecurityWatcher(lambda m: None, sentinel=sentinel, integrity=integrity, evidence=evidence)
+    w.un_tour()
+    assert preuves == ["fichier du cœur MODIFIÉ : brain.py"]   # seulement le critique
+
+
 def test_un_composant_qui_plante_ne_casse_pas_le_tour():
     envoyes = []
     def boom():
