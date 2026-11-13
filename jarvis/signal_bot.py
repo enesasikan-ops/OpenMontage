@@ -438,10 +438,22 @@ def main() -> None:
         proposals.hot_reload = plugins.reload
     if config.MQTT:   # annonces d'arrivée (caméras Frigate/Double Take)
         from arrivals import ArrivalWatcher, texte_arrivee
-        ArrivalWatcher(
-            lambda nom, cam, connu: jarvis.notify_owner(texte_arrivee(nom, cam, connu)),
-            host=config.MQTT_HOST, port=config.MQTT_PORT, topic=config.MQTT_TOPIC,
-            username=config.MQTT_USER, password=config.MQTT_PASS).demarrer()
+        from ptz import PtzController, regard_sur_zone
+        from skills import JsonStore
+        _ptz = PtzController(JsonStore(config.PTZ_FILE, {}))
+        _look = cameras.look if cameras is not None else None
+
+        def _sur_arrivee(nom, cam, connu):
+            texte = texte_arrivee(nom, cam, connu)
+            if config.AUTO_REGARD and _look is not None:   # oriente la caméra et regarde
+                desc = regard_sur_zone(_ptz, _look, cam)
+                if desc:
+                    texte += f" J'y jette un œil : {desc}"
+            jarvis.notify_owner(texte)
+
+        ArrivalWatcher(_sur_arrivee, host=config.MQTT_HOST, port=config.MQTT_PORT,
+                       topic=config.MQTT_TOPIC, username=config.MQTT_USER,
+                       password=config.MQTT_PASS).demarrer()
 
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,

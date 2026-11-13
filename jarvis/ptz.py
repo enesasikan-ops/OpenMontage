@@ -135,6 +135,29 @@ class PatrolController:
         return "Ronde terminée. " + " ".join(f"{l}." for l in lignes)
 
 
+def regard_sur_zone(ptz: PtzController, look: Callable, zone: str, settle_s: float = 2.0) -> "str | None":
+    """Oriente une caméra PTZ vers `zone` (si une position correspond) et décrit la vue.
+
+    Sans danger : bouger une caméra est réversible, donc ça se fait en autonomie.
+    Renvoie la description, ou None si aucune caméra ne couvre cette zone.
+    """
+    z = (zone or "").strip().lower()
+    if not z:
+        return None
+    for cam in ptz.cameras():
+        for nom, token in ptz.presets(cam).items():
+            p = nom.strip().lower()
+            if p == z or p in z or z in p:        # la position correspond à la zone détectée
+                try:
+                    ptz.aller_preset(cam, token)
+                    time.sleep(settle_s)
+                    return look(cam)
+                except Exception:
+                    log.exception("auto-regard %s/%s", cam, nom)
+                    return None
+    return None
+
+
 def build_ptz_tools(book: "JsonStore | None" = None, look: "Callable | None" = None) -> list:
     """Outils de caméra motorisée, seulement si des caméras PTZ sont configurées.
     `look(camera) -> str` (facultatif) active la ronde (« fais le tour »)."""

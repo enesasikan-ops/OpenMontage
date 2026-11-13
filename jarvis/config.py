@@ -111,6 +111,9 @@ MQTT_PORT = int(_env("JARVIS_MQTT_PORT", "1883"))
 MQTT_TOPIC = _env("JARVIS_MQTT_SUJET", "double-take/matches/#")
 MQTT_USER = _env("JARVIS_MQTT_USER", "")
 MQTT_PASS = _env("JARVIS_MQTT_PASS", "")
+# Auto-regard : sur détection, Jarvis oriente une caméra motorisée vers la zone et décrit.
+# Sans danger (bouger une caméra est réversible), donc autonome. 1 = activé.
+AUTO_REGARD = _env("JARVIS_AUTO_REGARD", "1") == "1"
 
 # --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
 # Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais

@@ -6,7 +6,7 @@ from types import SimpleNamespace as NS
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ptz import PatrolController, PtzController, build_ptz_tools  # noqa: E402
+from ptz import PatrolController, PtzController, build_ptz_tools, regard_sur_zone  # noqa: E402
 
 
 def _book(data=None):
@@ -96,6 +96,22 @@ def test_ronde_sans_positions():
     ptz = PtzController(_book(), preset_mover=lambda *a: None)   # pas de presets
     out = PatrolController(ptz, lambda c: "x").tour("jardin")
     assert "pas de positions" in out
+
+
+# --- Auto-regard sur détection ---
+
+def test_auto_regard_oriente_vers_la_zone_et_decrit():
+    vus = []
+    ptz = PtzController(_book_presets(), preset_mover=lambda infos, token: vus.append(token))
+    desc = regard_sur_zone(ptz, lambda cam: "un livreur", "portail", settle_s=0)
+    assert vus == ["1"]             # est allé à la position « portail »
+    assert desc == "un livreur"
+
+
+def test_auto_regard_zone_non_couverte():
+    ptz = PtzController(_book_presets(), preset_mover=lambda *a: None)
+    assert regard_sur_zone(ptz, lambda c: "x", "cave", settle_s=0) is None
+    assert regard_sur_zone(ptz, lambda c: "x", "", settle_s=0) is None
 
 
 def test_outil_ronde_seulement_avec_look_et_presets():
