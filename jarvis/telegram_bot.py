@@ -31,6 +31,7 @@ import config  # noqa: E402
 from brain import Brain  # noqa: E402
 from claude_bridge import ClaudeBridge  # noqa: E402
 from memory import Memory  # noqa: E402
+from skills import Lists, Reminders, ReminderWatcher  # noqa: E402
 from tools import build_tools  # noqa: E402
 
 log = logging.getLogger("jarvis.telegram")
@@ -86,6 +87,19 @@ class TelegramJarvis:
             self._send_and_wait(self.bot.send_message(self.chat_id, "⌛ Pas de réponse, j'annule."))
         self._pending.pop(key, None)
         return answer[0]
+
+    def notify_owner(self, text: str) -> None:
+        """Message spontané au propriétaire (rappels). Appelé depuis un thread."""
+        if self.allowed_id is None or self.loop is None or self.bot is None:
+            log.warning("Rappel non envoyé (bot pas encore prêt) : %s", text)
+            return
+        self._send_and_wait(self.bot.send_message(self.allowed_id, text))
+
+    async def on_startup(self, app: Application) -> None:
+        # Mémorise le bot et la boucle dès le démarrage : les rappels doivent
+        # partir même si aucun message n'a encore été reçu.
+        self.bot = app.bot
+        self.loop = asyncio.get_running_loop()
 
     # --- Sécurité --------------------------------------------------------------
 
@@ -230,12 +244,17 @@ def main() -> None:
     except Exception as exc:
         log.warning("Voix désactivée (%s) : le bot répondra par écrit uniquement.", exc)
 
+    reminders, lists = Reminders(config.REMINDERS_FILE), Lists(config.LISTS_FILE)
+
     def brain_factory(confirm, on_status):
-        return Brain(client, build_tools(memory, claude, on_status=on_status), memory, confirm)
+        tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists)
+        return Brain(client, tools, memory, confirm)
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)
-    app = Application.builder().token(token).concurrent_updates(True).build()
+    app = (Application.builder().token(token).concurrent_updates(True)
+           .post_init(jarvis.on_startup).build())
     jarvis.register(app)
+    ReminderWatcher(reminders, notify=jarvis.notify_owner).start()
     log.info("Jarvis est en ligne sur Telegram (Ctrl+C pour arrêter).")
     if allowed_id is None:
         log.info("Envoie /start au bot : il te donnera ton identifiant à mettre dans .env.")

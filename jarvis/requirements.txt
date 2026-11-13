@@ -2,6 +2,7 @@
 ollama>=0.6
 anthropic>=2.8
 python-dotenv>=1.0
+psutil>=6.0
 
 # Voix (mode --voix)
 faster-whisper>=1.1

@@ -130,6 +130,21 @@ Exemples à essayer :
 - « Oublie ce que tu sais sur le café » → demande ta confirmation
 - « Au revoir » → quitte
 
+## Ce que Jarvis sait faire (ses compétences)
+
+| Compétence | Exemples | Où vont les données |
+|---|---|---|
+| **Rappels** | « Rappelle-moi dans 20 minutes de sortir le linge », « Rappelle-moi demain à 8h30 d'appeler le dentiste », « Quels sont mes rappels ? », « Annule le rappel 2 » | Sur ton ordinateur. Ils survivent à un redémarrage et arrivent sur Telegram si le bot tourne. |
+| **Calcul exact** | « Combien font 1 250 fois 18 % ? », « Racine de 144 » | Sur ton ordinateur |
+| **Météo** | « Quel temps fait-il à Lyon ? », « Il pleut demain ? » | Seul le nom de la ville part vers open-meteo.com (gratuit, sans compte). Règle `JARVIS_VILLE` pour ta ville habituelle. Coupée en mode hors ligne. |
+| **Listes** | « Ajoute du lait à la liste de courses », « Lis ma liste », « Retire le lait », « Ajoute Dune à la liste films » | Sur ton ordinateur |
+| **État du PC** | « Le PC est en bonne santé ? » → disque, mémoire, processeur, durée d'allumage, et sous Windows l'état de l'antivirus Defender | Sur ton ordinateur (lecture seule) |
+| **Mémoire** | « Retiens que… », « Oublie… » (avec confirmation) | Sur ton ordinateur |
+| **Renfort Claude** | Questions difficiles, rédaction, code | Anthropic, uniquement quand il passe la main |
+
+Jarvis **surveille** l'antivirus, il ne le remplace pas : la protection reste
+celle de Windows Defender.
+
 ## Trouver la configuration la plus rapide (banc d'essai)
 
 Plutôt que de deviner, **mesure** sur ton ordinateur :
@@ -206,5 +221,6 @@ Les tests simulent Ollama et Claude : ils ne coûtent rien et ne demandent aucun
 
 - Mot de réveil « Hey Jarvis » (openWakeWord a un modèle prêt à l'emploi).
 - Démarrage automatique du bot Telegram à l'allumage du Mac.
-- Outils Notion (QG « Jarvis — QG » et base « Tâches Jarvis »), agenda, domotique (Home Assistant).
+- Outils Notion (QG « Jarvis — QG » et base « Tâches Jarvis »), agenda, mails, domotique (Home Assistant) :
+  ils demandent un compte ou un jeton à toi, on les ajoutera un par un.
 - Chaque nouvel outil qui **agit** (envoyer, supprimer, payer, ouvrir) reçoit une confirmation.

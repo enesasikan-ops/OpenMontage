@@ -217,3 +217,21 @@ def test_voice_message_is_transcribed_and_answered(tmp_path):
     assert received and received[0].dtype == np.float32 and 14000 < len(received[0]) < 18000
     assert up.effective_message.replies == ["🎤 « quelle heure est-il »", "Il est midi."]
     assert ctx.bot.voices and ctx.bot.voices[0][:4] == b"OggS"
+
+
+def test_reminder_reaches_owner_before_any_message(tmp_path):
+    """Après un redémarrage du PC, un rappel doit partir même si personne n'a encore écrit."""
+    jarvis, ctx, _ = make([], tmp_path)
+
+    async def scenario():
+        await jarvis.on_startup(NS(bot=ctx.bot))
+        await asyncio.to_thread(jarvis.notify_owner, "⏰ Rappel : sortir le linge")
+
+    asyncio.run(scenario())
+    assert ctx.bot.sent == [("⏰ Rappel : sortir le linge", None)]
+
+
+def test_reminder_without_configured_owner_is_dropped(tmp_path):
+    jarvis, ctx, _ = make([], tmp_path, allowed=None)
+    jarvis.notify_owner("⏰ Rappel : x")  # ne doit ni planter ni envoyer
+    assert ctx.bot.sent == []

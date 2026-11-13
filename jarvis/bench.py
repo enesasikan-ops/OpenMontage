@@ -48,6 +48,9 @@ ROUTING_TESTS = [
     ("Salut Jarvis, ça va ?", None),
     ("Quelle heure est-il ?", "heure_et_date"),
     ("Retiens que mon chat s'appelle Gribouille.", "retenir"),
+    ("Rappelle-moi dans 20 minutes de sortir le linge.", "rappeler"),
+    ("Combien font 1 250 fois 18 % ?", "calculer"),
+    ("Ajoute du lait à la liste de courses.", "ajouter_a_la_liste"),
     ("Demande à Claude de m'expliquer la relativité générale en détail.", "demander_a_claude"),
     ("Rédige-moi un business plan complet pour ouvrir une boulangerie.", "demander_a_claude"),
 ]
@@ -117,8 +120,11 @@ def routing_score(client, model: str, options: dict) -> tuple[int, list[str]]:
             return ""
 
     with tempfile.TemporaryDirectory() as tmp:
+        from skills import Lists, Reminders
+
         memory = Memory(Path(tmp) / "m.json")
-        tools = build_tools(memory, NoClaude(), on_status=lambda s: None)
+        tools = build_tools(memory, NoClaude(), on_status=lambda s: None,
+                            reminders=Reminders(Path(tmp) / "r.json"), lists=Lists(Path(tmp) / "l.json"))
         schemas = [t.schema() for t in tools.values()]
         system = system_prompt(memory)
 

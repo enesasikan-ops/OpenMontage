@@ -16,6 +16,7 @@ import config  # noqa: E402  (après load_dotenv pour lire le .env)
 from brain import Brain  # noqa: E402
 from claude_bridge import ClaudeBridge  # noqa: E402
 from memory import Memory  # noqa: E402
+from skills import Lists, Reminders, ReminderWatcher  # noqa: E402
 from tools import build_tools  # noqa: E402
 
 STOP_WORDS = ("au revoir", "bonne nuit jarvis", "quitter", "exit", "stop jarvis")
@@ -85,8 +86,10 @@ def main() -> None:
         answer = hear()
         return is_yes(answer) if listener else answer.strip().lower() in ("o", "oui", "y", "yes", "ok")
 
-    tools = build_tools(memory, claude, on_status=say)
+    reminders, lists = Reminders(config.REMINDERS_FILE), Lists(config.LISTS_FILE)
+    tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists)
     brain = Brain(client, tools, memory, confirm)
+    ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
 
     if claude.available:
         renfort = f"renfort : {claude.name}"

@@ -69,10 +69,13 @@ PIPER_VOICE = Path(_env(
 # --- Mémoire ---
 DATA_DIR = Path(_env("JARVIS_DOSSIER", str(Path.home() / ".jarvis")))
 MEMORY_FILE = DATA_DIR / "memoire.json"
+REMINDERS_FILE = DATA_DIR / "rappels.json"
+LISTS_FILE = DATA_DIR / "listes.json"
 
 # --- Personnalité ---
 USER_NAME = _env("JARVIS_PRENOM", "Enes")
 TIMEZONE = _env("JARVIS_FUSEAU", "Europe/Paris")
+CITY = _env("JARVIS_VILLE", "")  # ville par défaut pour la météo
 
 # Nombre maximum d'allers-retours avec les outils pour une seule question.
 MAX_TOOL_ROUNDS = 6
