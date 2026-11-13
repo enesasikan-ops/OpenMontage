@@ -1,0 +1,11 @@
+# Cerveau local + renfort Claude
+ollama>=0.6
+anthropic>=2.8
+python-dotenv>=1.0
+
+# Voix (mode --voix)
+faster-whisper>=1.1
+piper-tts>=1.2
+sounddevice>=0.5
+soundfile>=0.12
+numpy>=1.26

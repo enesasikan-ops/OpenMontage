@@ -1,0 +1,93 @@
+"""Point d'entrée de Jarvis.
+
+    python main.py          # mode clavier (pour tester)
+    python main.py --voix   # mode vocal : micro + voix
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent / ".env")
+
+import config  # noqa: E402  (après load_dotenv pour lire le .env)
+from brain import Brain  # noqa: E402
+from claude_bridge import ClaudeBridge  # noqa: E402
+from memory import Memory  # noqa: E402
+from tools import build_tools  # noqa: E402
+
+STOP_WORDS = ("au revoir", "bonne nuit jarvis", "quitter", "exit", "stop jarvis")
+
+
+def check_ollama():
+    import ollama
+
+    client = ollama.Client(host=config.OLLAMA_HOST)
+    try:
+        installed = {m.model for m in client.list().models}
+    except Exception:
+        sys.exit("❌ Ollama ne répond pas. Ouvre l'app Ollama (ou lance « ollama serve »).")
+    if not any(name.split(":")[0] == config.LOCAL_MODEL.split(":")[0] for name in installed):
+        sys.exit(f"❌ Le modèle « {config.LOCAL_MODEL} » n'est pas installé.\n"
+                 f"   Lance : ollama pull {config.LOCAL_MODEL}")
+    return client
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Jarvis, assistant personnel")
+    parser.add_argument("--voix", action="store_true", help="mode vocal (micro + haut-parleur)")
+    args = parser.parse_args()
+
+    client = check_ollama()
+    memory = Memory(config.MEMORY_FILE)
+    claude = ClaudeBridge()
+
+    listener = speaker = None
+    if args.voix:
+        from voice import Listener, Speaker, is_yes
+
+        listener, speaker = Listener(), Speaker()
+
+    def say(text: str) -> None:
+        print(f"🤖 Jarvis : {text}")
+        if speaker:
+            speaker.say(text)
+
+    def hear() -> str:
+        if listener:
+            text = listener.listen()
+            print(f"🧑 Toi : {text}")
+            return text
+        return input("🧑 Toi : ")
+
+    def confirm(description: str) -> bool:
+        say(f"{description} Je confirme ?")
+        answer = hear()
+        return is_yes(answer) if listener else answer.strip().lower() in ("o", "oui", "y", "yes", "ok")
+
+    tools = build_tools(memory, claude, on_status=say)
+    brain = Brain(client, tools, memory, confirm)
+
+    renfort = "Claude en renfort" if claude.available else "sans Claude (pas de clé API)"
+    print(f"Jarvis prêt — cerveau local : {config.LOCAL_MODEL}, {renfort}.")
+    print("Dis « au revoir » pour quitter.\n")
+    say(f"Bonjour {config.USER_NAME}, je t'écoute.")
+
+    while True:
+        try:
+            text = hear().strip()
+        except (KeyboardInterrupt, EOFError):
+            print()
+            break
+        if not text:
+            continue
+        if any(w in text.lower() for w in STOP_WORDS):
+            say("À plus tard !")
+            break
+        say(brain.reply(text))
+
+
+if __name__ == "__main__":
+    main()
