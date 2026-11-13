@@ -48,7 +48,7 @@ def _now_text() -> str:
 
 def build_tools(memory: Memory, claude: ClaudeBridge,
                 on_status: Callable[[str], None], reminders=None, lists=None,
-                sentinel=None, home=None) -> dict[str, Tool]:
+                sentinel=None, home=None, web=True, agent=None) -> dict[str, Tool]:
     """reminders / lists : stockages des compétences (skills.py). Sans eux, outils de base seuls."""
     def ask_claude(question: str, contexte: str = "") -> str:
         on_status(persona.asking_claude())
@@ -112,4 +112,29 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from smarthome import build_smarthome
 
         tools += build_smarthome(home)
+    if web:
+        from web import build_web_tools
+
+        tools += build_web_tools()
+    if agent is not None:
+        on_status_agent = on_status
+
+        def confier(tache: str) -> str:
+            on_status_agent("Je confie ça à Claude, mon mentor. Un instant, il travaille.")
+            return agent.delegate(tache)
+
+        tools.append(Tool(
+            name="confier_a_claude",
+            description=("Confie une tâche IMPORTANTE à Claude, qui l'exécute vraiment sur l'ordinateur "
+                         "(écrire du code, créer ou modifier des fichiers dans l'atelier, recherche "
+                         "approfondie en plusieurs étapes). À utiliser pour « écris un programme qui... », "
+                         "« crée-moi un script », une tâche longue et complexe. Pas pour une simple question "
+                         "(utilise demander_a_claude) ni une action rapide."),
+            parameters={"type": "object",
+                        "properties": {"tache": {"type": "string",
+                                       "description": "La tâche complète et précise à réaliser."}},
+                        "required": ["tache"]},
+            run=confier,
+            confirm=lambda tache: f"Je vais confier à Claude, qui travaillera sur l'ordinateur : {tache}",
+        ))
     return {t.name: t for t in tools}

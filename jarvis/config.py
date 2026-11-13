@@ -59,6 +59,14 @@ CLAUDE_EFFORT = _env("JARVIS_EFFORT_CLAUDE", "medium")  # low | medium | high | 
 # Mode "abonnement" : modèle choisi dans Claude Code (vide = celui par défaut de ton compte).
 CLAUDE_CLI_MODEL = _env("JARVIS_MODELE_ABONNEMENT", "")
 
+# --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
+# Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais
+# UNIQUEMENT dans l'atelier ci-dessous, et seulement après ta confirmation.
+# "1" pour l'activer. Nécessite Claude Code (mode abonnement).
+AGENT = _env("JARVIS_MENTOR", "0") == "1"
+WORKSPACE = Path(_env("JARVIS_ATELIER", str(Path.home() / ".jarvis" / "atelier")))
+AGENT_MAX_TURNS = int(_env("JARVIS_MENTOR_ETAPES", "30"))
+
 # --- Voix ---
 WHISPER_MODEL = _env("JARVIS_WHISPER", "small")  # tiny | base | small | medium | large-v3
 PIPER_VOICE = Path(_env(

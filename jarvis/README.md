@@ -163,6 +163,8 @@ Exemples à essayer :
 | **Météo** | « Quel temps fait-il à Lyon ? », « Il pleut demain ? » | Seul le nom de la ville part vers open-meteo.com (gratuit, sans compte). Règle `JARVIS_VILLE` pour ta ville habituelle. Coupée en mode hors ligne. |
 | **Listes** | « Ajoute du lait à la liste de courses », « Lis ma liste », « Retire le lait », « Ajoute Dune à la liste films » | Sur ton ordinateur |
 | **Maison connectée** | « Allume le salon », « ferme le garage » (confirmation), « température du salon » | Sur ton réseau local (Home Assistant) |
+| **Web** | « Cherche les horaires du train », « lis cette page » | DuckDuckGo (nom de la recherche seulement) |
+| **Mentor (code)** | « Écris-moi un script qui… » → Claude l'exécute dans l'atelier (confirmation) | Ton abonnement Claude |
 | **Sécurité** | « Rapport de sécurité », « Lance une analyse antivirus » (avec confirmation) | Sur ton ordinateur |
 | **État du PC** | « Le PC est en bonne santé ? » → disque, mémoire, processeur, durée d'allumage, et sous Windows l'état de l'antivirus Defender | Sur ton ordinateur (lecture seule) |
 | **Mémoire** | « Retiens que… », « Oublie… » (avec confirmation) | Sur ton ordinateur |
@@ -210,6 +212,30 @@ Mise en place :
 - Les actions sensibles (serrures, volets, portail, garage) demandent ta confirmation.
 - Si tu dis « allume le salon » et que plusieurs lampes correspondent, il les allume toutes.
 - Le jeton donne le contrôle de ta maison : garde-le comme un mot de passe.
+
+## Naviguer sur le web et déléguer à Claude
+
+**Recherche web** (locale, via DuckDuckGo, sans clé) :
+- « Jarvis, cherche les horaires du train Paris–Lyon », « c'est quoi la météo de demain à Rome ? »
+- « Lis-moi cette page : exemple.fr/article »
+
+Désactivée en mode hors ligne.
+
+**Mode mentor — Claude exécute les tâches importantes** *(optionnel, `JARVIS_MENTOR=1`)*
+
+Quand tu demandes un vrai travail — « écris-moi un script qui range mes photos »,
+« crée un programme qui… » — Jarvis me le **confie**, et je l'exécute vraiment sur
+l'ordinateur, comme un agent, puis je te rends un résumé à voix haute.
+
+- Je travaille **uniquement dans l'atelier** `~/.jarvis/atelier` (`--add-dir`), pas ailleurs sur le PC.
+- Jarvis demande **ta confirmation** avant de me confier quoi que ce soit.
+- J'utilise ton **abonnement** Claude (Claude Code), pas de coût en plus.
+- C'est **puissant** : je peux écrire des fichiers et lancer des commandes dans l'atelier.
+  À n'activer que si tu comprends ce que ça permet. Par défaut, c'est désactivé.
+- Réglages : `JARVIS_ATELIER` (le dossier de travail), `JARVIS_MENTOR_ETAPES` (nombre d'étapes max).
+
+Ainsi Jarvis fait lui-même le simple et le quotidien, et pour le compliqué il
+s'appuie sur moi — exactement comme tu l'as demandé.
 
 ## La sentinelle (sécurité)
 

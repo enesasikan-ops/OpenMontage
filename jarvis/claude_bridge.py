@@ -28,6 +28,16 @@ Ta réponse sera LUE À VOIX HAUTE par Jarvis :
 """
 
 CLI_TIMEOUT_S = 180
+AGENT_TIMEOUT_S = 900  # une tâche d'agent peut être longue
+
+AGENT_PROMPT = f"""Tu es le mentor de Jarvis, l'assistant personnel de {config.USER_NAME}.
+Jarvis te confie une tâche importante (souvent du code ou une recherche approfondie)
+parce qu'elle dépasse ses moyens. Tu travailles sur l'ordinateur de {config.USER_NAME},
+uniquement dans le dossier de travail autorisé (l'atelier de Jarvis).
+- Fais le travail de bout en bout, proprement.
+- Ne touche à rien en dehors de l'atelier. Ne lance aucune commande destructrice.
+- Termine par un résumé clair et court, en français, de ce que tu as fait et de
+  l'endroit où se trouve le résultat. Ce résumé sera lu à voix haute par Jarvis."""
 
 Runner = Callable[..., subprocess.CompletedProcess]
 
@@ -50,6 +60,10 @@ class ApiBackend:
 
     def unavailable_reason(self) -> str:
         return "il manque la clé ANTHROPIC_API_KEY dans le fichier .env"
+
+    def delegate(self, task: str) -> str:  # noqa: ARG002
+        return ("Pour exécuter une vraie tâche sur l'ordinateur, il me faut Claude Code "
+                "(mode abonnement), pas la clé API. Installe-le pour activer ce mode.")
 
     def ask(self, question: str, context: str = "") -> str:
         if self._client is None:
@@ -133,6 +147,10 @@ class SubscriptionBackend:
         except subprocess.TimeoutExpired:
             return "Claude met trop de temps à répondre. Réessaie dans un instant."
 
+        return self._read_result(result)
+
+    @staticmethod
+    def _read_result(result) -> str:
         if result.returncode != 0:
             err = (result.stderr or result.stdout or "").lower()
             if any(w in err for w in ("login", "log in", "auth", "/login")):
@@ -141,6 +159,41 @@ class SubscriptionBackend:
                 return "Tu as atteint la limite de ton abonnement Claude pour le moment. Je réponds avec mes moyens."
             return "Claude Code a eu un problème. Réessaie plus tard."
         return result.stdout.strip() or "Claude n'a rien répondu."
+
+    # --- Mode « mentor » : Claude exécute une tâche en agent sur le PC ---------
+
+    def agent_command(self) -> list[str]:
+        """Claude Code avec de vrais outils, confiné à l'atelier de Jarvis."""
+        cmd = [
+            self._which("claude") or "claude", "-p",
+            "--output-format", "text",
+            "--system-prompt", AGENT_PROMPT,
+            "--add-dir", str(config.WORKSPACE),   # ne travaille que dans l'atelier
+            "--allowedTools", "Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "WebFetch",
+            "--permission-mode", "acceptEdits",
+            "--max-turns", str(config.AGENT_MAX_TURNS),
+            "--strict-mcp-config",
+            "--setting-sources", "user",
+            "--no-session-persistence",
+        ]
+        if config.CLAUDE_CLI_MODEL:
+            cmd += ["--model", config.CLAUDE_CLI_MODEL]
+        return cmd
+
+    def delegate(self, task: str) -> str:
+        env = dict(os.environ)
+        env.pop("ANTHROPIC_API_KEY", None)
+        env.pop("ANTHROPIC_AUTH_TOKEN", None)
+        config.WORKSPACE.mkdir(parents=True, exist_ok=True)
+        try:
+            result = self._run(
+                self.agent_command(), input=task, capture_output=True, text=True,
+                timeout=AGENT_TIMEOUT_S, cwd=str(config.WORKSPACE), env=env)
+        except FileNotFoundError:
+            return "Je ne trouve pas Claude Code sur cet ordinateur."
+        except subprocess.TimeoutExpired:
+            return "La tâche a pris trop de temps, je l'ai arrêtée."
+        return self._read_result(result)
 
 
 class NoBackend:
@@ -152,6 +205,9 @@ class NoBackend:
 
     def ask(self, question: str, context: str = "") -> str:  # noqa: ARG002
         return ""
+
+    def delegate(self, task: str) -> str:  # noqa: ARG002
+        return "Le mode mentor est désactivé (pas de renfort Claude)."
 
 
 class ClaudeBridge:
@@ -180,3 +236,9 @@ class ClaudeBridge:
             return (f"Je ne peux pas demander à Claude : {self.backend.unavailable_reason()}. "
                     "Je réponds avec mes propres moyens.")
         return self.backend.ask(question, context)
+
+    def delegate(self, task: str) -> str:
+        if not self.backend.available:
+            return (f"Je ne peux pas confier cette tâche à Claude : "
+                    f"{self.backend.unavailable_reason()}.")
+        return self.backend.delegate(task)

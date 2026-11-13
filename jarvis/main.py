@@ -115,7 +115,8 @@ def main() -> None:
     sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
     home = SmartHome()
     tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists,
-                            sentinel=sentinel, home=home)
+                            sentinel=sentinel, home=home,
+                            agent=claude if config.AGENT else None)
     brain = Brain(client, tools, memory, confirm)
     ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,

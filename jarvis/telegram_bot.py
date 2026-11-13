@@ -254,7 +254,8 @@ def main() -> None:
 
     def brain_factory(confirm, on_status):
         tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,
-                            sentinel=sentinel, home=home)
+                            sentinel=sentinel, home=home,
+                            agent=claude if config.AGENT else None)
         return Brain(client, tools, memory, confirm)
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)
