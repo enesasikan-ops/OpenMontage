@@ -130,6 +130,35 @@ Exemples à essayer :
 - « Oublie ce que tu sais sur le café » → demande ta confirmation
 - « Au revoir » → quitte
 
+## Trouver la configuration la plus rapide (banc d'essai)
+
+Plutôt que de deviner, **mesure** sur ton ordinateur :
+
+```bash
+.venv/bin/python bench.py --appliquer          # Mac
+.venv\Scripts\python.exe bench.py --appliquer  # Windows
+```
+
+Pour chaque modèle (ton modèle actuel + les modèles conseillés déjà installés),
+il mesure la vitesse avec la puce graphique puis sur le processeur seul avec
+différents nombres de cœurs, le délai avant le premier mot, et vérifie que le
+modèle **choisit le bon outil** (heure, mémoire, appel à Claude). Exemple :
+
+```
+🧠 qwen3:30b-a3b
+   Usage des outils : 5/5
+   auto (puce graphique si possible)     18.2 jetons/s, 1er mot  0.6 s, réponse orale ≈  3.6 s → fluide, 100 % sur la puce graphique
+   processeur seul, 8 cœurs              11.4 jetons/s, 1er mot  0.9 s, réponse orale ≈  5.7 s → correct
+🏆 Meilleure configuration : qwen3:30b-a3b — auto (puce graphique si possible)
+```
+*(chiffres d'illustration : les tiens dépendront de ta machine)*
+
+Le bon usage des outils passe **avant** la vitesse : un modèle rapide qui se
+trompe d'outil est inutilisable. Avec `--appliquer`, il propose d'enregistrer
+le gagnant dans `.env` (rien n'est modifié sans ton « oui »). Un rapport complet
+est gardé dans `~/.jarvis/bench-*.json`. Pour tester d'autres modèles :
+`ollama pull qwen3:14b` puis `bench.py --modeles qwen3:30b-a3b,qwen3:14b`.
+
 ## 5. Parler à Jarvis depuis le téléphone (Telegram)
 
 Tu écris à Jarvis comme à un ami, ou tu lui envoies un **message vocal** : il

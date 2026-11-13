@@ -4,6 +4,7 @@ Chaque valeur peut être changée avec une variable d'environnement
 (par exemple dans le fichier .env, voir .env.example).
 """
 
+import json
 import os
 from pathlib import Path
 
@@ -20,6 +21,22 @@ LOCAL_MODEL = _env("JARVIS_MODELE_LOCAL", "mistral-small3.2")
 # vide = comportement par défaut du modèle (ne rien envoyer).
 _think = _env("JARVIS_REFLEXION_LOCALE", "").strip()
 LOCAL_THINK: bool | None = None if _think == "" else _think == "1"
+
+
+def _json_env(name: str) -> dict:
+    raw = _env(name, "").strip()
+    if not raw:
+        return {}
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        print(f"[config] {name} n'est pas du JSON valide, ignoré : {raw}")
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+# Réglages fins d'Ollama trouvés par le banc d'essai (bench.py), ex. {"num_thread": 8, "num_gpu": 0}.
+LOCAL_OPTIONS: dict = _json_env("JARVIS_OPTIONS_OLLAMA")
 
 # --- Mode 100 % hors ligne ---
 # JARVIS_HORS_LIGNE=1 : rien ne sort de l'ordinateur (pas de renfort Claude,

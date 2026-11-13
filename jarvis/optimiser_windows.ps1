@@ -116,4 +116,7 @@ Write-Host "     coupure de courant) : touche Windows + R → netplwiz. Pratique
 Write-Host "     personne qui allume le PC arrive sur ta session : à toi de voir."
 Write-Host "   • Vérifier que la puce graphique est utilisée : « ollama ps » pendant que Jarvis"
 Write-Host "     répond. « GPU » = parfait ; « CPU » = ça marche, mais un peu plus lentement."
+Write-Host "`n6) BANC D'ESSAI : une fois Ollama redémarré (et le BIOS réglé), mesure la"
+Write-Host "   configuration la plus rapide sur CE PC (quelques minutes, sans rien casser) :"
+Write-Host "     .venv\Scripts\python.exe bench.py --appliquer"
 Write-Host "`n✅ Optimisation terminée. Annuler tout : .\optimiser_windows.ps1 -Annuler" -ForegroundColor Green

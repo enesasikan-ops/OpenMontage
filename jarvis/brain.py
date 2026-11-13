@@ -87,7 +87,11 @@ class Brain:
 
         for _ in range(config.MAX_TOOL_ROUNDS):
             messages = [{"role": "system", "content": system_prompt(self.memory)}, *self.history]
-            extra = {} if config.LOCAL_THINK is None else {"think": config.LOCAL_THINK}
+            extra: dict[str, Any] = {}
+            if config.LOCAL_THINK is not None:
+                extra["think"] = config.LOCAL_THINK
+            if config.LOCAL_OPTIONS:
+                extra["options"] = config.LOCAL_OPTIONS
             response = self.client.chat(model=self.model, messages=messages, tools=schemas, **extra)
             message = _field(response, "message")
             content = _field(message, "content", "") or ""
