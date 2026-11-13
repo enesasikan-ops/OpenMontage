@@ -23,3 +23,6 @@ python-telegram-bot>=22.0
 
 # Annonces d'arrivée via caméras (JARVIS_MQTT=1) — optionnel
 # paho-mqtt>=2.1
+
+# Caméras motorisées (PTZ, outil tourner_camera) — optionnel
+# onvif-zeep>=0.2.12

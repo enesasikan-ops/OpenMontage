@@ -9,6 +9,7 @@ Jamais pour accéder à la caméra privée de quelqu'un d'autre.
 """
 
 import json
+import logging
 import subprocess
 from pathlib import Path
 from typing import Callable
@@ -142,4 +143,14 @@ def build_camera_tools(manager: CameraManager) -> list:
              description="Oublie une caméra enregistrée.",
              parameters=obj({"nom": {**s, "description": "Le nom de la caméra à oublier."}}, ["nom"]),
              run=manager.forget),
-    ]
+    ] + _ptz_tools()
+
+
+def _ptz_tools() -> list:
+    """Outils de caméra motorisée (PTZ), si des caméras PTZ sont configurées."""
+    try:
+        from ptz import build_ptz_tools
+        return build_ptz_tools()
+    except Exception:  # un souci PTZ ne doit pas priver Jarvis des autres outils caméra
+        logging.getLogger(__name__).exception("chargement des outils PTZ")
+        return []
