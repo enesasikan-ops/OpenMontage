@@ -81,6 +81,12 @@ RENFORT_REPLI = _env("JARVIS_RENFORT_REPLI", "auto").strip().lower()
 # code (tripwire d'intégrité du cœur). 1 = activé (défaut).
 CYBERWATCH = _env("JARVIS_CYBERSURVEILLANCE", "1") == "1"
 CYBERWATCH_INTERVAL = float(_env("JARVIS_CYBERSURVEILLANCE_SECONDES", "300"))
+# Réaction automatique : si un fichier du cœur est trafiqué, Jarvis le RESTAURE tout seul
+# (sûr et réversible : il remet une version saine, il ne génère pas de code). 1 = activé.
+# NB : si tu modifies le cœur hors du bot, fais « sauvegarde cœur » après, sinon la réaction
+# auto remettra ton changement à l'état d'avant. L'application de code généré reste, elle,
+# toujours soumise à ta validation.
+AUTO_RESTORE = _env("JARVIS_AUTO_RESTAURATION", "0") == "1"
 
 # --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
 # Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais

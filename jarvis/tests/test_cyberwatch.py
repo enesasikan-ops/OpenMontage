@@ -39,6 +39,36 @@ def test_les_alertes_critiques_sont_consignees():
     assert preuves == ["fichier du cœur MODIFIÉ : brain.py"]   # seulement le critique
 
 
+def test_reaction_auto_restaure_un_fichier_du_coeur():
+    envoyes, restaures = [], []
+    integrity = NS(verifier=lambda: [(True, "fichier du cœur MODIFIÉ hors circuit : brain.py")])
+    backup = NS(peut_restaurer=lambda f: f == "brain.py",
+                restaurer=lambda f: restaures.append(f) or f"{f} restauré depuis la sauvegarde.")
+    w = SecurityWatcher(envoyes.append, integrity=integrity, backup=backup, auto_restore=True)
+    w.un_tour()
+    assert restaures == ["brain.py"]                                  # réparé tout seul
+    assert any("Réaction automatique" in m for m in envoyes)          # et annoncé
+    assert any("🚨" in m for m in envoyes)                            # l'alerte part aussi
+
+
+def test_pas_de_reaction_auto_si_desactivee():
+    restaures = []
+    integrity = NS(verifier=lambda: [(True, "fichier du cœur MODIFIÉ hors circuit : brain.py")])
+    backup = NS(peut_restaurer=lambda f: True, restaurer=lambda f: restaures.append(f))
+    w = SecurityWatcher(lambda m: None, integrity=integrity, backup=backup, auto_restore=False)
+    w.un_tour()
+    assert restaures == []                                            # rien restauré par défaut
+
+
+def test_reaction_auto_ignore_un_fichier_sans_sauvegarde():
+    restaures = []
+    integrity = NS(verifier=lambda: [(True, "fichier du cœur MODIFIÉ hors circuit : inconnu.py")])
+    backup = NS(peut_restaurer=lambda f: False, restaurer=lambda f: restaures.append(f))
+    w = SecurityWatcher(lambda m: None, integrity=integrity, backup=backup, auto_restore=True)
+    w.un_tour()
+    assert restaures == []                                            # pas de sauvegarde -> on ne touche à rien
+
+
 def test_un_composant_qui_plante_ne_casse_pas_le_tour():
     envoyes = []
     def boom():

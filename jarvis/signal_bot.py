@@ -388,7 +388,8 @@ def main() -> None:
         jarvis.backup.sauvegarder()            # instantané sain au démarrage
         evidence = EvidenceLog(config.DATA_DIR / "preuves_securite.json")
         SecurityWatcher(jarvis.notify_owner, sentinel=sentinel, integrity=jarvis.integrity,
-                        interval_s=config.CYBERWATCH_INTERVAL, evidence=evidence).start()
+                        interval_s=config.CYBERWATCH_INTERVAL, evidence=evidence,
+                        backup=jarvis.backup, auto_restore=config.AUTO_RESTORE).start()
     if plugins is not None:
         plugins.attach(jarvis.brain)
         plugins.reload()

@@ -67,6 +67,11 @@ qui est sensible passe par une **confirmation** du propriétaire.
   des alertes critiques (preuves) et **copie saine du cœur** restaurable si on le trafique
   (`restaure cœur <fichier>`, sur confirmation ; `sauvegarde cœur` pour refaire la référence
   après une install/mise à jour saine). Pas de « hack back » : aucune action contre un tiers.
+- **Réaction automatique** (opt-in, `JARVIS_AUTO_RESTAURATION=1`) : sur altération d'un
+  fichier du cœur, Jarvis alerte, garde la preuve ET **restaure seul** la version saine
+  (réversible). Ligne de sécurité clé : la **génération de code** peut être déclenchée
+  automatiquement, mais son **application reste toujours derrière la ✅ du propriétaire** —
+  sinon une fausse attaque suffirait à faire exécuter du code non relu.
 - ~360 tests automatisés, dont des tests de sécurité dédiés.
 
 ## RCE par conception (le risque principal, assumé)
