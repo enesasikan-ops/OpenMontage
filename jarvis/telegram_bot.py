@@ -317,12 +317,14 @@ def main() -> None:
     drone = make_drone(gemini)
     faces, face_frame = make_faces(drone)
     cameras = make_cameras(gemini)
+    from growth import GrowthJournal
+    growth = GrowthJournal(config.GROWTH_FILE)
 
     def brain_factory(confirm, on_status):
         tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
                             agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
-                            faces=faces, face_frame=face_frame, cameras=cameras)
+                            faces=faces, face_frame=face_frame, cameras=cameras, growth=growth)
         return Brain(client, tools, memory, confirm)
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)

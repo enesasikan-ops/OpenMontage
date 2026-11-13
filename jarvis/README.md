@@ -198,6 +198,17 @@ Exemples à essayer :
 Jarvis **surveille** l'antivirus, il ne le remplace pas : la protection reste
 celle de Windows Defender.
 
+## Jarvis s'améliore avec le temps
+
+Jarvis note ce qu'il ne sait pas encore faire, et ces capacités s'ajoutent plus tard —
+écrites par Claude (le mentor), testées, et validées par toi. Détails : [AMELIORATION.md](AMELIORATION.md).
+
+- « Note que tu devrais pouvoir lire mes mails » → il l'ajoute à sa liste
+- « Montre ta liste d'améliorations » → les idées en attente (les plus demandées d'abord)
+- Puis, quand tu veux : « regarde ta liste et ajoute-toi la plus demandée » (mode mentor)
+
+Jamais d'auto-modification sauvage : il propose, les tests vérifient, **tu décides**.
+
 ## Les initiatives de Jarvis (il parle en premier)
 
 | Initiative | Quand | Réglage dans `.env` |

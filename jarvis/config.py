@@ -110,6 +110,9 @@ FACES_FILE = DATA_DIR / "visages.json"
 # --- Caméras par adresse de flux (publiques ou à toi) ---
 CAMERAS_FILE = DATA_DIR / "cameras.json"
 
+# --- Journal des améliorations (ce que Jarvis ne sait pas encore faire) ---
+GROWTH_FILE = DATA_DIR / "ameliorations.json"
+
 # --- Drone (Parrot ANAFI) ---
 # "0" = pas de drone, "sim" = simulateur (démo sans matériel), "anafi" = vrai drone.
 DRONE = _env("JARVIS_DRONE", "0").strip().lower()

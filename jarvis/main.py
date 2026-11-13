@@ -180,10 +180,12 @@ def main() -> None:
     drone = make_drone(gemini)
     faces, face_frame = make_faces(drone)
     cameras = make_cameras(gemini)
+    from growth import GrowthJournal
+    growth = GrowthJournal(config.GROWTH_FILE)
     tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
                             agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
-                            faces=faces, face_frame=face_frame, cameras=cameras)
+                            faces=faces, face_frame=face_frame, cameras=cameras, growth=growth)
     brain = Brain(client, tools, memory, confirm)
     ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,
