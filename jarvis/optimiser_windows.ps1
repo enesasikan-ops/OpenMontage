@@ -19,6 +19,8 @@ if (-not $isAdmin) {
 }
 
 $TaskName = "Jarvis Telegram"
+$DashTask = "Jarvis Tableau de bord"
+$KioskTask = "Jarvis Ecran TV"
 $WuKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
 $OllamaVars = [ordered]@{
     "OLLAMA_KEEP_ALIVE"      = "-1"     # garde le modèle en mémoire : pas d'attente au réveil
@@ -46,6 +48,8 @@ if ($Annuler) {
     powercfg /change standby-timeout-ac 30
     foreach ($name in $OllamaVars.Keys) { [Environment]::SetEnvironmentVariable($name, $null, "User") }
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName $DashTask -Confirm:$false -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName $KioskTask -Confirm:$false -ErrorAction SilentlyContinue
     Remove-ItemProperty -Path $WuKey -Name "NoAutoRebootWithLoggedOnUsers" -ErrorAction SilentlyContinue
     Restart-Ollama
     Write-Host "✅ Réglages d'origine rétablis." -ForegroundColor Green
@@ -95,6 +99,45 @@ if (-not (Test-Path $pythonw)) {
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings `
         -Principal $principal -Description "Jarvis : assistant personnel sur Telegram" -Force | Out-Null
     Write-Host "   ✅ Fait. Pour le lancer tout de suite : Start-ScheduledTask -TaskName '$TaskName'" -ForegroundColor Green
+}
+
+# 3b. Tableau de bord sur la télé ----------------------------------------------------
+Write-Host "`n3b) TABLEAU DE BORD : l'écran Jarvis (http://localhost:8765) se lance au démarrage,"
+Write-Host "    sans fenêtre. Idéal si le mini-PC est branché en permanence sur une télé."
+if (-not (Test-Path $pythonw)) {
+    Write-Host "   ⚠️ Lance d'abord installer.ps1 (pythonw.exe introuvable)." -ForegroundColor Yellow
+} elseif (Ask "   Lancer le tableau de bord au démarrage ?") {
+    $da = New-ScheduledTaskAction -Execute $pythonw -Argument "dashboard.py" -WorkingDirectory $PSScriptRoot
+    $dt = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
+    $dt.Delay = "PT30S"
+    $ds = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+        -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero)
+    $dp = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
+    Register-ScheduledTask -TaskName $DashTask -Action $da -Trigger $dt -Settings $ds `
+        -Principal $dp -Description "Jarvis : serveur du tableau de bord" -Force | Out-Null
+    Write-Host "   ✅ Fait. Teste-le : Start-ScheduledTask -TaskName '$DashTask' puis ouvre http://localhost:8765" -ForegroundColor Green
+
+    Write-Host "`n   Afficher l'écran en PLEIN ÉCRAN automatiquement (mode kiosque) sur la télé ?"
+    Write-Host "   (ouvre Edge en plein écran sur le tableau de bord à chaque démarrage)"
+    if (Ask "   Activer le mode kiosque ?") {
+        $edge = "$env:ProgramFiles (x86)\Microsoft\Edge\Application\msedge.exe"
+        if (-not (Test-Path $edge)) { $edge = "${env:ProgramFiles}\Microsoft\Edge\Application\msedge.exe" }
+        if (-not (Test-Path $edge)) {
+            Write-Host "   ⚠️ Microsoft Edge introuvable. Ouvre http://localhost:8765 à la main en plein écran (F11)." -ForegroundColor Yellow
+        } else {
+            $url = "http://localhost:8765"
+            $ka = New-ScheduledTaskAction -Execute $edge `
+                -Argument "--kiosk $url --edge-kiosk-type=fullscreen --no-first-run --disable-features=TranslateUI"
+            $kt = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
+            $kt.Delay = "PT45S"  # laisse le serveur démarrer avant d'ouvrir la page
+            $ks = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+                -ExecutionTimeLimit ([TimeSpan]::Zero)
+            $kp = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
+            Register-ScheduledTask -TaskName $KioskTask -Action $ka -Trigger $kt -Settings $ks `
+                -Principal $kp -Description "Jarvis : écran plein écran sur la télé" -Force | Out-Null
+            Write-Host "   ✅ Fait. Pour sortir du plein écran : Alt+F4." -ForegroundColor Green
+        }
+    }
 }
 
 # 4. Windows Update ---------------------------------------------------------------

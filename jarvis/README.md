@@ -275,6 +275,14 @@ sécurité, état du PC.
 Puis ouvre **http://localhost:8765** dans le navigateur, en plein écran (touche F11).
 Branche le mini-PC sur la télé en HDMI : la télé devient ton écran Jarvis.
 
+**Démarrage automatique (Windows)** : le script `optimiser_windows.ps1` propose de lancer
+le tableau de bord à l'allumage, et même de l'afficher en **plein écran** sur la télé
+(mode kiosque, via Edge). Rien à faire à la main ensuite.
+
+**Démarrage automatique (Mac)** : le plus simple est d'ajouter, dans Réglages Système →
+Général → Ouverture, un petit script `.command` qui lance `dashboard.py`, puis d'ouvrir
+http://localhost:8765 en plein écran.
+
 - Par défaut, l'écran n'est visible que **sur ce PC** (`JARVIS_ECRAN_HOTE=127.0.0.1`).
 - Pour l'afficher depuis une **tablette** sur ton réseau, mets `JARVIS_ECRAN_HOTE=0.0.0.0`
   et ouvre `http://<adresse-du-PC>:8765`. Ne fais ça que sur un réseau de confiance :
