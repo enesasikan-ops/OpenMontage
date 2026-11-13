@@ -61,12 +61,13 @@ class Cache:
 class StateProvider:
     """Assemble l'état affiché, avec des caches pour ne pas marteler le réseau."""
 
-    def __init__(self, reminders, lists, home=None, sentinel=None,
+    def __init__(self, reminders, lists, home=None, sentinel=None, cameras=None,
                  now: Callable[[], datetime] = skills._now,
                  weather: Callable[[], str] = skills.weather,
                  pc_status: Callable[[], str] = skills.pc_status,
                  clock: Callable[[], float] = time.monotonic):
         self.reminders, self.lists, self.home, self.sentinel = reminders, lists, home, sentinel
+        self.cameras = cameras   # CameraBook : noms -> flux, pour les vignettes
         self.now = now
         self._weather = Cache(900, lambda: weather(), clock)       # météo : 15 min
         self._pc = Cache(30, lambda: pc_status(), clock)           # état PC : 30 s
@@ -139,7 +140,18 @@ class StateProvider:
             "maison": self._home.get(),
             "securite": self._security.get(),
             "pc": self._pc.get(),
+            "cameras": self.cameras.names() if self.cameras else [],
         }
+
+    def snapshot(self, nom: str) -> "bytes | None":
+        """Une image JPEG de la caméra `nom` (ou None). Pour les vignettes du tableau de bord."""
+        if not self.cameras:
+            return None
+        url = self.cameras.find(nom)
+        if not url:
+            return None
+        from camera import grab_frame
+        return grab_frame(url)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -175,6 +187,13 @@ class Handler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/etat":
             body = json.dumps(self.provider.state(), ensure_ascii=False).encode("utf-8")
             self._send(200, body, "application/json; charset=utf-8")
+        elif parsed.path == "/api/camera":
+            nom = parse_qs(parsed.query).get("nom", [""])[0]
+            image = self.provider.snapshot(nom)
+            if image:
+                self._send(200, image, "image/jpeg")
+            else:
+                self._send(404, b"pas d'image", "text/plain; charset=utf-8")
         else:
             self._send(404, b"introuvable", "text/plain; charset=utf-8")
 
@@ -201,7 +220,9 @@ def main() -> None:
     lists = skills.Lists(config.LISTS_FILE)
     home = SmartHome()
     sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
-    provider = StateProvider(reminders, lists, home, sentinel)
+    from camera import CameraBook
+    cameras = CameraBook(config.CAMERAS_FILE)
+    provider = StateProvider(reminders, lists, home, sentinel, cameras=cameras)
 
     server = make_server(provider, config.DASHBOARD_HOST, config.DASHBOARD_PORT,
                          token=config.DASHBOARD_TOKEN)

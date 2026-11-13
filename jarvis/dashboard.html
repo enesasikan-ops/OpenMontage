@@ -118,6 +118,10 @@
       <div id="pc" class="muted">—</div>
       <div id="courses" class="muted" style="margin-top:11px"></div>
     </section>
+    <section class="panel" id="cam-panel" hidden>
+      <h2><span class="dot"></span>Caméras</h2>
+      <div id="cameras" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>
+    </section>
   </div>
 
   <footer>Tout tourne en local sur votre machine</footer>
@@ -158,6 +162,24 @@
       `<div class="status"><span class="led ${s.niveau}"></span><div>${esc(s.libelle)}</div></div>`).join("");
   }
 
+  let camNames = "";
+  function renderCameras(names){
+    const panel = $("cam-panel");
+    if(!names || !names.length){ panel.hidden = true; return; }
+    panel.hidden = false;
+    const key = names.join(",");
+    if(key !== camNames){            // ne reconstruit que si la liste change (pas de clignotement)
+      camNames = key;
+      $("cameras").innerHTML = names.map(n =>
+        `<figure style="margin:0"><img id="cam_${esc(n)}" alt="${esc(n)}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;background:#111;display:block">`
+        + `<figcaption class="muted" style="margin-top:6px">${esc(n)}</figcaption></figure>`).join("");
+    }
+    const q = location.search ? location.search.slice(1) + "&" : "";
+    const t = Date.now();            // rafraîchit l'image
+    names.forEach(n => { const img = document.getElementById("cam_"+n);
+      if(img) img.src = `/api/camera?nom=${encodeURIComponent(n)}&${q}t=${t}`; });
+  }
+
   async function refresh(){
     try{
       const r = await fetch("/api/etat" + location.search, {cache:"no-store"});
@@ -175,6 +197,7 @@
       else { $("meteo-panel").hidden = true; }
       $("pc").textContent = s.pc || "";
       $("courses").textContent = s.courses ? `Liste de courses : ${s.courses} article(s)` : "";
+      renderCameras(s.cameras || []);
     }catch(e){
       $("link").className = "offline";
       $("link").innerHTML = '<span class="live">●</span> hors connexion';

@@ -147,6 +147,19 @@ def test_server_serves_html_and_json(tmp_path):
         server.shutdown()
 
 
+def test_cameras_dans_l_etat(tmp_path, monkeypatch):
+    import camera
+    p, reminders, _ = provider(tmp_path)
+    book = camera.CameraBook(tmp_path / "cam.json")
+    book.add("jardin", "rtsp://x/stream")
+    p.cameras = book
+    assert "jardin" in p.state()["cameras"]
+    # snapshot : on capture une image (grab_frame simulé)
+    monkeypatch.setattr(camera, "grab_frame", lambda url: b"IMG-" + url.encode())
+    assert p.snapshot("jardin") == b"IMG-rtsp://x/stream"
+    assert p.snapshot("inconnue") is None
+
+
 def test_token_protege_le_tableau_de_bord(tmp_path):
     import threading
     p, reminders, _ = provider(tmp_path)
