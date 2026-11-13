@@ -9,3 +9,6 @@ piper-tts>=1.2
 sounddevice>=0.5
 soundfile>=0.12
 numpy>=1.26
+
+# Bot Telegram (python telegram_bot.py)
+python-telegram-bot>=22.0

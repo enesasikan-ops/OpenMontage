@@ -3,12 +3,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-echo "== 1/5 Homebrew, Python et Ollama =="
+echo "== 1/5 Homebrew, Python, Ollama et ffmpeg =="
 if ! command -v brew >/dev/null; then
   echo "Installe d'abord Homebrew : https://brew.sh puis relance ce script."; exit 1
 fi
 brew list python@3.12 >/dev/null 2>&1 || brew install python@3.12
 brew list --cask ollama >/dev/null 2>&1 || brew install --cask ollama
+brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
 open -a Ollama || true
 
 echo "== 2/5 Environnement Python =="
@@ -48,3 +49,4 @@ echo
 echo "✅ Installé. Pour lancer Jarvis :"
 echo "   .venv/bin/python main.py          # au clavier"
 echo "   .venv/bin/python main.py --voix   # à la voix"
+echo "   .venv/bin/python telegram_bot.py  # sur Telegram (voir le README)"

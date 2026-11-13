@@ -87,6 +87,34 @@ Exemples à essayer :
 - « Oublie ce que tu sais sur le café » → demande ta confirmation
 - « Au revoir » → quitte
 
+## 5. Parler à Jarvis depuis le téléphone (Telegram)
+
+Tu écris à Jarvis comme à un ami, ou tu lui envoies un **message vocal** : il
+répond par écrit, et en vocal si tu lui as parlé. Les actions sensibles
+s'affichent avec des boutons **✅ Oui / ❌ Non**.
+
+1. Dans Telegram, ouvre **@BotFather**, envoie `/newbot`, choisis un nom
+   (ex. « Jarvis ») et un identifiant qui finit par `bot` (ex. `jarvis_enes_bot`).
+2. BotFather te donne un **jeton** : colle-le après `TELEGRAM_TOKEN=` dans `.env`.
+3. Lance le bot sur le Mac :
+   ```bash
+   .venv/bin/python telegram_bot.py
+   ```
+4. Dans Telegram, ouvre ton bot et envoie `/start`. Il te répond avec ton
+   **identifiant** : mets-le après `JARVIS_TELEGRAM_ID=` dans `.env`, puis relance le bot.
+   À partir de là, **il ne répond qu'à toi** : toute autre personne est refusée.
+
+Commandes : `/memoire` (ce qu'il sait de toi), `/nouveau` (nouvelle conversation).
+
+À savoir :
+- Ça marche **partout** (4G, Wi-Fi, à l'étranger), sans Tailscale ni réglage de la box.
+- Le Mac doit rester allumé avec le bot lancé (Réglages → Énergie : empêcher la mise en veille).
+- Tes messages passent par les serveurs de Telegram (les conversations avec un
+  bot ne sont pas chiffrées de bout en bout). Le cerveau, la voix et la mémoire
+  restent sur ton Mac.
+- Le jeton donne le contrôle du bot : ne le partage jamais. S'il fuit,
+  `/revoke` dans BotFather en génère un nouveau.
+
 ## Matériel conseillé pour la voix
 
 Le Mac mini n'a pas de micro et son haut-parleur est faible : branche un
@@ -105,6 +133,6 @@ Les tests simulent Ollama et Claude : ils ne coûtent rien et ne demandent aucun
 ## Prochaines étapes
 
 - Mot de réveil « Hey Jarvis » (openWakeWord a un modèle prêt à l'emploi).
-- Bot Telegram pour lui parler depuis le téléphone, avec Tailscale pour y accéder hors de chez toi.
+- Démarrage automatique du bot Telegram à l'allumage du Mac.
 - Outils Notion (QG « Jarvis — QG » et base « Tâches Jarvis »), agenda, domotique (Home Assistant).
 - Chaque nouvel outil qui **agit** (envoyer, supprimer, payer, ouvrir) reçoit une confirmation.

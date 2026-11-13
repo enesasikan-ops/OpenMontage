@@ -59,15 +59,19 @@ class Speaker:
             raise RuntimeError(f"Voix introuvable : {voice_path}. Lance ./installer.sh")
         self.voice_path = voice_path
 
+    def synthesize(self, text: str, path: Path) -> None:
+        """Écrit la voix de Jarvis dans un fichier WAV."""
+        subprocess.run(
+            ["piper", "--model", str(self.voice_path), "--output_file", str(path)],
+            input=text.encode("utf-8"), check=True, capture_output=True,
+        )
+
     def say(self, text: str) -> None:
         if not text.strip():
             return
         path = Path(tempfile.mkstemp(suffix=".wav")[1])
         try:
-            subprocess.run(
-                ["piper", "--model", str(self.voice_path), "--output_file", str(path)],
-                input=text.encode("utf-8"), check=True, capture_output=True,
-            )
+            self.synthesize(text, path)
             self._play(path)
         except subprocess.CalledProcessError as exc:
             print(f"[voix] Piper a échoué : {exc.stderr.decode(errors='ignore')[-300:]}")
@@ -85,6 +89,27 @@ class Speaker:
         data, rate = sf.read(str(path))
         sd.play(data, rate)
         sd.wait()
+
+
+def decode_audio(data: bytes):
+    """Décode n'importe quel son (OGG de Telegram, MP3...) en float32 mono 16 kHz, via ffmpeg."""
+    import numpy as np
+
+    pcm = subprocess.run(
+        ["ffmpeg", "-loglevel", "error", "-i", "pipe:0", "-f", "f32le", "-ac", "1",
+         "-ar", str(SAMPLE_RATE), "pipe:1"],
+        input=data, capture_output=True, check=True,
+    ).stdout
+    return np.frombuffer(pcm, dtype=np.float32)
+
+
+def wav_to_ogg_opus(wav: Path, ogg: Path) -> None:
+    """Convertit en OGG/Opus, le format des messages vocaux Telegram."""
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(wav), "-c:a", "libopus",
+         "-b:a", "48k", str(ogg)],
+        check=True, capture_output=True,
+    )
 
 
 def is_yes(text: str) -> bool:
