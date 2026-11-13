@@ -62,6 +62,9 @@ CLAUDE_CLI_MODEL = _env("JARVIS_MODELE_ABONNEMENT", "")
 # Mode "gemini" : clé sur https://aistudio.google.com (Google AI Studio).
 GEMINI_KEY = _env("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = _env("JARVIS_MODELE_GEMINI", "gemini-2.5-flash").strip()
+# Mode "gemini-abonnement" : Gemini CLI connecté à ton compte Google (npm install -g @google/gemini-cli).
+GEMINI_CLI_ENABLE = _env("JARVIS_GEMINI_ABONNEMENT", "0") == "1"
+GEMINI_CLI_MODEL = _env("JARVIS_MODELE_GEMINI_CLI", "").strip()
 
 # --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
 # Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais

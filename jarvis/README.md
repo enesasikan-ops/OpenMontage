@@ -89,7 +89,8 @@ Choisis le mode avec `JARVIS_RENFORT` dans le fichier `.env` :
 |---|---|---|
 | `abonnement` *(par défaut)* | Passe par **Claude Code** connecté à ton compte Claude | Inclus dans ton abonnement (partage ta limite d'usage) |
 | `api` | Passe par une clé API Anthropic (`ANTHROPIC_API_KEY`) | Environ 3 centimes par question difficile (Claude Opus 5.5) |
-| `gemini` | Passe par Gemini, l'IA de Google (`GEMINI_API_KEY`) | Payé à l'usage (offre gratuite disponible) |
+| `gemini` | Gemini (Google) via une clé API (`GEMINI_API_KEY`) | Payé à l'usage (offre gratuite disponible) |
+| `gemini-abonnement` | Gemini via **Gemini CLI**, connecté à ton compte Google | Inclus dans ton abonnement Google |
 | `aucun` | Pas de renfort | Gratuit, 100 % local |
 
 **Mode abonnement**, une seule fois :
@@ -118,6 +119,17 @@ mais pas **agir** sur l'ordinateur : le mode mentor (exécuter des tâches) rest
 y compris pour agir et coder) et renseigne aussi `GEMINI_API_KEY`. Jarvis gagne alors un
 outil « demander à Gemini » : tu peux dire « demande à Gemini ce qu'il en pense » pour
 un deuxième avis, pendant que Claude reste le renfort principal.
+
+**Abonnement Gemini (Gemini CLI)** : comme Claude Code pour Claude, Gemini CLI se connecte
+à ton compte Google (pas de clé, pas de coût en plus).
+```bash
+npm install -g @google/gemini-cli
+gemini          # connecte-toi à ton compte Google, puis quitte
+```
+Puis, dans `.env`, soit `JARVIS_RENFORT=gemini-abonnement` (Gemini en principal), soit
+`JARVIS_GEMINI_ABONNEMENT=1` avec `JARVIS_RENFORT=abonnement` pour avoir **Claude ET
+l'abonnement Gemini** : Claude agit et code, Gemini donne un deuxième avis. Si une clé API
+Gemini est aussi présente, c'est elle qui sert pour le deuxième avis.
 
 ## Confidentialité
 

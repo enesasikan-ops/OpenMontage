@@ -30,7 +30,7 @@ from main import check_ollama  # charge aussi le fichier .env
 import config  # noqa: E402
 import persona  # noqa: E402
 from brain import Brain  # noqa: E402
-from claude_bridge import ClaudeBridge, GeminiBackend  # noqa: E402
+from claude_bridge import ClaudeBridge, GeminiBackend, GeminiCliBackend  # noqa: E402
 from memory import Memory  # noqa: E402
 from proactive import Proactive  # noqa: E402
 from security import Sentinel  # noqa: E402
@@ -214,6 +214,18 @@ class TelegramJarvis:
         app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, self.on_voice, block=False))
 
 
+def gemini_advisor():
+    """Gemini en « deuxième avis », à côté de Claude. Préfère la clé API, sinon l'abonnement (CLI)."""
+    import config as _c
+    if _c.RENFORT.startswith("gemini"):
+        return None  # Gemini est déjà le renfort principal
+    if _c.GEMINI_KEY:
+        return GeminiBackend()
+    if _c.GEMINI_CLI_ENABLE:
+        return GeminiCliBackend()
+    return None
+
+
 def setup_logging() -> None:
     fmt = "%(asctime)s %(name)s %(message)s"
     if sys.stderr is None:  # lancé en arrière-plan (pythonw.exe) : journal dans un fichier
@@ -251,8 +263,7 @@ def main() -> None:
     reminders, lists = Reminders(config.REMINDERS_FILE), Lists(config.LISTS_FILE)
     sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
     home = SmartHome()
-    # Gemini en second avis, quand une clé est là et que le renfort principal n'est pas déjà Gemini.
-    gemini = GeminiBackend() if (config.GEMINI_KEY and config.RENFORT != "gemini") else None
+    gemini = gemini_advisor()
 
     def brain_factory(confirm, on_status):
         tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,

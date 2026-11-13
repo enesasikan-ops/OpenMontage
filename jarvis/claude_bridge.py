@@ -5,6 +5,7 @@ Modes, choisis avec JARVIS_RENFORT dans le fichier .env :
                  Claude (ton abonnement, pas de coût en plus, usage personnel) ;
 - "api"        : passe par l'API Anthropic avec ANTHROPIC_API_KEY (payé à l'usage) ;
 - "gemini"     : passe par Gemini (Google) avec GEMINI_API_KEY (payé à l'usage) ;
+- "gemini-abonnement" : passe par Gemini CLI, connecté à ton compte Google ;
 - "aucun"      : pas de renfort, Jarvis reste 100 % local.
 """
 
@@ -198,6 +199,64 @@ class SubscriptionBackend:
         return self._read_result(result)
 
 
+class GeminiCliBackend:
+    """Renfort via Gemini CLI, connecté à ton compte Google (ton abonnement, pas de coût en plus)."""
+
+    name = "Gemini (abonnement Google, Gemini CLI)"
+    _instruction = "Réponds en français, directement et naturellement, en quelques phrases."
+
+    def __init__(self, runner: Runner = subprocess.run, which: Callable = shutil.which):
+        self._run = runner
+        self._which = which
+
+    @property
+    def available(self) -> bool:
+        return self._which("gemini") is not None
+
+    def unavailable_reason(self) -> str:
+        return ("Gemini CLI n'est pas installé (npm install -g @google/gemini-cli, "
+                "puis lance « gemini » une fois pour te connecter à ton compte Google)")
+
+    def command(self) -> list[str]:
+        cmd = [
+            self._which("gemini") or "gemini",
+            "-p", self._instruction,          # déclenche le mode non-interactif
+            "-o", "text",
+            "--approval-mode", "plan",         # lecture seule : il répond, il n'agit pas
+        ]
+        if config.GEMINI_CLI_MODEL:
+            cmd += ["-m", config.GEMINI_CLI_MODEL]
+        return cmd
+
+    def delegate(self, task: str) -> str:  # noqa: ARG002
+        return ("Pour exécuter une vraie tâche sur l'ordinateur, Jarvis passe par Claude Code. "
+                "Gemini sert ici à répondre, pas à agir.")
+
+    def ask(self, question: str, context: str = "") -> str:
+        env = dict(os.environ)
+        # Sans ça, Gemini CLI utiliserait la clé API (payante) au lieu de l'abonnement.
+        for key in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_API_KEY"):
+            env.pop(key, None)
+        config.DATA_DIR.mkdir(parents=True, exist_ok=True)
+        prompt = f"{SYSTEM_PROMPT}\n\n{_format(question, context)}"
+        try:
+            result = self._run(
+                self.command(), input=prompt, capture_output=True, text=True,
+                timeout=CLI_TIMEOUT_S, cwd=str(config.DATA_DIR), env=env)
+        except FileNotFoundError:
+            return "Je ne trouve pas Gemini CLI sur cet ordinateur."
+        except subprocess.TimeoutExpired:
+            return "Gemini met trop de temps à répondre. Réessaie dans un instant."
+        if result.returncode != 0:
+            err = (result.stderr or result.stdout or "").lower()
+            if any(w in err for w in ("login", "auth", "credential", "oauth", "sign in")):
+                return "Gemini CLI n'est pas connecté. Lance « gemini » dans le Terminal et connecte-toi."
+            if any(w in err for w in ("quota", "limit", "rate")):
+                return "Ta limite Gemini est atteinte pour le moment."
+            return "Gemini CLI a eu un problème. Réessaie plus tard."
+        return result.stdout.strip() or "Gemini n'a rien répondu."
+
+
 class GeminiBackend:
     """Renfort via Gemini, l'IA de Google (clé API Google AI Studio, payé à l'usage)."""
 
@@ -283,6 +342,8 @@ class ClaudeBridge:
             return ApiBackend()
         if mode == "gemini":
             return GeminiBackend()
+        if mode in ("gemini-abonnement", "gemini-cli"):
+            return GeminiCliBackend()
         if mode == "aucun":
             return NoBackend()
         return SubscriptionBackend()

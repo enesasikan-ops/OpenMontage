@@ -112,3 +112,52 @@ def test_no_gemini_tool_without_key(tmp_path, monkeypatch):
                         lists=skills.Lists(tmp_path / "l.json"),
                         gemini=GeminiBackend())
     assert "demander_a_gemini" not in tools
+
+
+# --- Abonnement Gemini (Gemini CLI) ---
+
+from claude_bridge import GeminiCliBackend  # noqa: E402
+
+
+class FakeRun:
+    def __init__(self, returncode=0, stdout="Réponse de Gemini.", stderr=""):
+        import subprocess
+        self.result = subprocess.CompletedProcess([], returncode, stdout, stderr)
+        self.cmd = self.kwargs = None
+
+    def __call__(self, cmd, **kwargs):
+        self.cmd, self.kwargs = cmd, kwargs
+        return self.result
+
+
+def test_cli_selected_by_config(monkeypatch):
+    monkeypatch.setattr(config, "RENFORT", "gemini-abonnement")
+    monkeypatch.setattr(config, "OFFLINE", False)
+    assert isinstance(ClaudeBridge().backend, GeminiCliBackend)
+
+
+def test_cli_command_is_read_only_and_uses_subscription(monkeypatch):
+    monkeypatch.setattr(config, "GEMINI_CLI_MODEL", "")
+    monkeypatch.setenv("GEMINI_API_KEY", "ne-doit-pas-servir")
+    run = FakeRun()
+    b = GeminiCliBackend(runner=run, which=lambda n: "/usr/local/bin/gemini")
+    assert ClaudeBridge(b).ask("Ton avis ?", "ctx") == "Réponse de Gemini."
+    cmd = run.cmd
+    assert cmd[0] == "/usr/local/bin/gemini" and "-p" in cmd
+    assert cmd[cmd.index("--approval-mode") + 1] == "plan"   # lecture seule : il n'agit pas
+    assert "-y" not in cmd and "--yolo" not in cmd
+    assert "Ton avis ?" in run.kwargs["input"] and "Contexte : ctx" in run.kwargs["input"]
+    assert "GEMINI_API_KEY" not in run.kwargs["env"]         # abonnement, pas la clé
+    assert "GOOGLE_API_KEY" not in run.kwargs["env"]
+
+
+def test_cli_not_installed_and_not_logged_in():
+    assert "pas installé" in ClaudeBridge(GeminiCliBackend(which=lambda n: None)).ask("?")
+    b = GeminiCliBackend(runner=FakeRun(1, "", "Please sign in to your Google account"),
+                         which=lambda n: "gemini")
+    assert "pas connecté" in ClaudeBridge(b).ask("?")
+
+
+def test_cli_cannot_act_on_pc():
+    b = GeminiCliBackend(runner=FakeRun(), which=lambda n: "gemini")
+    assert "Claude Code" in ClaudeBridge(b).delegate("range mes photos")
