@@ -55,6 +55,7 @@ class SignalJarvis:
         self.proposals = None                  # renseigné au démarrage (nuit)
         self.core = None                       # CoreImprover (changements du cœur), facultatif
         self._core_pending = None              # proposition de cœur en attente de ta validation
+        self.integrity = None                  # tripwire d'intégrité du cœur, facultatif
         self.brain = brain_factory(self._confirmer, self._statut)
 
     # --- Sorties vers toi --------------------------------------------------------
@@ -110,6 +111,13 @@ class SignalJarvis:
         if re.match(r"^\s*(rejette|refuse|annule)\s+c(?:œ|oe)ur\b", texte, re.IGNORECASE):
             self._appliquer_coeur(False)
             return
+        # Accepter un changement du cœur fait hors du bot (ex. une mise à jour que tu as relue).
+        if re.match(r"^\s*(rebase|rebaser|accepte|base)\s+c(?:œ|oe)ur\b", texte, re.IGNORECASE):
+            if self.integrity is not None:
+                self.envoyer("🛡️ " + self.integrity.rebaser())
+            else:
+                self.envoyer("La surveillance d'intégrité n'est pas active.")
+            return
 
         # 3. Décision sur une proposition d'amélioration (valide 3 / rejette 3 / oui / non).
         decision = self._decision_proposition(texte)
@@ -159,7 +167,10 @@ class SignalJarvis:
                          "Redemande une proposition corrigée.")
             return
         try:
-            self.envoyer(self.core.appliquer(prop))
+            message = self.core.appliquer(prop)
+            if self.integrity is not None:
+                self.integrity.rebaser()   # ce changement est validé : on accepte la nouvelle empreinte
+            self.envoyer(message)
         except Exception as exc:
             self.envoyer(f"Application impossible : {exc}")
 
@@ -334,6 +345,14 @@ def main() -> None:
     ReminderWatcher(reminders, notify=jarvis.notify_owner).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,
               notify=jarvis.notify_owner).start()
+
+    # Cybersurveillance continue : la machine ET le code de Jarvis lui-même.
+    if config.CYBERWATCH:
+        from core_integrity import CoreIntegrity
+        from cyberwatch import SecurityWatcher
+        jarvis.integrity = CoreIntegrity(config.DATA_DIR / "integrite_coeur.json")
+        SecurityWatcher(jarvis.notify_owner, sentinel=sentinel, integrity=jarvis.integrity,
+                        interval_s=config.CYBERWATCH_INTERVAL).start()
     if plugins is not None:
         plugins.attach(jarvis.brain)
         plugins.reload()

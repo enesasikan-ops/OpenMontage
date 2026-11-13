@@ -76,6 +76,12 @@ GEMINI_CLI_MODEL = _env("JARVIS_MODELE_GEMINI_CLI", "").strip()
 # Un repli n'est retenu que s'il est réellement disponible, et jamais vers la même famille.
 RENFORT_REPLI = _env("JARVIS_RENFORT_REPLI", "auto").strip().lower()
 
+# --- Cybersurveillance continue (cyberwatch.py) ---
+# Jarvis surveille en permanence la machine (ports, réseau, pare-feu…) ET son propre
+# code (tripwire d'intégrité du cœur). 1 = activé (défaut).
+CYBERWATCH = _env("JARVIS_CYBERSURVEILLANCE", "1") == "1"
+CYBERWATCH_INTERVAL = float(_env("JARVIS_CYBERSURVEILLANCE_SECONDES", "300"))
+
 # --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
 # Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais
 # UNIQUEMENT dans l'atelier ci-dessous, et seulement après ta confirmation.

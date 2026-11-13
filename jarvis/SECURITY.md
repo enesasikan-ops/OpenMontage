@@ -57,7 +57,13 @@ qui est sensible passe par une **confirmation** du propriétaire.
 - **Tableau de bord** : local par défaut, jeton à temps constant si exposé.
 - **Validation de noms** (plugins, propositions) et **anti-traversée de chemin**.
 - **Rien n'est appliqué sans un humain** : génération → sandbox → tests → ✅.
-- ~330 tests automatisés, dont des tests de sécurité dédiés.
+- **Cybersurveillance continue** (`cyberwatch.py`) : en boucle, la sentinelle machine
+  **et** un **tripwire d'intégrité du cœur** (`core_integrity.py`) qui alerte si un fichier
+  du cœur est modifié/supprimé hors du circuit validé. Après un changement légitime, le
+  propriétaire « rebase » la référence (commande `rebase cœur`). Limite : la référence est
+  un fichier local — un attaquant qui modifie le code peut aussi la modifier ; c'est un
+  signal précoce, à compléter par des droits de fichiers stricts et un compte dédié.
+- ~350 tests automatisés, dont des tests de sécurité dédiés.
 
 ## RCE par conception (le risque principal, assumé)
 

@@ -368,6 +368,12 @@ def main() -> None:
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,
               notify=jarvis.notify_owner).start()
     jarvis.proposals = proposals
+    if config.CYBERWATCH:  # cybersurveillance continue : la machine et le code de Jarvis
+        from core_integrity import CoreIntegrity
+        from cyberwatch import SecurityWatcher
+        integrity = CoreIntegrity(config.DATA_DIR / "integrite_coeur.json")
+        SecurityWatcher(jarvis.notify_owner, sentinel=sentinel, integrity=integrity,
+                        interval_s=config.CYBERWATCH_INTERVAL).start()
     if plugins is not None:
         plugins.attach(jarvis.brain)
         plugins.reload()
