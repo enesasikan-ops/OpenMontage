@@ -155,7 +155,8 @@ FACES_FILE = DATA_DIR / "visages.json"
 
 # --- Caméras par adresse de flux (publiques ou à toi) ---
 CAMERAS_FILE = DATA_DIR / "cameras.json"
-# Caméras motorisées (PTZ) : { "jardin": {"host","port","user","pass"} }. Mots de passe locaux.
+# Caméras motorisées (PTZ) : { "jardin": {"host","port","user","pass","presets":{"portail":"1"}} }.
+# Les « presets » (nom -> numéro ONVIF) activent la ronde (« fais le tour »). Accès locaux.
 PTZ_FILE = DATA_DIR / "ptz.json"
 
 # --- Journal des améliorations (ce que Jarvis ne sait pas encore faire) ---

@@ -6,12 +6,17 @@ from types import SimpleNamespace as NS
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ptz import PtzController, build_ptz_tools  # noqa: E402
+from ptz import PatrolController, PtzController, build_ptz_tools  # noqa: E402
 
 
 def _book(data=None):
     return NS(data=data if data is not None else {
         "jardin": {"host": "192.168.1.50", "user": "admin", "pass": "x"}})
+
+
+def _book_presets():
+    return NS(data={"jardin": {"host": "192.168.1.50", "user": "a", "pass": "x",
+                               "presets": {"portail": "1", "allée": "2"}}})
 
 
 def test_tourner_envoie_la_bonne_direction():
@@ -60,3 +65,41 @@ def test_outil_absent_sans_camera_ptz():
 def test_outil_present_avec_camera_ptz():
     tools = build_ptz_tools(_book())
     assert len(tools) == 1 and tools[0].name == "tourner_camera"
+
+
+# --- La ronde ---
+
+def test_aller_preset_appelle_le_mover():
+    vus = []
+    ptz = PtzController(_book_presets(), preset_mover=lambda infos, token: vus.append(token))
+    ptz.aller_preset("jardin", "2")
+    assert vus == ["2"]
+
+
+def test_ronde_passe_sur_chaque_position_et_decrit():
+    vus = []
+    ptz = PtzController(_book_presets(), preset_mover=lambda infos, token: vus.append(token))
+    descriptions = {"appel": 0}
+
+    def look(camera):
+        descriptions["appel"] += 1
+        return f"rien à signaler ({descriptions['appel']})"
+
+    patrol = PatrolController(ptz, look, settle_s=0)
+    out = patrol.tour("jardin")
+    assert vus == ["1", "2"]                       # passe par les deux positions
+    assert "portail" in out and "allée" in out     # décrit chaque zone
+    assert "Ronde terminée" in out
+
+
+def test_ronde_sans_positions():
+    ptz = PtzController(_book(), preset_mover=lambda *a: None)   # pas de presets
+    out = PatrolController(ptz, lambda c: "x").tour("jardin")
+    assert "pas de positions" in out
+
+
+def test_outil_ronde_seulement_avec_look_et_presets():
+    assert not any(t.name == "faire_le_tour" for t in build_ptz_tools(_book()))              # pas de look
+    assert not any(t.name == "faire_le_tour" for t in build_ptz_tools(_book(), look=lambda c: "x"))  # pas de presets
+    tools = build_ptz_tools(_book_presets(), look=lambda c: "x")
+    assert any(t.name == "faire_le_tour" for t in tools)

@@ -11,6 +11,7 @@ Les caméras PTZ et leurs accès sont dans un fichier JSON (config.PTZ_FILE) :
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -48,13 +49,37 @@ def _bouger_onvif(infos: dict, pan: float, tilt: float, duree: float) -> None:
     ptz.Stop({"ProfileToken": token})
 
 
+def _aller_preset_onvif(infos: dict, token: str) -> None:
+    """Va à une position mémorisée (preset) via ONVIF GotoPreset."""
+    from onvif import ONVIFCamera
+
+    cam = ONVIFCamera(infos["host"], int(infos.get("port", 80)),
+                      infos.get("user", ""), infos.get("pass", ""))
+    ptz = cam.create_ptz_service()
+    media = cam.create_media_service()
+    profil = media.GetProfiles()[0].token
+    ptz.GotoPreset({"ProfileToken": profil, "PresetToken": str(token)})
+
+
 class PtzController:
-    def __init__(self, book: JsonStore, mover: Callable = _bouger_onvif):
+    def __init__(self, book: JsonStore, mover: Callable = _bouger_onvif,
+                 preset_mover: Callable = _aller_preset_onvif):
         self.book = book
         self.mover = mover
+        self.preset_mover = preset_mover
 
     def cameras(self) -> list[str]:
         return sorted(self.book.data.keys())
+
+    def presets(self, camera: str) -> dict:
+        """Positions mémorisées d'une caméra : { nom: token }."""
+        infos = self.book.data.get((camera or "").strip().lower())
+        return dict((infos or {}).get("presets", {}))
+
+    def aller_preset(self, camera: str, token: str) -> None:
+        infos = self.book.data.get((camera or "").strip().lower())
+        if infos is not None:
+            self.preset_mover(infos, token)
 
     def tourner(self, camera: str, direction: str, duree: float = 1.0) -> str:
         camera = (camera or "").strip().lower()
@@ -79,8 +104,40 @@ class PtzController:
             f"C'est fait, j'ai incliné la caméra « {camera} » vers le {direction}."
 
 
-def build_ptz_tools(book: "JsonStore | None" = None) -> list:
-    """Outil « tourner_camera », seulement si des caméras motorisées sont configurées."""
+class PatrolController:
+    """La ronde : Jarvis passe la caméra sur chaque position mémorisée et décrit ce qu'il voit."""
+
+    def __init__(self, ptz: PtzController, look: Callable, settle_s: float = 2.0):
+        self.ptz = ptz
+        self.look = look          # look(camera) -> description de ce que montre la caméra
+        self.settle_s = settle_s  # temps de stabilisation après un déplacement
+
+    def tour(self, camera: str) -> str:
+        presets = self.ptz.presets(camera)
+        if not presets:
+            return (f"La caméra « {camera} » n'a pas de positions mémorisées. "
+                    "Définis-en dans l'appli (portail, allée…) puis ajoute-les à sa config.")
+        lignes = []
+        for nom, token in presets.items():
+            try:
+                self.ptz.aller_preset(camera, token)
+            except Exception:
+                log.exception("ronde : position %s", nom)
+                continue
+            time.sleep(self.settle_s)
+            try:
+                desc = self.look(camera)
+            except Exception:
+                desc = "vue indisponible"
+            lignes.append(f"{nom}, {desc}")
+        if not lignes:
+            return f"Je n'ai pas pu faire le tour de « {camera} »."
+        return "Ronde terminée. " + " ".join(f"{l}." for l in lignes)
+
+
+def build_ptz_tools(book: "JsonStore | None" = None, look: "Callable | None" = None) -> list:
+    """Outils de caméra motorisée, seulement si des caméras PTZ sont configurées.
+    `look(camera) -> str` (facultatif) active la ronde (« fais le tour »)."""
     book = book or JsonStore(config.PTZ_FILE, {})
     if not book.data:
         return []
@@ -89,7 +146,7 @@ def build_ptz_tools(book: "JsonStore | None" = None) -> list:
     def obj(props, required):
         return {"type": "object", "properties": props, "required": required}
 
-    return [Tool(
+    outils = [Tool(
         name="tourner_camera",
         description="Oriente une caméra motorisée (PTZ). Direction : gauche, droite, haut, bas.",
         parameters=obj({
@@ -99,3 +156,15 @@ def build_ptz_tools(book: "JsonStore | None" = None) -> list:
         }, ["camera", "direction"]),
         run=lambda camera, direction, duree=1.0: ptz.tourner(camera, direction, duree),
     )]
+
+    # La ronde : disponible si on sait décrire la vue, et si au moins une caméra a des positions.
+    if look is not None and any(ptz.presets(c) for c in ptz.cameras()):
+        patrol = PatrolController(ptz, look)
+        outils.append(Tool(
+            name="faire_le_tour",
+            description=("Fais une ronde avec une caméra motorisée : passe sur chaque position "
+                         "mémorisée et décris ce que tu vois (« fais le tour du jardin »)."),
+            parameters=obj({"camera": {"type": "string", "description": "nom de la caméra"}}, ["camera"]),
+            run=lambda camera: patrol.tour(camera),
+        ))
+    return outils
