@@ -20,3 +20,6 @@ python-telegram-bot>=22.0
 # Reconnaissance de visages (JARVIS_VISAGES=1) — optionnel, lourd à installer
 # face-recognition>=1.3
 # pillow>=10
+
+# Annonces d'arrivée via caméras (JARVIS_MQTT=1) — optionnel
+# paho-mqtt>=2.1

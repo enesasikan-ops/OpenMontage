@@ -392,6 +392,13 @@ def main() -> None:
         plugins.reload()
         plugins.start()
         proposals.hot_reload = plugins.reload
+    if config.MQTT:   # annonces d'arrivée (caméras Frigate/Double Take)
+        from arrivals import ArrivalWatcher, texte_arrivee
+        ArrivalWatcher(
+            lambda nom, cam, connu: jarvis.notify_owner(texte_arrivee(nom, cam, connu)),
+            host=config.MQTT_HOST, port=config.MQTT_PORT, topic=config.MQTT_TOPIC,
+            username=config.MQTT_USER, password=config.MQTT_PASS).demarrer()
+
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
                         notify=jarvis.send_proposal).start()

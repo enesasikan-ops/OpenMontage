@@ -103,6 +103,15 @@ HONEYPOT_PORT = int(_env("JARVIS_HONEYPOT_PORT", "2222"))
 # internes/privées sont déjà protégées d'office.
 IP_LISTE_BLANCHE = tuple(x.strip() for x in _env("JARVIS_IP_LISTE_BLANCHE", "").split(",") if x.strip())
 
+# --- Annonces d'arrivée (caméras Frigate / Double Take via MQTT) ---
+# Jarvis annonce « Monsieur, Carlos est à la porte » / alerte sur un inconnu. 0 = coupé.
+MQTT = _env("JARVIS_MQTT", "0") == "1"
+MQTT_HOST = _env("JARVIS_MQTT_HOTE", "localhost")
+MQTT_PORT = int(_env("JARVIS_MQTT_PORT", "1883"))
+MQTT_TOPIC = _env("JARVIS_MQTT_SUJET", "double-take/matches/#")
+MQTT_USER = _env("JARVIS_MQTT_USER", "")
+MQTT_PASS = _env("JARVIS_MQTT_PASS", "")
+
 # --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
 # Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais
 # UNIQUEMENT dans l'atelier ci-dessous, et seulement après ta confirmation.
