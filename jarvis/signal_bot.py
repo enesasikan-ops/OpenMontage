@@ -390,6 +390,14 @@ def main() -> None:
         SecurityWatcher(jarvis.notify_owner, sentinel=sentinel, integrity=jarvis.integrity,
                         interval_s=config.CYBERWATCH_INTERVAL, evidence=evidence,
                         backup=jarvis.backup, auto_restore=config.AUTO_RESTORE).start()
+        if config.HONEYPOT:   # faux serveur leurre (aucun accès au cœur : juste preuve + alerte)
+            from honeypot import Honeypot
+
+            def _sur_intrusion(ip, user, pw):
+                evidence.consigner(f"honeypot : intrusion depuis {ip} (user={user!r} pass={pw!r})")
+                jarvis.notify_owner(f"🍯 ALERTE : tentative d'accès au leurre depuis {ip}.")
+
+            Honeypot(on_intrusion=_sur_intrusion, port=config.HONEYPOT_PORT).demarrer()
     if plugins is not None:
         plugins.attach(jarvis.brain)
         plugins.reload()

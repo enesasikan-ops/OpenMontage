@@ -72,7 +72,13 @@ qui est sensible passe par une **confirmation** du propriétaire.
   (réversible). Ligne de sécurité clé : la **génération de code** peut être déclenchée
   automatiquement, mais son **application reste toujours derrière la ✅ du propriétaire** —
   sinon une fausse attaque suffirait à faire exécuter du code non relu.
-- ~360 tests automatisés, dont des tests de sécurité dédiés.
+- **Pot de miel** (`honeypot.py`, opt-in `JARVIS_HONEYPOT=1`) : service leurre qui détecte
+  les intrus (toute connexion est suspecte → preuve + alerte). Conçu comme la pièce LA MOINS
+  privilégiée : aucun accès au cœur ni à l'exécution de code, délai d'attente et nombre de
+  connexions plafonnés (anti-DoS), entrées nettoyées (anti-injection de log). Toute riposte
+  active (blocage d'IP) reste défensive et confirmée — jamais de contre-attaque (hack back
+  illégal ; l'IP source peut être usurpée, un blocage auto aveugle se retourne contre toi).
+- ~370 tests automatisés, dont des tests de sécurité dédiés.
 
 ## RCE par conception (le risque principal, assumé)
 

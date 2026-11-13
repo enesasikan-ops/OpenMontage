@@ -88,6 +88,13 @@ CYBERWATCH_INTERVAL = float(_env("JARVIS_CYBERSURVEILLANCE_SECONDES", "300"))
 # toujours soumise à ta validation.
 AUTO_RESTORE = _env("JARVIS_AUTO_RESTAURATION", "0") == "1"
 
+# --- Pot de miel (honeypot.py) ---
+# Un faux serveur leurre : toute connexion est suspecte, Jarvis note l'IP et t'alerte.
+# N'a aucun accès au cœur (pièce la plus exposée = la moins privilégiée). 0 = coupé.
+# Port > 1024 pour éviter les droits root. Expose-le au réseau/internet en connaissance de cause.
+HONEYPOT = _env("JARVIS_HONEYPOT", "0") == "1"
+HONEYPOT_PORT = int(_env("JARVIS_HONEYPOT_PORT", "2222"))
+
 # --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
 # Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais
 # UNIQUEMENT dans l'atelier ci-dessous, et seulement après ta confirmation.
