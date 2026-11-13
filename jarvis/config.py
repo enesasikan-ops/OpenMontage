@@ -15,6 +15,11 @@ def _env(name: str, default: str) -> str:
 # --- Cerveau local (Ollama) ---
 OLLAMA_HOST = _env("JARVIS_OLLAMA_HOST", "http://localhost:11434")
 LOCAL_MODEL = _env("JARVIS_MODELE_LOCAL", "mistral-small3.2")
+# Réflexion du modèle local (Qwen3 et autres modèles « qui pensent ») :
+# "0" = répond directement (plus rapide, conseillé pour la voix), "1" = réfléchit,
+# vide = comportement par défaut du modèle (ne rien envoyer).
+_think = _env("JARVIS_REFLEXION_LOCALE", "").strip()
+LOCAL_THINK: bool | None = None if _think == "" else _think == "1"
 
 # --- Mode 100 % hors ligne ---
 # JARVIS_HORS_LIGNE=1 : rien ne sort de l'ordinateur (pas de renfort Claude,

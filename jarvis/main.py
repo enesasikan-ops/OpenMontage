@@ -21,15 +21,33 @@ from tools import build_tools  # noqa: E402
 STOP_WORDS = ("au revoir", "bonne nuit jarvis", "quitter", "exit", "stop jarvis")
 
 
-def check_ollama():
+def model_installed(wanted: str, installed: set[str]) -> bool:
+    """« qwen3:30b-a3b » doit être installé tel quel ; « mistral-small3.2 » = « :latest »."""
+    full = wanted if ":" in wanted else f"{wanted}:latest"
+    return full in installed
+
+
+def check_ollama(wait_s: int = 0):
+    """Vérifie qu'Ollama répond et que le modèle est installé.
+
+    wait_s : au démarrage du PC, Ollama peut mettre un moment à se lancer ;
+    on patiente jusqu'à wait_s secondes avant d'abandonner.
+    """
+    import time
+
     import ollama
 
     client = ollama.Client(host=config.OLLAMA_HOST)
-    try:
-        installed = {m.model for m in client.list().models}
-    except Exception:
-        sys.exit("❌ Ollama ne répond pas. Ouvre l'app Ollama (ou lance « ollama serve »).")
-    if not any(name.split(":")[0] == config.LOCAL_MODEL.split(":")[0] for name in installed):
+    deadline = time.monotonic() + wait_s
+    while True:
+        try:
+            installed = {m.model for m in client.list().models}
+            break
+        except Exception:
+            if time.monotonic() >= deadline:
+                sys.exit("❌ Ollama ne répond pas. Ouvre l'app Ollama (ou lance « ollama serve »).")
+            time.sleep(5)
+    if not model_installed(config.LOCAL_MODEL, installed):
         sys.exit(f"❌ Le modèle « {config.LOCAL_MODEL} » n'est pas installé.\n"
                  f"   Lance : ollama pull {config.LOCAL_MODEL}")
     return client

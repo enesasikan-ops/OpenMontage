@@ -9,6 +9,7 @@ Toute autre personne qui le trouverait reçoit un refus poli.
 import asyncio
 import logging
 import os
+import sys
 import tempfile
 import threading
 from pathlib import Path
@@ -187,8 +188,18 @@ class TelegramJarvis:
         app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, self.on_voice, block=False))
 
 
+def setup_logging() -> None:
+    fmt = "%(asctime)s %(name)s %(message)s"
+    if sys.stderr is None:  # lancé en arrière-plan (pythonw.exe) : journal dans un fichier
+        config.DATA_DIR.mkdir(parents=True, exist_ok=True)
+        logging.basicConfig(level=logging.INFO, format=fmt,
+                            filename=config.DATA_DIR / "telegram_bot.log", encoding="utf-8")
+    else:
+        logging.basicConfig(level=logging.INFO, format=fmt)
+
+
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
+    setup_logging()
     logging.getLogger("httpx").setLevel(logging.WARNING)  # n'affiche pas le jeton dans les logs
 
     token = os.environ.get("TELEGRAM_TOKEN", "").strip()
@@ -199,7 +210,7 @@ def main() -> None:
     raw_id = os.environ.get("JARVIS_TELEGRAM_ID", "").strip()
     allowed_id = int(raw_id) if raw_id else None
 
-    client = check_ollama()
+    client = check_ollama(wait_s=180)  # au démarrage du PC, Ollama peut être lent à se lancer
     memory = Memory(config.MEMORY_FILE)
     claude = ClaudeBridge()
 
@@ -217,9 +228,9 @@ def main() -> None:
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)
     app = Application.builder().token(token).concurrent_updates(True).build()
     jarvis.register(app)
-    print("🤖 Jarvis est en ligne sur Telegram. Ctrl+C pour arrêter.")
+    log.info("Jarvis est en ligne sur Telegram (Ctrl+C pour arrêter).")
     if allowed_id is None:
-        print("ℹ️  Envoie /start au bot : il te donnera ton identifiant à mettre dans .env.")
+        log.info("Envoie /start au bot : il te donnera ton identifiant à mettre dans .env.")
     app.run_polling(drop_pending_updates=True)
 
 

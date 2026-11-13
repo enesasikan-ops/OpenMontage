@@ -9,7 +9,7 @@ from tools import Tool
 
 
 class ChatClient(Protocol):
-    def chat(self, model: str, messages: list[dict], tools: list[dict]) -> Any: ...
+    def chat(self, model: str, messages: list[dict], tools: list[dict], **kwargs: Any) -> Any: ...
 
 
 def system_prompt(memory: Memory) -> str:
@@ -87,7 +87,8 @@ class Brain:
 
         for _ in range(config.MAX_TOOL_ROUNDS):
             messages = [{"role": "system", "content": system_prompt(self.memory)}, *self.history]
-            response = self.client.chat(model=self.model, messages=messages, tools=schemas)
+            extra = {} if config.LOCAL_THINK is None else {"think": config.LOCAL_THINK}
+            response = self.client.chat(model=self.model, messages=messages, tools=schemas, **extra)
             message = _field(response, "message")
             content = _field(message, "content", "") or ""
             tool_calls = _field(message, "tool_calls") or []

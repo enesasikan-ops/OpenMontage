@@ -25,7 +25,7 @@ class FakeOllama:
     def __init__(self, replies):
         self.replies = list(replies)
 
-    def chat(self, model, messages, tools):
+    def chat(self, model, messages, tools, **kwargs):
         return {"message": self.replies.pop(0)}
 
 

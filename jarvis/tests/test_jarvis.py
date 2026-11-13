@@ -23,8 +23,8 @@ class FakeOllama:
         self.replies = list(replies)
         self.calls = []
 
-    def chat(self, model, messages, tools):
-        self.calls.append({"model": model, "messages": messages, "tools": tools})
+    def chat(self, model, messages, tools, **kwargs):
+        self.calls.append({"model": model, "messages": messages, "tools": tools, **kwargs})
         return {"message": self.replies.pop(0)}
 
 
@@ -159,7 +159,7 @@ def test_subscription_backend_calls_claude_code_safely(monkeypatch, tmp_path):
     run = FakeRun()
     backend = SubscriptionBackend(runner=run, which=lambda name: "/usr/local/bin/claude")
     assert ClaudeBridge(backend).ask("Question", "ctx") == "Réponse abonnement."
-    assert run.cmd[:2] == ["claude", "-p"]
+    assert run.cmd[:2] == ["/usr/local/bin/claude", "-p"]   # chemin complet (claude.cmd sous Windows)
     assert run.cmd[run.cmd.index("--tools") + 1] == ""      # aucun outil
     assert "--no-session-persistence" in run.cmd
     assert "--bare" not in run.cmd                           # --bare interdit la connexion par abonnement
@@ -223,3 +223,32 @@ def test_voice_yes_detection():
     assert voice.is_yes("ok")
     assert not voice.is_yes("non surtout pas")
     assert not voice.is_yes("attends")
+
+
+@pytest.mark.parametrize("value, expected", [("", None), ("0", False), ("1", True)])
+def test_local_thinking_setting(memory, monkeypatch, value, expected):
+    monkeypatch.setattr(config, "LOCAL_THINK", None if value == "" else value == "1")
+    brain, _ = make_brain([text("ok")], memory)
+    brain.reply("salut")
+    call = brain.client.calls[0]
+    assert call.get("think", None) is expected
+    if expected is None:
+        assert "think" not in call
+
+
+def test_piper_found_next_to_python_without_activated_venv(tmp_path, monkeypatch):
+    voice = pytest.importorskip("voice")
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    (fake_bin / "piper").write_text("")
+    monkeypatch.setattr(voice.sys, "executable", str(fake_bin / "python"))
+    monkeypatch.setenv("PATH", "/nonexistent")
+    assert voice.find_program("piper") == str(fake_bin / "piper")
+
+
+def test_model_installed_checks_the_exact_tag():
+    main = pytest.importorskip("main")
+    installed = {"qwen3:8b", "mistral-small3.2:latest"}
+    assert not main.model_installed("qwen3:30b-a3b", installed)
+    assert main.model_installed("qwen3:8b", installed)
+    assert main.model_installed("mistral-small3.2", installed)

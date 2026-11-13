@@ -3,6 +3,7 @@
 import platform
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -49,20 +50,34 @@ class Listener:
         return self.transcribe(self.record())
 
 
+def find_program(name: str) -> str | None:
+    """Cherche un programme d'abord à côté de Python (dossier .venv), puis dans le PATH.
+
+    Indispensable quand Jarvis est lancé avec « .venv/bin/python main.py » sans activer
+    l'environnement : les commandes installées par pip ne sont alors pas dans le PATH.
+    """
+    bin_dir = Path(sys.executable).parent
+    for candidate in (bin_dir / name, bin_dir / f"{name}.exe"):
+        if candidate.is_file():
+            return str(candidate)
+    return shutil.which(name)
+
+
 class Speaker:
     """Lit un texte à voix haute avec Piper."""
 
     def __init__(self, voice_path: Path = config.PIPER_VOICE):
-        if shutil.which("piper") is None:
+        self.piper = find_program("piper")
+        if self.piper is None:
             raise RuntimeError("La commande « piper » est introuvable : pip install piper-tts")
         if not voice_path.exists():
-            raise RuntimeError(f"Voix introuvable : {voice_path}. Lance ./installer.sh")
+            raise RuntimeError(f"Voix introuvable : {voice_path}. Relance l'installeur.")
         self.voice_path = voice_path
 
     def synthesize(self, text: str, path: Path) -> None:
         """Écrit la voix de Jarvis dans un fichier WAV."""
         subprocess.run(
-            ["piper", "--model", str(self.voice_path), "--output_file", str(path)],
+            [self.piper, "--model", str(self.voice_path), "--output_file", str(path)],
             input=text.encode("utf-8"), check=True, capture_output=True,
         )
 

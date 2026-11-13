@@ -22,12 +22,25 @@ Jarvis tourne **chez toi**, sur un Mac mini (ou n'importe quel Mac Apple Silicon
 |---|---|---|
 | 16 Go | `qwen3:8b` ou `llama3.1:8b` | Correct pour les questions simples |
 | 24–32 Go | `mistral-small3.2` *(par défaut)* | Bon en français, bon avec les outils |
-| 64 Go et + | `llama3.3:70b` | Très bon, plus lent |
+| 48 Go et + | `qwen3:30b-a3b` | Très bon et rapide (n'active qu'une partie du modèle à chaque mot) |
+| 64 Go et + (Mac M4 Pro/Max) | `llama3.3:70b` | Très bon, mais lent sans mémoire très rapide |
 
 Le modèle doit savoir utiliser des **outils** (« tools » sur ollama.com) :
 c'est ce qui lui permet d'appeler Claude, de lire l'heure, de retenir des infos.
 
 ## 2. Installation (une seule fois)
+
+### Le plus simple : laisser Claude Code tout faire
+
+Installe Claude Code (Mac : `curl -fsSL https://claude.ai/install.sh | bash` ;
+Windows, dans PowerShell : `irm https://claude.ai/install.ps1 | iex`), lance
+`claude`, connecte-toi, puis dis-lui :
+
+> Installe Jarvis en suivant jarvis/README.md, choisis le modèle adapté à cet
+> ordinateur, lance les tests, puis optimise le PC avec le script prévu.
+> Explique-moi chaque étape et demande-moi avant d'installer quelque chose.
+
+### Sur Mac (Apple Silicon)
 
 Prérequis : [Homebrew](https://brew.sh). Puis, dans le Terminal :
 
@@ -36,9 +49,37 @@ cd jarvis
 ./installer.sh
 ```
 
-Le script installe Python, Ollama, les dépendances, la voix française
-(`fr_FR-siwis-medium`) et télécharge le modèle local. Compte 10 à 30 minutes
-selon la connexion (le modèle pèse plusieurs Go).
+### Sur Windows 10/11 (ex. mini-PC AMD Ryzen, 64 Go)
+
+Dans PowerShell, depuis le dossier `jarvis` :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\installer.ps1
+```
+
+L'installeur choisit le modèle selon la mémoire vive : **48 Go et plus →
+`qwen3:30b-a3b`** (gros modèle, mais il n'utilise qu'une petite partie de
+lui-même à chaque mot, donc il répond vite), 24 Go → `mistral-small3.2`,
+moins → `qwen3:8b`. Pour Qwen3, la « réflexion » avant de répondre est coupée
+(`JARVIS_REFLEXION_LOCALE=0`) : réponses plus rapides à l'oral.
+
+Ensuite, **optimise le PC** (PowerShell ouvert *en tant qu'administrateur*) :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\optimiser_windows.ps1
+```
+
+Il demande ton accord pour chaque réglage :
+1. **Énergie** : performances élevées, plus de mise en veille (l'écran peut s'éteindre).
+2. **Ollama** : modèle gardé en mémoire, calcul accéléré, puce graphique AMD utilisée si possible.
+3. **Démarrage automatique** du bot Telegram à l'ouverture de session (sans fenêtre, redémarre s'il plante).
+4. **Windows Update** : plus de redémarrage automatique quand ta session est ouverte.
+
+Et il t'indique ce qui se règle à la main : la mémoire graphique dans le BIOS
+(« UMA Frame Buffer Size » sur 16G) et l'ouverture de session automatique.
+Pour tout annuler : `.\optimiser_windows.ps1 -Annuler`.
+
+Compte 20 à 40 minutes au total : les modèles pèsent plusieurs Go.
 
 ## 3. Brancher le renfort Claude (facultatif, recommandé)
 
@@ -79,6 +120,8 @@ l'abonnement, paiement à l'usage, pense à fixer un plafond), colle-la après
 .venv/bin/python main.py          # au clavier (idéal pour tester)
 .venv/bin/python main.py --voix   # à la voix : Entrée pour parler, Entrée pour finir
 ```
+
+Sous Windows : `.venv\Scripts\python.exe main.py` (et `--voix`).
 
 Exemples à essayer :
 - « Quelle heure est-il ? » → outil local

@@ -97,8 +97,10 @@ class SubscriptionBackend:
                 "(brew install --cask claude-code, puis lance « claude » une fois pour te connecter)")
 
     def command(self) -> list[str]:
+        # Chemin complet : sous Windows, « claude » peut être un claude.cmd
+        # que Python ne sait pas lancer par son seul nom.
         cmd = [
-            "claude", "-p",
+            self._which("claude") or "claude", "-p",
             "--output-format", "text",
             "--system-prompt", SYSTEM_PROMPT,
             "--tools", "",               # aucun outil : Claude répond, il n'agit pas
