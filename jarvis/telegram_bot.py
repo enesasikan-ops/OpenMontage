@@ -350,17 +350,24 @@ def main() -> None:
 
         plugins = PluginManager(interval_s=config.PLUGINS_INTERVAL)
 
+    from skills import JsonStore as _JsonStore
+    from watchdog import Watchdog
+    _etat = {}
+    watchdog = Watchdog(home, lambda m: _etat["jarvis"].notify_owner(m),
+                        _JsonStore(config.SURV_FILE, {}), config.surv_settings())
+
     def brain_factory(confirm, on_status):
         tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
                             agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
                             faces=faces, face_frame=face_frame, cameras=cameras, growth=growth,
-                            proposals=proposals, plugins=plugins is None)
+                            proposals=proposals, plugins=plugins is None, watchdog=watchdog)
         if plugins is not None:
             tools.update({t.name: t for t in build_plugin_tools(plugins)})
         return Brain(client, tools, memory, confirm)
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)
+    _etat["jarvis"] = jarvis
     app = (Application.builder().token(token).concurrent_updates(True)
            .post_init(jarvis.on_startup).build())
     jarvis.register(app)
@@ -406,6 +413,7 @@ def main() -> None:
                 if desc:
                     texte += f" J'y jette un œil : {desc}"
             jarvis.notify_owner(texte)
+            watchdog.sur_intrusion(nom, cam, connu)        # réaction active si armé + inconnu
 
         ArrivalWatcher(_sur_arrivee, host=config.MQTT_HOST, port=config.MQTT_PORT,
                        topic=config.MQTT_TOPIC, username=config.MQTT_USER,

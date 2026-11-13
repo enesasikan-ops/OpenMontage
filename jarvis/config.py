@@ -115,6 +115,27 @@ MQTT_PASS = _env("JARVIS_MQTT_PASS", "")
 # Sans danger (bouger une caméra est réversible), donc autonome. 1 = activé.
 AUTO_REGARD = _env("JARVIS_AUTO_REGARD", "1") == "1"
 
+# --- Mode Sentinelle (réaction active anti-intrusion, watchdog.py) ---
+# Armé par toi ; sur visage inconnu, Jarvis allume/verrouille/enregistre/avertit + t'alerte.
+# (SURV_FILE est défini plus bas, après DATA_DIR.)
+
+
+def _liste(name: str) -> tuple:
+    return tuple(x.strip() for x in _env(name, "").split(",") if x.strip())
+
+
+def surv_settings() -> dict:
+    return {
+        "lumieres": list(_liste("JARVIS_SURV_LUMIERES")),      # entity_id des lumières extérieures
+        "serrures": list(_liste("JARVIS_SURV_SERRURES")),      # entity_id des serrures
+        "verrouiller": _env("JARVIS_SURV_VERROUILLER", "0") == "1",
+        "haut_parleur": _env("JARVIS_SURV_HAUTPARLEUR", "").strip(),  # media_player extérieur
+        "message": _env("JARVIS_SURV_MESSAGE", "").strip(),     # vide = message dissuasif par défaut
+        "tts_service": _env("JARVIS_SURV_TTS", "tts.google_translate_say").strip(),
+        "enregistrement_service": _env("JARVIS_SURV_ENR_SERVICE", "").strip(),  # ex. switch.turn_on
+        "enregistrement_entite": _env("JARVIS_SURV_ENR_ENTITE", "").strip(),
+    }
+
 # --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
 # Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais
 # UNIQUEMENT dans l'atelier ci-dessous, et seulement après ta confirmation.
@@ -134,6 +155,7 @@ PIPER_VOICE = Path(_env(
 DATA_DIR = Path(_env("JARVIS_DOSSIER", str(Path.home() / ".jarvis")))
 MEMORY_FILE = DATA_DIR / "memoire.json"
 PEOPLE_FILE = DATA_DIR / "personnes.json"   # mémoire par personne (goûts, relations…)
+SURV_FILE = DATA_DIR / "sentinelle_active.json"   # état armé/désarmé du mode Sentinelle
 REMINDERS_FILE = DATA_DIR / "rappels.json"
 LISTS_FILE = DATA_DIR / "listes.json"
 

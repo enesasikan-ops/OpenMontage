@@ -50,7 +50,7 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
                 on_status: Callable[[str], None], reminders=None, lists=None,
                 sentinel=None, home=None, web=True, agent=None,
                 gemini=None, drone=None, faces=None, face_frame=None,
-                cameras=None, growth=None, proposals=None, plugins=True) -> dict[str, Tool]:
+                cameras=None, growth=None, proposals=None, plugins=True, watchdog=None) -> dict[str, Tool]:
     """reminders / lists : stockages des compétences (skills.py). Sans eux, outils de base seuls."""
     def ask_claude(question: str, contexte: str = "") -> str:
         on_status(persona.asking_claude())
@@ -126,6 +126,10 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from people import build_people_tools   # mémoire par personne (toujours disponible, local)
 
     tools += build_people_tools()
+    if watchdog is not None:   # mode Sentinelle (armer/désarmer à la voix)
+        from watchdog import build_watchdog_tools
+
+        tools += build_watchdog_tools(watchdog)
     if drone is not None:
         from drone import build_drone_tools
 
