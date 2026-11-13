@@ -25,7 +25,9 @@ def reply(text):
 def test_selected_by_config(monkeypatch):
     monkeypatch.setattr(config, "RENFORT", "gemini")
     monkeypatch.setattr(config, "OFFLINE", False)
-    assert isinstance(ClaudeBridge().backend, GeminiBackend)
+    # Gemini est le renfort principal (un repli Claude peut s'ajouter si Claude est là).
+    b = ClaudeBridge().backend
+    assert isinstance(getattr(b, "principal", b), GeminiBackend)
 
 
 def test_available_needs_key(monkeypatch):
@@ -133,7 +135,9 @@ class FakeRun:
 def test_cli_selected_by_config(monkeypatch):
     monkeypatch.setattr(config, "RENFORT", "gemini-abonnement")
     monkeypatch.setattr(config, "OFFLINE", False)
-    assert isinstance(ClaudeBridge().backend, GeminiCliBackend)
+    # Gemini CLI est le renfort principal (un repli Claude peut s'ajouter si Claude est là).
+    b = ClaudeBridge().backend
+    assert isinstance(getattr(b, "principal", b), GeminiCliBackend)
 
 
 def test_cli_command_is_read_only_and_uses_subscription(monkeypatch):

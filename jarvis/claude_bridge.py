@@ -361,13 +361,14 @@ class NoBackend:
         return "Le mode mentor est désactivé (pas de renfort Claude)."
 
 
-# --- Repli automatique : si Claude ne peut pas coder, Gemini prend le relais -----
+# --- Repli automatique : si un renfort ne peut pas coder, l'autre prend le relais --
 
-# Messages d'échec d'un renfort (reconnus pour déclencher le repli). Ce sont des
-# phrases exactes renvoyées par les backends ci-dessus ; si on en change une, la
-# mettre à jour ici aussi. Une « préférence de ne pas répondre » (refus de sécurité)
-# n'en fait PAS partie : on ne contourne jamais un refus en passant à Gemini.
+# Messages d'ÉCHEC RÉEL d'un renfort (quota, non connecté, panne) : ils font passer
+# au renfort suivant. Ce sont des phrases exactes renvoyées par les backends ci-dessus ;
+# si on en change une, la mettre à jour ici aussi. Un « refus de sécurité » n'en fait
+# PAS partie : on ne contourne jamais un refus en passant à l'autre renfort.
 _ECHECS_EXACTS = frozenset({
+    # Claude
     "Claude Code n'est pas connecté. Lance « claude » dans le Terminal et connecte-toi.",
     "Tu as atteint la limite de ton abonnement Claude pour le moment. Je réponds avec mes moyens.",
     "Claude Code a eu un problème. Réessaie plus tard.",
@@ -377,15 +378,35 @@ _ECHECS_EXACTS = frozenset({
     "Ma clé Claude est refusée. Vérifie ANTHROPIC_API_KEY dans le fichier .env.",
     "Claude est surchargé pour le moment. Réessaie dans une minute.",
     "Je n'arrive pas à joindre Claude. Vérifie la connexion internet.",
+    # Gemini
+    "Je ne trouve pas Gemini CLI sur cet ordinateur.",
+    "Gemini met trop de temps à répondre. Réessaie dans un instant.",
+    "Gemini CLI n'est pas connecté. Lance « gemini » dans le Terminal et connecte-toi.",
+    "Ta limite Gemini est atteinte pour le moment.",
+    "Gemini CLI a eu un problème. Réessaie plus tard.",
+    "Ma clé Gemini est refusée. Vérifie GEMINI_API_KEY dans le fichier .env.",
+    "Gemini est surchargé ou ta limite est atteinte. Réessaie plus tard.",
+    "Je n'arrive pas à joindre Gemini. Vérifie la connexion internet.",
+    "Gemini a renvoyé une réponse illisible.",
+    "Gemini n'a rien répondu.",
 })
-_ECHECS_PREFIXES = ("Claude a renvoyé une erreur", "Pour exécuter une vraie tâche")
+_ECHECS_PREFIXES = ("Claude a renvoyé une erreur", "Gemini a renvoyé une erreur")
+
+# « Je sais répondre mais pas agir sur la machine » (Gemini, ou Claude en mode API) :
+# ce n'est pas un échec, c'est le signal qu'il faut passer par la proposition écrite.
+_NE_SAIT_PAS_AGIR = "Pour exécuter une vraie tâche"
 
 _RE_DOSSIER = re.compile(r"Dossier de travail à utiliser[^:]*:\s*(.+)")
 _RE_ENTETE_FICHIER = r"(?im)^#{1,6}\s*fichier\s*:\s*(.+?)\s*$"
 
 
+def _ne_sait_pas_agir(reponse: str) -> bool:
+    """True si le renfort sait répondre mais pas piloter la machine (→ proposition écrite)."""
+    return (reponse or "").strip().startswith(_NE_SAIT_PAS_AGIR)
+
+
 def _renfort_a_echoue(reponse: str) -> bool:
-    """True si la réponse est un échec de capacité (quota, non connecté, panne…)."""
+    """True si la réponse est un échec réel de capacité (quota, non connecté, panne…)."""
     r = (reponse or "").strip()
     return r in _ECHECS_EXACTS or r.startswith(_ECHECS_PREFIXES)
 
@@ -419,12 +440,16 @@ def _ecrire_fichiers(folder: Path, fichiers: dict[str, str]) -> list[str]:
 
 
 class MentorEnCascade:
-    """Renfort principal (Claude) doublé d'un remplaçant (Gemini).
+    """Un renfort principal doublé d'un remplaçant. Peu importe lequel est devant :
+    Claude ou Gemini peuvent jouer l'un ou l'autre rôle.
 
-    Si Claude ne peut pas (absent, non connecté, quota épuisé, panne), Gemini prend
-    le relais — pour répondre comme pour coder. Pour coder, Gemini ne pilote PAS la
-    machine : il PROPOSE les fichiers (texte), et c'est ce module de confiance qui les
-    écrit dans l'atelier. La suite est inchangée : sandbox + tes tests + ton ✅.
+    Si le principal ne peut pas (absent, non connecté, quota épuisé, panne), le
+    remplaçant prend le relais — pour répondre comme pour coder. Pour coder :
+    - Claude Code agit directement dans l'atelier (il en a le droit) ;
+    - les autres (Gemini, Claude en mode API) ne pilotent PAS la machine : ils
+      PROPOSENT les fichiers (texte), et c'est ce module de confiance qui les écrit
+      dans l'atelier.
+    Dans tous les cas la suite est inchangée : sandbox + tes tests + ton ✅.
     """
 
     def __init__(self, principal, repli):
@@ -457,51 +482,85 @@ class MentorEnCascade:
         return f"Aucun renfort disponible : {self.unavailable_reason()}."
 
     def delegate(self, task: str) -> str:
-        if self.principal.available:
-            reponse = self.principal.delegate(task)
-            if not _renfort_a_echoue(reponse):
-                return reponse
-            motif = reponse
-        else:
-            motif = self.principal.unavailable_reason()
+        ok, resultat = self._coder(self.principal, task)
+        if ok:
+            return resultat
         if not self.repli.available:
-            return motif
-        return self._coder_avec_repli(task, motif)
+            return resultat
+        ok2, resultat2 = self._coder(self.repli, task)
+        if ok2:
+            return (f"{_nom(self.principal)} n'a pas pu coder cette fois, "
+                    f"{_nom(self.repli)} a pris le relais. {resultat2}")
+        return f"{resultat}\nEt le relais aussi : {resultat2}"
 
-    def _coder_avec_repli(self, task: str, motif: str) -> str:
+    def _coder(self, backend, task: str) -> "tuple[bool, str]":
+        """Fait coder une amélioration par un renfort. (réussite, message)."""
+        if not backend.available:
+            return False, backend.unavailable_reason()
+        resultat = backend.delegate(task)
+        if not _renfort_a_echoue(resultat) and not _ne_sait_pas_agir(resultat):
+            return True, resultat          # le renfort a agi lui-même (Claude Code)
+        if _renfort_a_echoue(resultat):
+            return False, resultat          # échec réel (quota, panne) → au suivant
+        return self._proposer_et_ecrire(backend, task)  # « sait répondre, pas agir »
+
+    def _proposer_et_ecrire(self, backend, task: str) -> "tuple[bool, str]":
+        """Le renfort PROPOSE le code (texte) ; on écrit les fichiers dans l'atelier."""
         dossier = _RE_DOSSIER.search(task)
         if not dossier:
-            return self.repli.ask(task)  # tâche libre (mentor) : une simple réponse suffit
+            return True, backend.ask(task)  # tâche libre (mentor) : une réponse suffit
         folder = Path(dossier.group(1).strip())
         consigne = (
             task + "\n\nDonne CHAQUE fichier sous cette forme exacte, et rien d'autre :\n"
             "### fichier: nom_du_fichier.py\n```python\n<contenu complet du fichier>\n```"
         )
-        reponse = self.repli.ask(consigne)
+        reponse = backend.ask(consigne)
         if _renfort_a_echoue(reponse):
-            return f"{motif}\nEt le repli a aussi échoué : {reponse}"
+            return False, reponse
         fichiers = _extraire_fichiers(reponse)
         if not fichiers:
-            return f"{motif}\nGemini n'a pas renvoyé de fichiers exploitables."
+            return False, "pas de fichiers exploitables dans la réponse"
         ecrits = _ecrire_fichiers(folder, fichiers)
-        return ("Claude n'a pas pu coder cette fois, Gemini a pris le relais. "
-                f"Fichiers proposés : {', '.join(ecrits)}.")
+        return True, f"Fichiers proposés : {', '.join(ecrits)}."
+
+
+def _nom(backend) -> str:
+    return getattr(backend, "name", "un renfort")
 
 
 def _choisir_repli(principal):
-    """Un repli Gemini n'a de sens que si le principal est Claude (sinon Gemini est déjà là)."""
+    """Choisit le remplaçant. 'auto' = l'autre famille que le principal (Claude ↔ Gemini).
+    Un remplaçant n'est retenu que s'il est réellement disponible."""
     if config.OFFLINE:
         return None
     choix = config.RENFORT_REPLI
     if choix == "aucun":
         return None
-    if not isinstance(principal, (SubscriptionBackend, ApiBackend)):
+    principal_est_claude = isinstance(principal, (SubscriptionBackend, ApiBackend))
+
+    def _dispo(backend):
+        return backend if backend is not None and backend.available else None
+
+    # Choix explicite d'un remplaçant.
+    if choix in ("gemini-cli", "gemini-abonnement"):
+        return _dispo(GeminiCliBackend()) if principal_est_claude else None
+    if choix == "gemini":
+        return _dispo(GeminiBackend()) if principal_est_claude else None
+    if choix in ("claude", "abonnement"):
+        return None if principal_est_claude else _dispo(SubscriptionBackend())
+    if choix in ("claude-api", "api"):
+        return None if principal_est_claude else _dispo(ApiBackend())
+    if choix != "auto":
         return None
-    if choix in ("gemini-cli", "gemini-abonnement") or (choix == "auto" and config.GEMINI_CLI_ENABLE):
-        return GeminiCliBackend()
-    if choix == "gemini" or (choix == "auto" and config.GEMINI_KEY):
-        return GeminiBackend()
-    return None
+
+    # auto : le principal est Claude → repli Gemini ; le principal est Gemini → repli Claude.
+    if principal_est_claude:
+        if config.GEMINI_CLI_ENABLE:
+            return _dispo(GeminiCliBackend())
+        if config.GEMINI_KEY:
+            return _dispo(GeminiBackend())
+        return None
+    return _dispo(SubscriptionBackend()) or _dispo(ApiBackend())
 
 
 class ClaudeBridge:
