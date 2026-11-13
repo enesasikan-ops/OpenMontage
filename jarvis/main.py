@@ -32,6 +32,18 @@ def model_installed(wanted: str, installed: set[str]) -> bool:
     return full in installed
 
 
+def make_faces(drone):
+    """Reconnaissance de visages (locale), si activée. Regarde la vue du drone si présent."""
+    import config as _c
+    if not _c.FACES:
+        return None, None
+    from faces import FaceRecognitionEngine, FaceStore, Recognizer
+
+    recognizer = Recognizer(FaceRecognitionEngine(), FaceStore(_c.FACES_FILE))
+    frame = (lambda: drone.c.frame()) if drone is not None else None
+    return recognizer, frame
+
+
 def make_drone(gemini):
     """Le drone : simulateur (démo) ou vrai Parrot ANAFI. La vision passe par Gemini si dispo."""
     import config as _c
@@ -155,9 +167,11 @@ def main() -> None:
     home = SmartHome()
     gemini = gemini_advisor()
     drone = make_drone(gemini)
+    faces, face_frame = make_faces(drone)
     tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
-                            agent=claude if config.AGENT else None, gemini=gemini, drone=drone)
+                            agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
+                            faces=faces, face_frame=face_frame)
     brain = Brain(client, tools, memory, confirm)
     ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,

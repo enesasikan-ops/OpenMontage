@@ -214,6 +214,18 @@ class TelegramJarvis:
         app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, self.on_voice, block=False))
 
 
+def make_faces(drone):
+    """Reconnaissance de visages (locale), si activée. Regarde la vue du drone si présent."""
+    import config as _c
+    if not _c.FACES:
+        return None, None
+    from faces import FaceRecognitionEngine, FaceStore, Recognizer
+
+    recognizer = Recognizer(FaceRecognitionEngine(), FaceStore(_c.FACES_FILE))
+    frame = (lambda: drone.c.frame()) if drone is not None else None
+    return recognizer, frame
+
+
 def make_drone(gemini):
     """Le drone : simulateur (démo) ou vrai Parrot ANAFI. La vision passe par Gemini si dispo."""
     import config as _c
@@ -292,11 +304,13 @@ def main() -> None:
     home = SmartHome()
     gemini = gemini_advisor()
     drone = make_drone(gemini)
+    faces, face_frame = make_faces(drone)
 
     def brain_factory(confirm, on_status):
         tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
-                            agent=claude if config.AGENT else None, gemini=gemini, drone=drone)
+                            agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
+                            faces=faces, face_frame=face_frame)
         return Brain(client, tools, memory, confirm)
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)

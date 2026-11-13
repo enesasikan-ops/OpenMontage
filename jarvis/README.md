@@ -263,6 +263,22 @@ Réglages dans `.env` :
 - `JARVIS_DRONE_IP` : l'adresse du drone (par défaut `192.168.42.1`).
 - La **vision** (« qu'est-ce que tu vois ? ») : voir ci-dessous.
 
+## Reconnaissance de visages (locale)
+
+Donne une photo à Jarvis — « voici une photo de moi » — et il te reconnaîtra ensuite
+sur la caméra ou la vue du drone.
+
+- « Jarvis, retiens mon visage, voici une photo : /chemin/photo.jpg » *(confirmation demandée)*
+- « Qui est là ? », « tu me reconnais ? » → il regarde et dit qui il reconnaît
+- « Qui connais-tu ? », « oublie le visage de X »
+
+Vie privée :
+- **Tout reste sur l'ordinateur** : un fichier de signatures (pas les photos), rien sur internet.
+- Ça ne sert qu'à reconnaître les personnes **que tu enregistres, avec leur accord** — pas à
+  identifier des inconnus ni à surveiller. Enregistrer un visage demande confirmation.
+- Active-la avec `JARVIS_VISAGES=1`. Elle a besoin de `face-recognition` et `pillow` :
+  `pip install face-recognition pillow` (c'est un peu long à installer, surtout sur un petit PC).
+
 ### La vision de Jarvis
 
 « Qu'est-ce que tu vois ? » (sur la vue du drone) passe par un modèle qui lit les images.

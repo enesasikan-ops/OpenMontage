@@ -103,6 +103,10 @@ ALERTS = _env("JARVIS_ALERTES", "1") == "1"
 QUIET_HOURS = _env("JARVIS_SILENCE", "22:00-07:00").strip()
 PROACTIVE_FILE = DATA_DIR / "initiatives.json"
 
+# --- Reconnaissance de visages (locale, pour les gens que TU enregistres) ---
+FACES = _env("JARVIS_VISAGES", "0") == "1"
+FACES_FILE = DATA_DIR / "visages.json"
+
 # --- Drone (Parrot ANAFI) ---
 # "0" = pas de drone, "sim" = simulateur (démo sans matériel), "anafi" = vrai drone.
 DRONE = _env("JARVIS_DRONE", "0").strip().lower()
