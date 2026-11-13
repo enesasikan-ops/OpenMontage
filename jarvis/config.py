@@ -16,10 +16,26 @@ def _env(name: str, default: str) -> str:
 OLLAMA_HOST = _env("JARVIS_OLLAMA_HOST", "http://localhost:11434")
 LOCAL_MODEL = _env("JARVIS_MODELE_LOCAL", "mistral-small3.2")
 
-# --- Renfort Claude (API Anthropic) ---
-# La clé est lue dans ANTHROPIC_API_KEY (jamais écrite dans le code).
+# --- Mode 100 % hors ligne ---
+# JARVIS_HORS_LIGNE=1 : rien ne sort de l'ordinateur (pas de renfort Claude,
+# pas de téléchargement Hugging Face). À activer une fois tout installé.
+OFFLINE = _env("JARVIS_HORS_LIGNE", "0") == "1"
+
+# Jamais de statistiques d'utilisation envoyées à Hugging Face.
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+if OFFLINE:
+    os.environ["HF_HUB_OFFLINE"] = "1"
+
+# --- Renfort Claude ---
+# "abonnement" (Claude Code, ton compte Claude) | "api" (clé payante) | "aucun"
+RENFORT = "aucun" if OFFLINE else _env("JARVIS_RENFORT", "abonnement").strip().lower()
+
+# Mode "api" : la clé est lue dans ANTHROPIC_API_KEY (jamais écrite dans le code).
 CLAUDE_MODEL = _env("JARVIS_MODELE_CLAUDE", "claude-opus-5-5")
 CLAUDE_EFFORT = _env("JARVIS_EFFORT_CLAUDE", "medium")  # low | medium | high | xhigh | max
+
+# Mode "abonnement" : modèle choisi dans Claude Code (vide = celui par défaut de ton compte).
+CLAUDE_CLI_MODEL = _env("JARVIS_MODELE_ABONNEMENT", "")
 
 # --- Voix ---
 WHISPER_MODEL = _env("JARVIS_WHISPER", "small")  # tiny | base | small | medium | large-v3

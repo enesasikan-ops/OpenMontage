@@ -14,7 +14,7 @@ Jarvis tourne **chez toi**, sur un Mac mini (ou n'importe quel Mac Apple Silicon
 - **Garde-fou sur les actions** : avant toute action sensible (aujourd'hui : effacer
   sa mémoire ; demain : envoyer un mail, ouvrir une porte…), Jarvis dit ce qu'il va
   faire et attend ton « oui ».
-- **Claude en renfort** : facultatif. Sans clé API, Jarvis fonctionne 100 % en local.
+- **Claude en renfort** : via ton abonnement Claude, une clé API, ou pas du tout (100 % local).
 
 ## 1. Choisir le modèle local selon la RAM du Mac
 
@@ -40,15 +40,38 @@ Le script installe Python, Ollama, les dépendances, la voix française
 (`fr_FR-siwis-medium`) et télécharge le modèle local. Compte 10 à 30 minutes
 selon la connexion (le modèle pèse plusieurs Go).
 
-## 3. Ajouter Claude (facultatif, recommandé)
+## 3. Brancher le renfort Claude (facultatif, recommandé)
 
-1. Crée une clé sur <https://console.anthropic.com> (c'est séparé de l'abonnement
-   Claude.ai : paiement à l'usage, environ 3 centimes par question difficile
-   avec Claude Opus 5.5). Fixe un plafond mensuel dans la console.
-2. Ouvre le fichier `.env` et colle la clé après `ANTHROPIC_API_KEY=`.
+Choisis le mode avec `JARVIS_RENFORT` dans le fichier `.env` :
 
-Pour dépenser moins, mets `JARVIS_MODELE_CLAUDE=claude-sonnet-5-5` (environ deux fois
-moins cher).
+| Mode | Comment | Coût |
+|---|---|---|
+| `abonnement` *(par défaut)* | Passe par **Claude Code** connecté à ton compte Claude | Inclus dans ton abonnement (partage ta limite d'usage) |
+| `api` | Passe par une clé API (`ANTHROPIC_API_KEY`) | Environ 3 centimes par question difficile (Claude Opus 5.5) |
+| `aucun` | Pas de renfort | Gratuit, 100 % local |
+
+**Mode abonnement**, une seule fois :
+
+```bash
+brew install --cask claude-code
+claude          # connecte-toi avec ton compte Claude, puis tape /exit
+```
+
+Jarvis lance ensuite `claude -p` en coulisses, **sans outils, sans connecteurs et
+sans mémoire de session** : Claude ne fait que répondre, il ne peut rien modifier
+sur ton ordinateur. Compte 5 à 10 secondes par question. C'est prévu pour ton
+usage personnel, sur ta propre machine.
+
+**Mode API** : crée une clé sur <https://console.anthropic.com> (séparé de
+l'abonnement, paiement à l'usage, pense à fixer un plafond), colle-la après
+`ANTHROPIC_API_KEY=` et mets `JARVIS_RENFORT=api`.
+
+## Confidentialité
+
+- **Rien ne sort** pour le cerveau local, l'écoute (Whisper), la voix (Piper) et la mémoire (`~/.jarvis/memoire.json`).
+- **Seules les questions transmises à Claude** partent chez Anthropic, et uniquement quand Jarvis lui passe la main.
+- Aucune statistique d'utilisation n'est envoyée (télémétrie Hugging Face désactivée).
+- `JARVIS_HORS_LIGNE=1` dans `.env` : **rien ne sort de l'ordinateur**, renfort Claude coupé compris.
 
 ## 4. Lancer Jarvis
 

@@ -33,6 +33,18 @@ sleep 3
 ollama pull "$MODEL"
 
 echo
-echo "✅ Installé. Ajoute ta clé ANTHROPIC_API_KEY dans .env (facultatif), puis :"
+echo "== Préchargement de Whisper (pour pouvoir passer hors ligne ensuite) =="
+.venv/bin/python -c "from faster_whisper import WhisperModel; WhisperModel('small', device='cpu', compute_type='int8')"
+
+echo
+if command -v claude >/dev/null; then
+  echo "✅ Claude Code est installé : le renfort passera par ton abonnement."
+  echo "   Si ce n'est pas déjà fait, lance « claude » une fois et connecte-toi."
+else
+  echo "ℹ️  Pour le renfort Claude via ton abonnement :"
+  echo "   brew install --cask claude-code   puis lance « claude » une fois pour te connecter."
+fi
+echo
+echo "✅ Installé. Pour lancer Jarvis :"
 echo "   .venv/bin/python main.py          # au clavier"
 echo "   .venv/bin/python main.py --voix   # à la voix"

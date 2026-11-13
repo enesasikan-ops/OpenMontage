@@ -70,8 +70,13 @@ def main() -> None:
     tools = build_tools(memory, claude, on_status=say)
     brain = Brain(client, tools, memory, confirm)
 
-    renfort = "Claude en renfort" if claude.available else "sans Claude (pas de clé API)"
+    if claude.available:
+        renfort = f"renfort : {claude.name}"
+    else:
+        renfort = f"sans renfort ({claude.backend.unavailable_reason()})"
     print(f"Jarvis prêt — cerveau local : {config.LOCAL_MODEL}, {renfort}.")
+    if config.OFFLINE:
+        print("🔒 Mode 100 % hors ligne : rien ne sort de cet ordinateur.")
     print("Dis « au revoir » pour quitter.\n")
     say(f"Bonjour {config.USER_NAME}, je t'écoute.")
 

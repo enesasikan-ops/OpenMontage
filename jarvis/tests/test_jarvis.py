@@ -1,5 +1,6 @@
 """Tests de Jarvis sans Ollama ni clé API (modèles simulés)."""
 
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -8,8 +9,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import config  # noqa: E402
 from brain import Brain  # noqa: E402
-from claude_bridge import ClaudeBridge  # noqa: E402
+from claude_bridge import ApiBackend, ClaudeBridge, NoBackend, SubscriptionBackend  # noqa: E402
 from memory import Memory  # noqa: E402
 from tools import build_tools  # noqa: E402
 
@@ -128,9 +130,67 @@ def test_tool_loop_is_bounded(memory):
     assert "reformuler" in brain.reply("boucle")
 
 
-def test_bridge_without_key(monkeypatch):
+def test_api_backend_without_key(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    assert "pas configuré" in ClaudeBridge().ask("test")
+    answer = ClaudeBridge(ApiBackend()).ask("test")
+    assert "ANTHROPIC_API_KEY" in answer and "mes propres moyens" in answer
+
+
+def test_no_backend_stays_local():
+    bridge = ClaudeBridge(NoBackend())
+    assert not bridge.available
+    assert "100 % local" in bridge.ask("test")
+
+
+class FakeRun:
+    def __init__(self, returncode=0, stdout="Réponse abonnement.", stderr=""):
+        self.result = subprocess.CompletedProcess([], returncode, stdout, stderr)
+        self.kwargs = None
+        self.cmd = None
+
+    def __call__(self, cmd, **kwargs):
+        self.cmd, self.kwargs = cmd, kwargs
+        return self.result
+
+
+def test_subscription_backend_calls_claude_code_safely(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ne-doit-pas-servir")
+    run = FakeRun()
+    backend = SubscriptionBackend(runner=run, which=lambda name: "/usr/local/bin/claude")
+    assert ClaudeBridge(backend).ask("Question", "ctx") == "Réponse abonnement."
+    assert run.cmd[:2] == ["claude", "-p"]
+    assert run.cmd[run.cmd.index("--tools") + 1] == ""      # aucun outil
+    assert "--no-session-persistence" in run.cmd
+    assert "--bare" not in run.cmd                           # --bare interdit la connexion par abonnement
+    assert "Question" not in " ".join(run.cmd)               # la question passe par stdin
+    assert "Question" in run.kwargs["input"]
+    assert "ANTHROPIC_API_KEY" not in run.kwargs["env"]      # sinon ce serait facturé à l'API
+    assert run.kwargs["cwd"] == str(tmp_path)
+
+
+def test_subscription_backend_not_installed():
+    backend = SubscriptionBackend(runner=FakeRun(), which=lambda name: None)
+    assert "Claude Code n'est pas installé" in ClaudeBridge(backend).ask("?")
+
+
+@pytest.mark.parametrize("stderr, expected", [
+    ("Invalid API key · Please run /login", "pas connecté"),
+    ("Claude usage limit reached", "limite de ton abonnement"),
+    ("boom", "problème"),
+])
+def test_subscription_backend_errors(stderr, expected):
+    backend = SubscriptionBackend(runner=FakeRun(returncode=1, stdout="", stderr=stderr),
+                                  which=lambda name: "claude")
+    assert expected in ClaudeBridge(backend).ask("?")
+
+
+def test_subscription_backend_timeout():
+    def slow(cmd, **kwargs):
+        raise subprocess.TimeoutExpired(cmd, 1)
+
+    backend = SubscriptionBackend(runner=slow, which=lambda name: "claude")
+    assert "trop de temps" in ClaudeBridge(backend).ask("?")
 
 
 def test_bridge_sends_expected_request():
@@ -145,7 +205,7 @@ def test_bridge_sends_expected_request():
         )
 
     fake = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(create=create)))
-    assert ClaudeBridge(client=fake).ask("Salut", "contexte") == "Bonjour Enes."
+    assert ClaudeBridge(ApiBackend(client=fake)).ask("Salut", "contexte") == "Bonjour Enes."
     assert captured["model"] == "claude-opus-5-5"
     assert captured["fallbacks"] == "default"
     assert "Contexte : contexte" in captured["messages"][0]["content"]
@@ -154,7 +214,7 @@ def test_bridge_sends_expected_request():
 def test_bridge_handles_refusal():
     fake = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(
         create=lambda **k: SimpleNamespace(stop_reason="refusal", content=[]))))
-    assert "préféré ne pas" in ClaudeBridge(client=fake).ask("?")
+    assert "préféré ne pas" in ClaudeBridge(ApiBackend(client=fake)).ask("?")
 
 
 def test_voice_yes_detection():
