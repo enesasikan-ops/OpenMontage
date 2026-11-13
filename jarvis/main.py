@@ -32,6 +32,17 @@ def model_installed(wanted: str, installed: set[str]) -> bool:
     return full in installed
 
 
+def make_cameras(gemini):
+    """Caméras par adresse de flux (publiques ou à toi), décrites par la vision locale/Gemini."""
+    import config as _c
+    from camera import CameraBook, CameraManager
+    from vision import VisionRouter
+
+    router = VisionRouter(gemini=gemini)
+    describe = router.describe if router.available else None
+    return CameraManager(CameraBook(_c.CAMERAS_FILE), describe=describe)
+
+
 def make_faces(drone):
     """Reconnaissance de visages (locale), si activée. Regarde la vue du drone si présent."""
     import config as _c
@@ -168,10 +179,11 @@ def main() -> None:
     gemini = gemini_advisor()
     drone = make_drone(gemini)
     faces, face_frame = make_faces(drone)
+    cameras = make_cameras(gemini)
     tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
                             agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
-                            faces=faces, face_frame=face_frame)
+                            faces=faces, face_frame=face_frame, cameras=cameras)
     brain = Brain(client, tools, memory, confirm)
     ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,

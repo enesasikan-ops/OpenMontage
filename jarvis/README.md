@@ -263,6 +263,22 @@ Réglages dans `.env` :
 - `JARVIS_DRONE_IP` : l'adresse du drone (par défaut `192.168.42.1`).
 - La **vision** (« qu'est-ce que tu vois ? ») : voir ci-dessous.
 
+## Caméras publiques (ou à toi)
+
+Jarvis peut regarder une caméra par son **adresse de flux** et te décrire ce qu'elle montre.
+
+- « Jarvis, enregistre la caméra de la plage : https://... » puis « regarde la plage »
+- « Regarde cette caméra : https://... » (adresse directe)
+- « Montre-moi la caméra du jardin » (ta propre caméra)
+- « Quelles caméras connais-tu ? », « oublie la caméra X »
+
+Il prend une image du flux (via ffmpeg) et la fait décrire par la vision (locale ou Gemini).
+Formats de flux : `http(s)://` (HLS .m3u8, MJPEG…) ou `rtsp://`.
+
+À n'utiliser que pour des **caméras ouvertes au public** (trafic, plage, nature, places) ou
+**qui t'appartiennent**. Jamais pour la caméra privée de quelqu'un d'autre — même « accessible »,
+une caméra privée reste privée. Et jamais de reconnaissance de visage sur des inconnus filmés.
+
 ## Reconnaissance de visages (locale)
 
 Donne une photo à Jarvis — « voici une photo de moi » — et il te reconnaîtra ensuite

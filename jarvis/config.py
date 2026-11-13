@@ -107,6 +107,9 @@ PROACTIVE_FILE = DATA_DIR / "initiatives.json"
 FACES = _env("JARVIS_VISAGES", "0") == "1"
 FACES_FILE = DATA_DIR / "visages.json"
 
+# --- Caméras par adresse de flux (publiques ou à toi) ---
+CAMERAS_FILE = DATA_DIR / "cameras.json"
+
 # --- Drone (Parrot ANAFI) ---
 # "0" = pas de drone, "sim" = simulateur (démo sans matériel), "anafi" = vrai drone.
 DRONE = _env("JARVIS_DRONE", "0").strip().lower()

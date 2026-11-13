@@ -31,6 +31,7 @@ Règles :
 - Pour un calcul : utilise calculer, ne calcule jamais de tête.
 - Rappels, listes, météo, état du PC, sécurité : utilise l'outil correspondant.
 - Maison connectée (lumières, prises, volets, serrures) : utilise l'outil correspondant.
+- Caméras publiques ou à toi : regarder_camera, ajouter_camera, lister_cameras.
 - Drone : drone_decoller (confirmé), drone_atterrir, drone_urgence (pour « arrête-toi »/« stop »),
   drone_deplacer, drone_tourner, drone_voir (« qu'est-ce que tu vois ? »), drone_etat.
   « Atterris » et « stop » sont prioritaires : exécute-les tout de suite.

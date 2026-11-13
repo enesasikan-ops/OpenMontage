@@ -214,6 +214,17 @@ class TelegramJarvis:
         app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, self.on_voice, block=False))
 
 
+def make_cameras(gemini):
+    """Caméras par adresse de flux (publiques ou à toi), décrites par la vision locale/Gemini."""
+    import config as _c
+    from camera import CameraBook, CameraManager
+    from vision import VisionRouter
+
+    router = VisionRouter(gemini=gemini)
+    describe = router.describe if router.available else None
+    return CameraManager(CameraBook(_c.CAMERAS_FILE), describe=describe)
+
+
 def make_faces(drone):
     """Reconnaissance de visages (locale), si activée. Regarde la vue du drone si présent."""
     import config as _c
@@ -305,12 +316,13 @@ def main() -> None:
     gemini = gemini_advisor()
     drone = make_drone(gemini)
     faces, face_frame = make_faces(drone)
+    cameras = make_cameras(gemini)
 
     def brain_factory(confirm, on_status):
         tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
                             agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
-                            faces=faces, face_frame=face_frame)
+                            faces=faces, face_frame=face_frame, cameras=cameras)
         return Brain(client, tools, memory, confirm)
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)
