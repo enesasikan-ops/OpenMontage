@@ -185,3 +185,20 @@ def test_works_offline(monkeypatch):
     h, ha = home()
     assert "allumé" in h.turn_on("chambre").lower()
     assert ha.calls
+
+
+def test_point_de_situation(monkeypatch):
+    import config
+    etats = [
+        {"entity_id": "sensor.frigate_jardin_person", "state": "1",
+         "attributes": {"friendly_name": "Détection jardin"}},
+        {"entity_id": "sensor.drone_batterie", "state": "80",
+         "attributes": {"friendly_name": "Batterie drone", "unit_of_measurement": "%"}},
+    ]
+    h, _ = home(etats)
+    monkeypatch.setattr(config, "TELEMETRIE", ("sensor.frigate_jardin_person", "sensor.drone_batterie"))
+    out = h.point_de_situation()
+    assert "Détection jardin" in out and "Batterie drone" in out
+    # Rien configuré -> message clair, aucune invention
+    monkeypatch.setattr(config, "TELEMETRIE", ())
+    assert "Aucun capteur" in h.point_de_situation()

@@ -175,6 +175,22 @@ class SmartHome:
 
     # --- Lecture -----------------------------------------------------------------------
 
+    def point_de_situation(self) -> str:
+        """Lecture seule : l'état des capteurs « tactiques » (détections, drone, batteries…)."""
+        err = self._guard()
+        if err:
+            return err
+        if not config.TELEMETRIE:
+            return "Aucun capteur de situation configuré (JARVIS_TELEMETRIE)."
+        try:
+            etats = {e["entity_id"]: e for e in self.states()}
+        except (urllib.error.URLError, OSError, urllib.error.HTTPError, json.JSONDecodeError):
+            return "Je n'arrive pas à joindre la maison connectée."
+        lignes = [f"{self._name(e)} : {self._readable(e)}"
+                  for eid in config.TELEMETRIE if (e := etats.get(eid))]
+        return ("Point de situation — " + " ; ".join(lignes) + "."
+                if lignes else "Rien à signaler sur les capteurs suivis.")
+
     def status(self, appareil: str = "") -> str:
         err = self._guard()
         if err:
@@ -250,6 +266,11 @@ def build_smarthome(home: SmartHome) -> list:
              description="Lance une ambiance ou un scénario Home Assistant (« ambiance cinéma », « bonne nuit »).",
              parameters=obj({"nom": {**s, "description": "Nom de l'ambiance ou du scénario."}}, ["nom"]),
              run=home.run_scene),
+        Tool(name="point_de_situation",
+             description=("Fait le point sur les capteurs tactiques suivis (détections caméra, état "
+                          "du drone, batteries…). Lecture seule, pour avoir conscience du moment."),
+             parameters=obj({}, []),
+             run=lambda: home.point_de_situation()),
         Tool(name="ouvrir",
              description="Ouvre un volet, un portail ou la porte de garage.",
              parameters=obj({"appareil": s}, ["appareil"]),
