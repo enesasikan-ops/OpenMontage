@@ -57,6 +57,7 @@ class SignalJarvis:
         self._core_pending = None              # proposition de cœur en attente de ta validation
         self.integrity = None                  # tripwire d'intégrité du cœur, facultatif
         self.backup = None                     # CoreBackup : restaurer le cœur si trafiqué
+        self.blocker = None                    # IpBlocker : bloquer une IP au pare-feu (défensif)
         self.brain = brain_factory(self._confirmer, self._statut)
 
     # --- Sorties vers toi --------------------------------------------------------
@@ -127,6 +128,22 @@ class SignalJarvis:
         if restaure:
             self._restaurer_coeur(restaure.group("fichier"))
             return
+        # Blocage d'IP défensif (sur ta décision, après une alerte).
+        bloc = re.match(r"^\s*bloque[r]?\s+(?P<ip>\S+)", texte, re.IGNORECASE)
+        if bloc:
+            self._bloquer_ip(bloc.group("ip"), True)
+            return
+        debloc = re.match(r"^\s*d[ée]bloque[r]?\s+(?P<ip>\S+)", texte, re.IGNORECASE)
+        if debloc:
+            self._bloquer_ip(debloc.group("ip"), False)
+            return
+        if re.match(r"^\s*(blocages|liste des blocages|ip bloqu)", texte, re.IGNORECASE):
+            if self.blocker is None:
+                self.envoyer("Le blocage d'IP n'est pas actif.")
+            else:
+                ips = self.blocker.liste()
+                self.envoyer("IP bloquées : " + (", ".join(ips) if ips else "aucune."))
+            return
 
         # 3. Décision sur une proposition d'amélioration (valide 3 / rejette 3 / oui / non).
         decision = self._decision_proposition(texte)
@@ -184,6 +201,17 @@ class SignalJarvis:
             self.envoyer(message)
         except Exception as exc:
             self.envoyer(f"Application impossible : {exc}")
+
+    def _bloquer_ip(self, ip: str, bloquer: bool) -> None:
+        if self.blocker is None:
+            self.envoyer("Le blocage d'IP n'est pas actif.")
+            return
+        try:
+            message = self.blocker.bloquer(ip) if bloquer else self.blocker.debloquer(ip)
+        except Exception as exc:
+            self.envoyer(f"Impossible : {exc}")
+            return
+        self.envoyer(message)
 
     def _sauvegarder_coeur(self) -> None:
         if self.backup is None:
@@ -390,12 +418,17 @@ def main() -> None:
         SecurityWatcher(jarvis.notify_owner, sentinel=sentinel, integrity=jarvis.integrity,
                         interval_s=config.CYBERWATCH_INTERVAL, evidence=evidence,
                         backup=jarvis.backup, auto_restore=config.AUTO_RESTORE).start()
+        from ipblock import IpBlocker
+        jarvis.blocker = IpBlocker(config.DATA_DIR / "ip_bloquees.json",
+                                   liste_blanche=config.IP_LISTE_BLANCHE)
         if config.HONEYPOT:   # faux serveur leurre (aucun accès au cœur : juste preuve + alerte)
             from honeypot import Honeypot
 
             def _sur_intrusion(ip, user, pw):
                 evidence.consigner(f"honeypot : intrusion depuis {ip} (user={user!r} pass={pw!r})")
-                jarvis.notify_owner(f"🍯 ALERTE : tentative d'accès au leurre depuis {ip}.")
+                jarvis.notify_owner(
+                    f"🍯 ALERTE : tentative d'accès au leurre depuis {ip}.\n"
+                    f"Pour la bloquer au pare-feu, réponds : bloque {ip}")
 
             Honeypot(on_intrusion=_sur_intrusion, port=config.HONEYPOT_PORT).demarrer()
     if plugins is not None:

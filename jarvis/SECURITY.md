@@ -78,7 +78,12 @@ qui est sensible passe par une **confirmation** du propriétaire.
   connexions plafonnés (anti-DoS), entrées nettoyées (anti-injection de log). Toute riposte
   active (blocage d'IP) reste défensive et confirmée — jamais de contre-attaque (hack back
   illégal ; l'IP source peut être usurpée, un blocage auto aveugle se retourne contre toi).
-- ~370 tests automatisés, dont des tests de sécurité dédiés.
+- **Blocage d'IP défensif** (`ipblock.py`) : ferme la porte à une IP d'attaquant sur ton
+  pare-feu (`bloque <ip>`), **sur ta décision** après une alerte — jamais en automatique
+  aveugle (une IP source peut être usurpée). Refuse les IP internes/privées/passerelle et
+  une liste blanche (anti auto-DoS). Réversible (`débloque <ip>`). Ce n'est pas une
+  contre-attaque : on ne touche jamais à la machine distante.
+- ~380 tests automatisés, dont des tests de sécurité dédiés.
 
 ## RCE par conception (le risque principal, assumé)
 

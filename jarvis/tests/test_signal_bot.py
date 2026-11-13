@@ -185,6 +185,34 @@ def test_coeur_rejet_n_applique_rien():
     assert not any(a[0] == "appliquer" for a in vu)
 
 
+# --- Blocage d'IP défensif ---
+
+def test_bloque_une_ip():
+    bot, sorties = _bot()
+    vu = []
+    bot.blocker = NS(bloquer=lambda ip: vu.append(("bloque", ip)) or f"🛡️ {ip} bloquée.",
+                     debloquer=lambda ip: "", liste=lambda: [])
+    bot.traiter(OWNER, "bloque 203.0.113.5")
+    assert ("bloque", "203.0.113.5") in vu
+    assert sorties.attendre("bloquée")
+
+
+def test_debloque_une_ip():
+    bot, sorties = _bot()
+    vu = []
+    bot.blocker = NS(bloquer=lambda ip: "", debloquer=lambda ip: vu.append(ip) or f"{ip} débloquée.",
+                     liste=lambda: [])
+    bot.traiter(OWNER, "débloque 203.0.113.5")
+    assert vu == ["203.0.113.5"]
+
+
+def test_liste_des_blocages():
+    bot, sorties = _bot()
+    bot.blocker = NS(bloquer=lambda i: "", debloquer=lambda i: "", liste=lambda: ["203.0.113.5"])
+    bot.traiter(OWNER, "blocages")
+    assert sorties.attendre("203.0.113.5")
+
+
 # --- Défense active : sauvegarde et restauration du cœur ---
 
 def test_sauvegarde_coeur():

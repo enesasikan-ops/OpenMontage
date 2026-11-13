@@ -95,6 +95,11 @@ AUTO_RESTORE = _env("JARVIS_AUTO_RESTAURATION", "0") == "1"
 HONEYPOT = _env("JARVIS_HONEYPOT", "0") == "1"
 HONEYPOT_PORT = int(_env("JARVIS_HONEYPOT_PORT", "2222"))
 
+# Blocage d'IP (riposte défensive, sur ta décision). Liste blanche d'IP publiques à ne
+# JAMAIS bloquer (DNS, services que tu utilises), séparées par des virgules. Les IP
+# internes/privées sont déjà protégées d'office.
+IP_LISTE_BLANCHE = tuple(x.strip() for x in _env("JARVIS_IP_LISTE_BLANCHE", "").split(",") if x.strip())
+
 # --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
 # Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais
 # UNIQUEMENT dans l'atelier ci-dessous, et seulement après ta confirmation.
