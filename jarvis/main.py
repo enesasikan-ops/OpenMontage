@@ -180,16 +180,23 @@ def main() -> None:
     drone = make_drone(gemini)
     faces, face_frame = make_faces(drone)
     cameras = make_cameras(gemini)
-    from growth import GrowthJournal
+    from growth import GrowthJournal, NightlyImprover, Proposals
     growth = GrowthJournal(config.GROWTH_FILE)
+    proposals = Proposals(growth)
     tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
                             agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
-                            faces=faces, face_frame=face_frame, cameras=cameras, growth=growth)
+                            faces=faces, face_frame=face_frame, cameras=cameras, growth=growth,
+                            proposals=proposals)
     brain = Brain(client, tools, memory, confirm)
     ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,
               notify=lambda text: say(f"\n{text}")).start()
+    if config.AGENT and config.IMPROVE_AT:
+        NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
+                        notify=lambda text, pid: say(
+                            f"\n{text} Dis « active l'amélioration {pid} » ou « rejette l'amélioration {pid} ».")
+                        ).start()
 
     if claude.available:
         renfort = f"renfort : {claude.name}"

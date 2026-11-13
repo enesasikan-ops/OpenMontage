@@ -112,6 +112,9 @@ CAMERAS_FILE = DATA_DIR / "cameras.json"
 
 # --- Journal des améliorations (ce que Jarvis ne sait pas encore faire) ---
 GROWTH_FILE = DATA_DIR / "ameliorations.json"
+# Amélioration de nuit (mode mentor requis) : heure à laquelle le mentor code l'idée la
+# plus demandée. Vide = désactivé. Tu valides le matin avant activation.
+IMPROVE_AT = _env("JARVIS_AMELIORATION_NUIT", "03:00").strip()
 
 # --- Drone (Parrot ANAFI) ---
 # "0" = pas de drone, "sim" = simulateur (démo sans matériel), "anafi" = vrai drone.

@@ -99,6 +99,19 @@ class TelegramJarvis:
             return
         self._send_and_wait(self.bot.send_message(self.allowed_id, text))
 
+    proposals = None  # renseigné au démarrage (améliorations de nuit)
+
+    def send_proposal(self, text: str, pid: int) -> None:
+        """Annonce une amélioration codée cette nuit, avec boutons Activer / Rejeter."""
+        if self.allowed_id is None or self.loop is None or self.bot is None:
+            log.warning("Amélioration non annoncée (bot pas prêt) : n°%s", pid)
+            return
+        buttons = InlineKeyboardMarkup([[
+            InlineKeyboardButton("✅ Activer", callback_data=f"act:{pid}"),
+            InlineKeyboardButton("❌ Rejeter", callback_data=f"rej:{pid}"),
+        ]])
+        self._send_and_wait(self.bot.send_message(self.allowed_id, text, reply_markup=buttons))
+
     async def on_startup(self, app: Application) -> None:
         # Mémorise le bot et la boucle dès le démarrage : les rappels doivent
         # partir même si aucun message n'a encore été reçu.
@@ -177,6 +190,16 @@ class TelegramJarvis:
             await query.answer("Non autorisé.")
             return
         choice, _, key = (query.data or "").partition(":")
+        if choice in ("act", "rej"):
+            await query.answer()
+            if self.proposals is None:
+                result = "Les améliorations ne sont pas actives."
+            elif choice == "act":
+                result = await asyncio.to_thread(self.proposals.activate, key)
+            else:
+                result = self.proposals.reject(key)
+            await query.edit_message_text(f"{query.message.text}\n\n{result}")
+            return
         pending = self._pending.get(key)
         await query.answer()
         if pending is None:
@@ -317,14 +340,16 @@ def main() -> None:
     drone = make_drone(gemini)
     faces, face_frame = make_faces(drone)
     cameras = make_cameras(gemini)
-    from growth import GrowthJournal
+    from growth import GrowthJournal, NightlyImprover, Proposals
     growth = GrowthJournal(config.GROWTH_FILE)
+    proposals = Proposals(growth)
 
     def brain_factory(confirm, on_status):
         tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
                             agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
-                            faces=faces, face_frame=face_frame, cameras=cameras, growth=growth)
+                            faces=faces, face_frame=face_frame, cameras=cameras, growth=growth,
+                            proposals=proposals)
         return Brain(client, tools, memory, confirm)
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)
@@ -334,6 +359,10 @@ def main() -> None:
     ReminderWatcher(reminders, notify=jarvis.notify_owner).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,
               notify=jarvis.notify_owner).start()
+    jarvis.proposals = proposals
+    if config.AGENT and config.IMPROVE_AT:
+        NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
+                        notify=jarvis.send_proposal).start()
     log.info("Jarvis est en ligne sur Telegram (Ctrl+C pour arrêter).")
     if allowed_id is None:
         log.info("Envoie /start au bot : il te donnera ton identifiant à mettre dans .env.")

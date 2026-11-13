@@ -65,6 +65,24 @@ Deux règles en dur que l'auto-amélioration ne peut pas enfreindre :
   la logique de confirmation, `.env`...) ;
 - elle **ne retire jamais** une confirmation avant une action dangereuse.
 
+## Amélioration de nuit (automatique)
+
+Avec `JARVIS_MENTOR=1`, Jarvis progresse **pendant que tu dors** :
+
+1. **À 3 h** (`JARVIS_AMELIORATION_NUIT`), il prend l'idée la plus demandée de son journal.
+2. Le mentor **la code en autonomie** (module + tests) dans `~/.jarvis/atelier/propositions/`.
+3. Les **tests tournent** automatiquement.
+4. **Le matin** (après les heures de silence), Jarvis t'annonce :
+   « 🌙 Cette nuit, j'ai travaillé sur : … Résultat : les tests passent ✅ — tu l'actives ? »
+   avec les boutons **✅ Activer / ❌ Rejeter** sur Telegram (ou à la voix :
+   « active l'amélioration 3 »).
+5. **Activer** relance les tests, puis copie la capacité dans `plugins/`. Au prochain
+   démarrage, Jarvis sait la faire.
+
+Sécurités : une proposition dont les tests échouent, ou qui touche un fichier du cœur,
+est **refusée à l'activation** ; une extension cassée est **ignorée** au chargement (Jarvis
+ne tombe jamais) ; une nuit ratée (quota, erreur) ne bloque rien.
+
 ## Les garde-fous (importants)
 
 - Jarvis **ne modifie pas son propre code sans supervision**. Il propose, un humain dispose.
