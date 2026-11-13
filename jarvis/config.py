@@ -237,6 +237,9 @@ SENTINEL_FILE = DATA_DIR / "sentinelle.json"
 # --- Maison connectée (Home Assistant, local) ---
 HA_URL = _env("HOMEASSISTANT_URL", "").strip()      # ex. http://homeassistant.local:8123
 HA_TOKEN = _env("HOMEASSISTANT_TOKEN", "").strip()  # jeton d'accès longue durée
+# Aspirateur robot (Valetudo via HA) : associe un nom de pièce à son « segment » Valetudo.
+# Ex. JARVIS_ASPIRATEUR_PIECES={"salon":"16","cuisine":"17"}
+VACUUM_SEGMENTS: dict = _json_env("JARVIS_ASPIRATEUR_PIECES")
 
 # Mode mains libres : secondes d'écoute après une réponse, sans redire « Jarvis ».
 AWAKE_SECONDS = float(_env("JARVIS_ECOUTE_SECONDES", "30"))

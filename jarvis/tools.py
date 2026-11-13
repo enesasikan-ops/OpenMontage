@@ -114,6 +114,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from smarthome import build_smarthome
 
         tools += build_smarthome(home)
+        from vacuum import build_vacuum_tools
+
+        tools += build_vacuum_tools(home)   # aspirateur robot (Valetudo via HA)
         ask = getattr(claude, "ask", None)
         if callable(ask):   # créer des règles à la voix (nécessite le renfort pour traduire)
             from automations import build_automation_tools
