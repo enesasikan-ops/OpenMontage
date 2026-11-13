@@ -115,7 +115,7 @@ DRONE_URL = _env("JARVIS_DRONE_URL", "udp:127.0.0.1:14550").strip()
 DRONE_ALT_MAX = float(_env("JARVIS_DRONE_ALT_MAX", "120"))        # limite normale (légale), altitude
 DRONE_ALT_CEILING = float(_env("JARVIS_DRONE_ALT_PLAFOND", "500"))  # plafond absolu, altitude
 DRONE_DIST_MAX = float(_env("JARVIS_DRONE_DIST_MAX", "120"))      # limite normale, éloignement
-DRONE_DIST_CEILING = float(_env("JARVIS_DRONE_DIST_PLAFOND", "500"))  # plafond absolu, éloignement
+DRONE_DIST_CEILING = float(_env("JARVIS_DRONE_DIST_PLAFOND", "2000"))  # plafond absolu, éloignement
 DRONE_STEP_MAX = float(_env("JARVIS_DRONE_PAS_MAX", "20"))        # déplacement max par commande
 
 # --- Vision (décrire une image : vue du drone, capture...) ---
