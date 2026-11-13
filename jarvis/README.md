@@ -251,8 +251,12 @@ Exemples :
 
 Réglages dans `.env` :
 - `JARVIS_DRONE=sim` : **simulateur**, pour tester sans matériel (le drone « vole » pour de faux).
-- `JARVIS_DRONE=anafi` : le vrai drone. Nécessite le SDK Parrot **Olympe** (Linux) :
+- `JARVIS_DRONE=anafi` : le vrai drone, via le **SDK officiel Parrot Olympe** (Linux) :
   `pip install parrot-olympe`, le PC connecté au Wi-Fi du drone.
+  Le même mode marche avec **Parrot Sphinx**, le simulateur officiel de Parrot : lance
+  Sphinx, puis mets `JARVIS_DRONE=anafi` et `JARVIS_DRONE_IP` sur l'adresse du drone
+  simulé. Le vrai code de vol est ainsi testé de façon réaliste, sans matériel ni risque.
+  (Olympe et Sphinx sont les outils officiels de Parrot — c'est la base retenue ici.)
 - `JARVIS_DRONE_IP` : l'adresse du drone (par défaut `192.168.42.1`).
 - La **vision** (« qu'est-ce que tu vois ? ») utilise Gemini ou Claude s'ils sont configurés.
 
