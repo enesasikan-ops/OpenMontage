@@ -18,8 +18,11 @@ import config
 
 log = logging.getLogger("jarvis.drone")
 
-MAX_STEP_M = 5.0      # déplacement max par commande (mètres)
-MAX_ALT_M = 30.0      # altitude max (mètres)
+# Limites par défaut. Réglables dans .env (voir config). L'altitude max par défaut
+# est le plafond LÉGAL en France/Europe (120 m). Le drone en est capable ; c'est à toi
+# de rester dans la loi de ton pays.
+MAX_STEP_M = 20.0     # déplacement max par commande (mètres)
+MAX_ALT_M = 120.0     # altitude max (mètres) — plafond légal EASA
 MAX_TURN_DEG = 180.0
 
 
@@ -219,11 +222,15 @@ class MavlinkController:
 class DronePilot:
     """Couche de sécurité : borne les commandes et garde l'ordre des opérations."""
 
-    def __init__(self, controller: Controller, describe: "Callable[[bytes], str] | None" = None):
+    def __init__(self, controller: Controller, describe: "Callable[[bytes], str] | None" = None,
+                 step_max: float = None, alt_max: float = None):
         self.c = controller
         self.describe = describe
+        self.step_max = MAX_STEP_M if step_max is None else float(step_max)
+        self.alt_max = MAX_ALT_M if alt_max is None else float(alt_max)
         self._ready = False
         self._flying = False
+        self._alt = 0.0  # estimation de l'altitude, pour faire respecter le plafond
 
     def _ensure_ready(self) -> "str | None":
         if self._ready:
@@ -258,6 +265,7 @@ class DronePilot:
         except Exception as exc:
             return f"Décollage impossible : {exc}"
         self._flying = True
+        self._alt = 1.2  # altitude de vol stationnaire au décollage
         return "Décollage. Vol stationnaire. Garde le drone à vue."
 
     def land(self) -> str:
@@ -268,6 +276,7 @@ class DronePilot:
         except Exception as exc:
             return f"Atterrissage : {exc}"
         self._flying = False
+        self._alt = 0.0
         return "Atterrissage en cours."
 
     def emergency(self) -> str:
@@ -278,6 +287,7 @@ class DronePilot:
         except Exception as exc:
             return f"Arrêt d'urgence : {exc}"
         self._flying = False
+        self._alt = 0.0
         return "Arrêt d'urgence. Le drone coupe ses moteurs."
 
     def _check_flying(self) -> "str | None":
@@ -289,11 +299,21 @@ class DronePilot:
         busy = self._check_flying()
         if busy:
             return busy
-        f, r, u = self._num(forward, MAX_STEP_M), self._num(right, MAX_STEP_M), self._num(up, MAX_STEP_M)
+        f = self._num(forward, self.step_max)
+        r = self._num(right, self.step_max)
+        u = self._num(up, self.step_max)
+        # Barrière d'altitude : on ne dépasse ni le plafond, ni le sol.
+        capped = False
+        target_alt = round(max(0.0, min(self.alt_max, self._alt + u)), 6)
+        allowed_u = round(target_alt - self._alt, 6)
+        if abs(allowed_u - u) > 1e-6:
+            capped = True
+        u = allowed_u
         try:
             self.c.move(f, r, u)
         except Exception as exc:
             return f"Déplacement impossible : {exc}"
+        self._alt = target_alt
         bits = []
         if f:
             bits.append(f"{'avance' if f > 0 else 'recule'} de {abs(f):g} m")
@@ -301,7 +321,10 @@ class DronePilot:
             bits.append(f"{'droite' if r > 0 else 'gauche'} {abs(r):g} m")
         if u:
             bits.append(f"{'monte' if u > 0 else 'descend'} de {abs(u):g} m")
-        return "D'accord, le drone " + (", ".join(bits) if bits else "ne bouge pas") + "."
+        msg = "D'accord, le drone " + (", ".join(bits) if bits else "ne bouge pas") + "."
+        if capped:
+            msg += f" (Je reste sous le plafond de {self.alt_max:g} m.)"
+        return msg
 
     def rotate(self, degrees: float) -> str:
         busy = self._check_flying()

@@ -43,11 +43,30 @@ def test_double_takeoff_and_land_on_ground():
     assert "déjà au sol" in p.land()
 
 
-def test_move_is_clamped_to_safe_distance():
-    p = pilot()
+def test_move_is_clamped_to_step_limit():
+    p = pilot()                     # limite par défaut : 20 m par commande
     p.takeoff()
-    p.move(forward=100)             # au-delà du max : borné à 5 m
-    assert p.c.pos[0] == 5.0
+    p.move(forward=100)
+    assert p.c.pos[0] == 20.0
+
+
+def test_altitude_ceiling_is_enforced():
+    # Plafond réglé à 10 m : le drone ne doit jamais le dépasser, même sur plusieurs ordres.
+    p = DronePilot(SimDrone(), alt_max=10.0, step_max=20.0)
+    p.takeoff()                     # ~1.2 m
+    msg = p.move(up=20)             # demande +20 m
+    assert p.c.pos[2] == 10.0 and "plafond de 10 m" in msg
+    p.move(up=20)                   # déjà au plafond : ne monte plus
+    assert p.c.pos[2] == 10.0
+    p.move(up=-4)                   # redescendre reste possible
+    assert p.c.pos[2] == 6.0
+
+
+def test_custom_step_limit():
+    p = DronePilot(SimDrone(), step_max=50.0, alt_max=120.0)
+    p.takeoff()
+    p.move(forward=40)
+    assert p.c.pos[0] == 40.0
 
 
 def test_rotate_clamped():

@@ -229,7 +229,8 @@ def make_drone(gemini):
     from vision import VisionRouter
     router = VisionRouter(gemini=gemini)
     describe = router.describe if router.available else None
-    return DronePilot(controller, describe=describe)
+    return DronePilot(controller, describe=describe,
+                      step_max=_c.DRONE_STEP_MAX, alt_max=_c.DRONE_ALT_MAX)
 
 
 def gemini_advisor():
