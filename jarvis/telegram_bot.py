@@ -221,7 +221,9 @@ def make_drone(gemini):
         return None
     from drone import AnafiController, DronePilot, SimDrone
     controller = SimDrone() if _c.DRONE == "sim" else AnafiController()
-    describe = (lambda frame: gemini.describe_image(frame)) if (gemini and gemini.available) else None
+    from vision import VisionRouter
+    router = VisionRouter(gemini=gemini)
+    describe = router.describe if router.available else None
     return DronePilot(controller, describe=describe)
 
 

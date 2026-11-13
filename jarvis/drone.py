@@ -238,8 +238,9 @@ class DronePilot:
         if not frame:
             return "Je n'ai pas d'image du drone pour le moment."
         if self.describe is None:
-            return ("Je reçois bien la vidéo du drone, mais la reconnaissance d'image n'est pas "
-                    "configurée. Ajoute un renfort qui voit les images (Gemini ou Claude).")
+            return ("Je reçois bien la vidéo du drone, mais la vision n'est pas configurée. "
+                    "Installe un modèle qui voit (ollama pull qwen2.5-vl, puis "
+                    "JARVIS_MODELE_VISION=qwen2.5-vl), ou configure Gemini.")
         try:
             return self.describe(frame)
         except Exception as exc:

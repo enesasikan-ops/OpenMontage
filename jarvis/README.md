@@ -258,7 +258,22 @@ Réglages dans `.env` :
   simulé. Le vrai code de vol est ainsi testé de façon réaliste, sans matériel ni risque.
   (Olympe et Sphinx sont les outils officiels de Parrot — c'est la base retenue ici.)
 - `JARVIS_DRONE_IP` : l'adresse du drone (par défaut `192.168.42.1`).
-- La **vision** (« qu'est-ce que tu vois ? ») utilise Gemini ou Claude s'ils sont configurés.
+- La **vision** (« qu'est-ce que tu vois ? ») : voir ci-dessous.
+
+### La vision de Jarvis
+
+« Qu'est-ce que tu vois ? » (sur la vue du drone) passe par un modèle qui lit les images.
+Deux voies, réglées avec `JARVIS_VISION` :
+
+| Mode | Qui voit | Vie privée |
+|---|---|---|
+| `local` *(préféré)* | Un modèle **sur le mini-PC** via Ollama | ✅ Rien ne sort de l'ordinateur, marche hors ligne |
+| `gemini` | Gemini (Google) | ❌ L'image part chez Google |
+| `auto` *(défaut)* | Local si réglé, sinon Gemini | — |
+
+Pour la vision **locale** : `ollama pull qwen2.5-vl` (ou `llama3.2-vision`, `moondream`
+pour les petites configs), puis `JARVIS_MODELE_VISION=qwen2.5-vl` dans `.env`.
+Cette même vision servira aussi, plus tard, pour décrire une capture d'écran ou une photo.
 
 Sécurité, toujours :
 - Confirmation avant le décollage ; « atterris » et « stop » passent en priorité.

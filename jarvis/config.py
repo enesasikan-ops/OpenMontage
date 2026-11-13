@@ -108,6 +108,12 @@ PROACTIVE_FILE = DATA_DIR / "initiatives.json"
 DRONE = _env("JARVIS_DRONE", "0").strip().lower()
 DRONE_IP = _env("JARVIS_DRONE_IP", "192.168.42.1").strip()  # IP du Parrot ANAFI en Wi-Fi direct
 
+# --- Vision (décrire une image : vue du drone, capture...) ---
+# "auto" (local si dispo, sinon Gemini), "local", "gemini", ou "0" pour couper.
+VISION = _env("JARVIS_VISION", "auto").strip().lower()
+# Modèle de vision local via Ollama (ex. qwen2.5-vl, llama3.2-vision, moondream). Vide = pas de vision locale.
+VISION_MODEL = _env("JARVIS_MODELE_VISION", "").strip()
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()
