@@ -117,6 +117,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from vacuum import build_vacuum_tools
 
         tools += build_vacuum_tools(home)   # aspirateur robot (Valetudo via HA)
+        from deterrent import build_deterrent_tools
+
+        tools += build_deterrent_tools(home)   # arroseur anti-nuisibles (dissuasion par zone)
         ask = getattr(claude, "ask", None)
         if callable(ask):   # créer des règles à la voix (nécessite le renfort pour traduire)
             from automations import build_automation_tools

@@ -243,6 +243,8 @@ VACUUM_SEGMENTS: dict = _json_env("JARVIS_ASPIRATEUR_PIECES")
 # Point de situation : capteurs à surveiller pour donner à Jarvis la « conscience » du moment
 # (détections caméra, état du drone, batteries…). Lecture seule. entity_id séparés par des virgules.
 TELEMETRIE = tuple(x.strip() for x in _env("JARVIS_TELEMETRIE", "").split(",") if x.strip())
+# Arroseur anti-nuisibles (dissuasion par zone) : { "parterre": "switch.arroseur_parterre" }.
+ARROSEUR_ZONES: dict = _json_env("JARVIS_ARROSEUR")
 
 # Mode mains libres : secondes d'écoute après une réponse, sans redire « Jarvis ».
 AWAKE_SECONDS = float(_env("JARVIS_ECOUTE_SECONDES", "30"))
