@@ -1,0 +1,38 @@
+"""Tests générés pour la capacité « {{ nom }} ». Ajoute tes propres tests dans la zone manuelle."""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # dossier jarvis/
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import {{ noms.snake }} as capacite  # noqa: E402
+
+EXEMPLES = {"string": "exemple", "integer": 1, "number": 1.0, "boolean": True}
+
+
+def test_tools_are_declared():
+    tools = {t.name: t for t in capacite.build_tools()}
+    assert set(tools) == { {%- for a in actions %}{{ a.nom | pyrepr }}{% if not loop.last %}, {% endif %}{% endfor -%} }
+
+
+def test_sensitive_actions_ask_confirmation():
+    tools = {t.name: t for t in capacite.build_tools()}
+{% for a in actions %}
+{% if a.sensible %}
+    assert tools[{{ a.nom | pyrepr }}].confirm is not None  # action sensible : confirmation obligatoire
+{% else %}
+    assert tools[{{ a.nom | pyrepr }}].confirm is None
+{% endif %}
+{% endfor %}
+
+
+def test_every_tool_answers_a_sentence():
+    for tool in capacite.build_tools():
+        props = tool.parameters["properties"]
+        args = {name: EXEMPLES[spec["type"]] for name, spec in props.items()}
+        assert isinstance(tool.run(**args), str)
+
+
+# >>> manuel: tests
+# <<< manuel: tests

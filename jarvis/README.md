@@ -198,6 +198,13 @@ Exemples à essayer :
 Jarvis **surveille** l'antivirus, il ne le remplace pas : la protection reste
 celle de Windows Defender.
 
+## Générer une nouvelle capacité (scaffold)
+
+`python -m scaffold generer ma-capacite.yaml` écrit le code répétitif d'une capacité
+(outils, confirmations, tests, doc) à partir d'une config YAML ; tu complètes la logique
+dans les zones « manuel ». Détails et création de packs pour d'autres architectures :
+[scaffold/README.md](scaffold/README.md).
+
 ## Jarvis s'améliore avec le temps
 
 Jarvis note ce qu'il ne sait pas encore faire, et ces capacités s'ajoutent plus tard —

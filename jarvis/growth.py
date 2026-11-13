@@ -80,6 +80,9 @@ PROTECTED = ("config.py", "claude_bridge.py", "drone.py", "security.py", "brain.
 SELF_IMPROVE_POLICY = """Tu ajoutes une NOUVELLE capacité à Jarvis, en autonomie, dans l'atelier.
 Règles de sécurité STRICTES (non négociables) :
 - Crée un NOUVEAU fichier pour la capacité (ex. atelier/<nom>.py) et SES TESTS (pytest).
+- Pour partir d'un squelette propre, utilise le générateur : écris une config YAML
+  (voir `python -m scaffold exemple jarvis-capacite`) puis `python -m scaffold generer`,
+  et complète uniquement les zones « manuel ».
 - Ne modifie AUCUN de ces fichiers du cœur : """ + ", ".join(PROTECTED) + """.
 - Ne retire, n'affaiblis ni ne contournes JAMAIS une confirmation : toute action qui
   envoie, supprime, pilote, paie ou ouvre quelque chose doit demander confirmation.

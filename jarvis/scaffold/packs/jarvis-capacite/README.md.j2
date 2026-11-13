@@ -1,0 +1,24 @@
+# Capacité « {{ nom }} »
+
+{{ description }}
+
+## Ce que Jarvis sait faire
+
+| Outil | Description | Confirmation |
+|---|---|---|
+{% for a in actions %}
+| `{{ a.nom }}` | {{ a.description }} | {{ "oui" if a.sensible else "non" }} |
+{% endfor %}
+{% if variables %}
+
+## Réglages (`.env`)
+
+{% for v in variables %}
+- `{{ v.nom }}` (défaut : `{{ v.defaut }}`) — {{ v.description }}
+{% endfor %}
+{% endif %}
+
+## Notes
+
+<!-- >>> manuel: notes -->
+<!-- <<< manuel: notes -->
