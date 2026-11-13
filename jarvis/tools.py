@@ -114,6 +114,11 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from smarthome import build_smarthome
 
         tools += build_smarthome(home)
+        ask = getattr(claude, "ask", None)
+        if callable(ask):   # créer des règles à la voix (nécessite le renfort pour traduire)
+            from automations import build_automation_tools
+
+            tools += build_automation_tools(home, ask)
     if web:
         from web import build_web_tools
 
