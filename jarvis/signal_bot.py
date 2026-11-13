@@ -18,10 +18,20 @@ import json
 import logging
 import re
 import subprocess
+import tempfile
 import threading
+from pathlib import Path
 from typing import Callable
 
 log = logging.getLogger(__name__)
+
+
+def _ecrire_diff(fichier: str, diff: str) -> str:
+    """Écrit le diff dans un fichier temporaire (pour l'envoyer en pièce jointe) et renvoie son chemin."""
+    nom = fichier.replace("/", "_").replace(".", "_")
+    chemin = Path(tempfile.gettempdir()) / f"jarvis_coeur_{nom}.diff"
+    chemin.write_text(diff or "(aucun changement)", encoding="utf-8")
+    return str(chemin)
 
 CONFIRM_TIMEOUT_S = 180
 
@@ -43,6 +53,8 @@ class SignalJarvis:
         self._attente: "tuple[threading.Event, list[bool]] | None" = None
         self._derniere_proposition: int | None = None
         self.proposals = None                  # renseigné au démarrage (nuit)
+        self.core = None                       # CoreImprover (changements du cœur), facultatif
+        self._core_pending = None              # proposition de cœur en attente de ta validation
         self.brain = brain_factory(self._confirmer, self._statut)
 
     # --- Sorties vers toi --------------------------------------------------------
@@ -87,14 +99,69 @@ class SignalJarvis:
             event.set()
             return
 
-        # 2. Décision sur une proposition d'amélioration (valide 3 / rejette 3 / oui / non).
+        # 2. Changement du cœur : « cœur drone.py: augmente la limite » (réservé à toi).
+        coeur = re.match(r"^\s*c(?:œ|oe)ur\s+(?P<fichier>\S+)\s*:\s*(?P<consigne>.+)$", texte, re.IGNORECASE)
+        if coeur:
+            self._proposer_coeur(coeur.group("fichier"), coeur.group("consigne"))
+            return
+        if re.match(r"^\s*(valide|active|accepte)\s+c(?:œ|oe)ur\b", texte, re.IGNORECASE):
+            self._appliquer_coeur(True)
+            return
+        if re.match(r"^\s*(rejette|refuse|annule)\s+c(?:œ|oe)ur\b", texte, re.IGNORECASE):
+            self._appliquer_coeur(False)
+            return
+
+        # 3. Décision sur une proposition d'amélioration (valide 3 / rejette 3 / oui / non).
         decision = self._decision_proposition(texte)
         if decision is not None:
             self._traiter_proposition(*decision)
             return
 
-        # 3. Sinon : une question normale pour le cerveau.
+        # 4. Sinon : une question normale pour le cerveau.
         self._repondre(texte)
+
+    # --- Changements du cœur (Gemini propose, tu lis le diff, tu valides) ---------
+
+    def _proposer_coeur(self, fichier: str, consigne: str) -> None:
+        if self.core is None:
+            self.envoyer("Le mode « cœur » n'est pas activé.")
+            return
+
+        def travail():
+            try:
+                self.envoyer(f"⏳ Gemini prépare une proposition pour {fichier}…")
+                prop = self.core.proposer(fichier, consigne)
+            except Exception as exc:
+                self.envoyer(f"Impossible : {exc}")
+                return
+            self._core_pending = prop
+            etat = "✅ tests OK" if prop.tests_ok else f"⚠️ TESTS EN ÉCHEC ({prop.tests})"
+            piece = _ecrire_diff(prop.fichier, prop.diff)
+            self.envoyer(
+                f"Proposition pour le CŒUR — {prop.fichier}\n{etat}\n\n"
+                "Lis le diff (en pièce jointe) AVANT de décider.\n"
+                "Réponds : valide cœur — ou — rejette cœur.",
+                piece_jointe=piece)
+
+        threading.Thread(target=travail, name="jarvis-coeur", daemon=True).start()
+
+    def _appliquer_coeur(self, accepter: bool) -> None:
+        prop = self._core_pending
+        if prop is None:
+            self.envoyer("Aucune proposition de cœur en attente.")
+            return
+        self._core_pending = None
+        if not accepter:
+            self.envoyer("Proposition de cœur rejetée. Rien changé.")
+            return
+        if not prop.tests_ok:
+            self.envoyer("Je n'applique pas : les tests de cette proposition échouent. "
+                         "Redemande une proposition corrigée.")
+            return
+        try:
+            self.envoyer(self.core.appliquer(prop))
+        except Exception as exc:
+            self.envoyer(f"Application impossible : {exc}")
 
     def _decision_proposition(self, texte: str) -> "tuple[bool, int] | None":
         m = _PROPOSITION.match(texte)
@@ -251,6 +318,19 @@ def main() -> None:
     transport.demarrer()
 
     jarvis.proposals = proposals
+
+    # Mode « cœur » : sur TA demande explicite, Gemini propose un changement d'un fichier
+    # du cœur ; tu lis le diff et tu valides. Jamais automatique, jamais sans ton accord.
+    from claude_bridge import GeminiBackend, GeminiCliBackend
+    from core_proposals import CoreImprover
+    if config.GEMINI_KEY:
+        core_agent = GeminiBackend()
+    elif config.GEMINI_CLI_ENABLE:
+        core_agent = GeminiCliBackend()
+    else:
+        core_agent = claude
+    jarvis.core = CoreImprover(core_agent)
+
     ReminderWatcher(reminders, notify=jarvis.notify_owner).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,
               notify=jarvis.notify_owner).start()

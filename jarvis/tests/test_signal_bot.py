@@ -135,6 +135,56 @@ def test_oui_simple_applique_la_derniere_proposition():
     assert ("activate", "7") in vu
 
 
+# --- Mode cœur : Gemini propose, tu lis le diff, tu valides ---
+
+def _core(tests_ok=True):
+    vu = []
+    prop = NS(fichier="drone.py", ancien="a", nouveau="b", diff="--- a\n+++ b\n",
+              tests_ok=tests_ok, tests="1 passed")
+    return NS(
+        proposer=lambda f, c: vu.append(("proposer", f, c)) or prop,
+        appliquer=lambda p: vu.append(("appliquer", p.fichier)) or "drone.py modifié (.bak). Redémarre.",
+    ), vu, prop
+
+
+def test_coeur_propose_et_envoie_le_diff():
+    bot, sorties = _bot()
+    bot.core, vu, prop = _core()
+    bot.traiter(OWNER, "cœur drone.py: augmente la limite")
+    assert sorties.attendre("Proposition pour le CŒUR")
+    assert ("proposer", "drone.py", "augmente la limite") in vu
+    assert bot._core_pending is prop
+
+
+def test_coeur_valide_applique():
+    bot, sorties = _bot()
+    bot.core, vu, prop = _core(tests_ok=True)
+    bot.traiter(OWNER, "cœur drone.py: x")
+    assert sorties.attendre("Proposition pour le CŒUR")
+    bot.traiter(OWNER, "valide cœur")
+    assert ("appliquer", "drone.py") in vu
+    assert bot._core_pending is None
+
+
+def test_coeur_refuse_si_tests_echouent():
+    bot, sorties = _bot()
+    bot.core, vu, prop = _core(tests_ok=False)
+    bot.traiter(OWNER, "cœur drone.py: x")
+    assert sorties.attendre("Proposition pour le CŒUR")
+    bot.traiter(OWNER, "valide cœur")
+    assert not any(a[0] == "appliquer" for a in vu)   # jamais appliqué si les tests cassent
+    assert sorties.attendre("tests")
+
+
+def test_coeur_rejet_n_applique_rien():
+    bot, sorties = _bot()
+    bot.core, vu, prop = _core()
+    bot.traiter(OWNER, "cœur drone.py: x")
+    assert sorties.attendre("Proposition pour le CŒUR")
+    bot.traiter(OWNER, "rejette cœur")
+    assert not any(a[0] == "appliquer" for a in vu)
+
+
 def test_confirmation_prioritaire_sur_proposition():
     # Si une confirmation est en attente, « oui » répond à ELLE, pas à une proposition.
     holder = {}
