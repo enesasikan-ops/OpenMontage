@@ -48,7 +48,8 @@ def _now_text() -> str:
 
 def build_tools(memory: Memory, claude: ClaudeBridge,
                 on_status: Callable[[str], None], reminders=None, lists=None,
-                sentinel=None, home=None, web=True, agent=None) -> dict[str, Tool]:
+                sentinel=None, home=None, web=True, agent=None,
+                gemini=None) -> dict[str, Tool]:
     """reminders / lists : stockages des compétences (skills.py). Sans eux, outils de base seuls."""
     def ask_claude(question: str, contexte: str = "") -> str:
         on_status(persona.asking_claude())
@@ -116,6 +117,23 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from web import build_web_tools
 
         tools += build_web_tools()
+    if gemini is not None and gemini.available:
+        def ask_gemini(question: str, contexte: str = "") -> str:
+            on_status("Je demande à Gemini.")
+            return gemini.ask(question, contexte)
+
+        tools.append(Tool(
+            name="demander_a_gemini",
+            description=("Demande l'avis de Gemini, l'IA de Google. À utiliser pour un deuxième avis, "
+                         "pour comparer avec Claude, ou quand l'utilisateur demande explicitement Gemini. "
+                         "Gemini répond mais n'agit pas sur l'ordinateur."),
+            parameters={"type": "object",
+                        "properties": {
+                            "question": {"type": "string", "description": "La question, reformulée clairement."},
+                            "contexte": {"type": "string", "description": "Infos utiles (facultatif)."}},
+                        "required": ["question"]},
+            run=ask_gemini,
+        ))
     if agent is not None:
         on_status_agent = on_status
 

@@ -15,7 +15,7 @@ load_dotenv(Path(__file__).parent / ".env")
 import config  # noqa: E402  (après load_dotenv pour lire le .env)
 import persona  # noqa: E402
 from brain import Brain  # noqa: E402
-from claude_bridge import ClaudeBridge  # noqa: E402
+from claude_bridge import ClaudeBridge, GeminiBackend  # noqa: E402
 from memory import Memory  # noqa: E402
 from proactive import Proactive  # noqa: E402
 from security import Sentinel  # noqa: E402
@@ -114,9 +114,11 @@ def main() -> None:
     reminders, lists = Reminders(config.REMINDERS_FILE), Lists(config.LISTS_FILE)
     sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
     home = SmartHome()
+    # Gemini en second avis, quand une clé est là et que le renfort principal n'est pas déjà Gemini.
+    gemini = GeminiBackend() if (config.GEMINI_KEY and config.RENFORT != "gemini") else None
     tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists,
                             sentinel=sentinel, home=home,
-                            agent=claude if config.AGENT else None)
+                            agent=claude if config.AGENT else None, gemini=gemini)
     brain = Brain(client, tools, memory, confirm)
     ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,

@@ -24,6 +24,7 @@ Règles :
   ou si tu n'es pas sûr) : utilise l'outil demander_a_claude, puis transmets sa
   réponse telle quelle.
 - Information récente ou factuelle (actualité, horaires, prix) : utilise chercher_sur_le_web.
+- Pour un deuxième avis ou comparer, ou si on demande Gemini : utilise demander_a_gemini.
 - Tâche importante à RÉALISER (écrire un programme, un script, un travail long et complexe) :
   utilise confier_a_claude, qui l'exécute vraiment sur l'ordinateur.
 - Pour l'heure ou la date : utilise heure_et_date, ne devine jamais.

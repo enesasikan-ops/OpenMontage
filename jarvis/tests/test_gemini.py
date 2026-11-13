@@ -80,3 +80,35 @@ def test_network_and_bad_json(key):
 
 def test_gemini_cannot_act_on_pc(key):
     assert "Claude Code" in GeminiBackend(request=lambda b: reply("x")).delegate("range mes photos")
+
+
+def test_gemini_advisor_tool_coexists_with_claude(tmp_path, monkeypatch):
+    """Claude ET Gemini en même temps : deux outils distincts."""
+    import skills
+    from tools import build_tools
+    from types import SimpleNamespace as NS
+
+    monkeypatch.setattr(config, "GEMINI_KEY", "cle-test")
+    statuses = []
+    gemini = GeminiBackend(request=lambda b: reply("Avis de Gemini."))
+    claude = NS(available=True, ask=lambda q, c="": "Avis de Claude.")
+    tools = build_tools(None, claude, statuses.append,
+                        reminders=skills.Reminders(tmp_path / "r.json"),
+                        lists=skills.Lists(tmp_path / "l.json"),
+                        gemini=gemini)
+    assert "demander_a_claude" in tools and "demander_a_gemini" in tools
+    assert tools["demander_a_gemini"].run("salut") == "Avis de Gemini."
+    assert any("Gemini" in s for s in statuses)
+
+
+def test_no_gemini_tool_without_key(tmp_path, monkeypatch):
+    import skills
+    from tools import build_tools
+    from types import SimpleNamespace as NS
+
+    monkeypatch.setattr(config, "GEMINI_KEY", "")
+    tools = build_tools(None, NS(available=True, ask=lambda q, c="": "x"), lambda s: None,
+                        reminders=skills.Reminders(tmp_path / "r.json"),
+                        lists=skills.Lists(tmp_path / "l.json"),
+                        gemini=GeminiBackend())
+    assert "demander_a_gemini" not in tools

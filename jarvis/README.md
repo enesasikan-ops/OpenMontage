@@ -114,6 +114,11 @@ avec `JARVIS_MODELE_GEMINI` (défaut `gemini-2.5-flash`). Gemini peut **répondr
 mais pas **agir** sur l'ordinateur : le mode mentor (exécuter des tâches) reste réservé
 à Claude Code.
 
+**Claude ET Gemini ensemble** : garde `JARVIS_RENFORT=abonnement` (Claude en principal,
+y compris pour agir et coder) et renseigne aussi `GEMINI_API_KEY`. Jarvis gagne alors un
+outil « demander à Gemini » : tu peux dire « demande à Gemini ce qu'il en pense » pour
+un deuxième avis, pendant que Claude reste le renfort principal.
+
 ## Confidentialité
 
 - **Rien ne sort** pour le cerveau local, l'écoute (Whisper), la voix (Piper) et la mémoire (`~/.jarvis/memoire.json`).
