@@ -52,6 +52,7 @@ ROUTING_TESTS = [
     ("Combien font 1 250 fois 18 % ?", "calculer"),
     ("Ajoute du lait à la liste de courses.", "ajouter_a_la_liste"),
     ("Fais-moi un rapport de sécurité.", "rapport_securite"),
+    ("Allume la lumière du salon.", "allumer"),
     ("Demande à Claude de m'expliquer la relativité générale en détail.", "demander_a_claude"),
     ("Rédige-moi un business plan complet pour ouvrir une boulangerie.", "demander_a_claude"),
 ]

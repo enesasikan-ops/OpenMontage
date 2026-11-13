@@ -162,6 +162,7 @@ Exemples à essayer :
 | **Calcul exact** | « Combien font 1 250 fois 18 % ? », « Racine de 144 » | Sur ton ordinateur |
 | **Météo** | « Quel temps fait-il à Lyon ? », « Il pleut demain ? » | Seul le nom de la ville part vers open-meteo.com (gratuit, sans compte). Règle `JARVIS_VILLE` pour ta ville habituelle. Coupée en mode hors ligne. |
 | **Listes** | « Ajoute du lait à la liste de courses », « Lis ma liste », « Retire le lait », « Ajoute Dune à la liste films » | Sur ton ordinateur |
+| **Maison connectée** | « Allume le salon », « ferme le garage » (confirmation), « température du salon » | Sur ton réseau local (Home Assistant) |
 | **Sécurité** | « Rapport de sécurité », « Lance une analyse antivirus » (avec confirmation) | Sur ton ordinateur |
 | **État du PC** | « Le PC est en bonne santé ? » → disque, mémoire, processeur, durée d'allumage, et sous Windows l'état de l'antivirus Defender | Sur ton ordinateur (lecture seule) |
 | **Mémoire** | « Retiens que… », « Oublie… » (avec confirmation) | Sur ton ordinateur |
@@ -182,6 +183,33 @@ celle de Windows Defender.
 Les messages arrivent là où Jarvis tourne : à voix haute en mode vocal, sur
 Telegram si le bot est lancé. Si les deux tournent, le briefing n'est donné
 qu'une fois. Jarvis ne fait que **prévenir** : il ne corrige rien tout seul.
+
+## Piloter la maison connectée
+
+Jarvis commande tes objets connectés par l'intermédiaire de **Home Assistant**,
+le logiciel domotique libre et gratuit (il tourne en local, souvent sur le même
+mini-PC). Home Assistant a déjà fait le travail d'intégration de milliers
+d'appareils de toutes marques : une fois tes objets ajoutés dans Home Assistant,
+Jarvis les pilote, quels qu'ils soient.
+
+Exemples :
+- « Jarvis, allume le salon », « éteins tout »
+- « Mets la lumière de la chambre à 30 % »
+- « Ouvre le volet du salon », « ferme le garage » *(confirmation demandée)*
+- « Verrouille la porte d'entrée » *(confirmation demandée)*
+- « Lance l'ambiance cinéma »
+- « Qu'est-ce qui est allumé ? », « la porte du garage est fermée ? », « température du salon »
+
+Mise en place :
+1. Installe **Home Assistant** (home-assistant.io) et ajoutes-y tes objets connectés.
+2. Dans Home Assistant : ton profil → en bas, **Jetons d'accès longue durée** → crée un jeton.
+3. Dans `.env` : `HOMEASSISTANT_URL=http://homeassistant.local:8123` et `HOMEASSISTANT_TOKEN=<ton jeton>`.
+
+À savoir :
+- Tout reste **sur ton réseau local** : la domotique marche même en mode 100 % hors ligne.
+- Les actions sensibles (serrures, volets, portail, garage) demandent ta confirmation.
+- Si tu dis « allume le salon » et que plusieurs lampes correspondent, il les allume toutes.
+- Le jeton donne le contrôle de ta maison : garde-le comme un mot de passe.
 
 ## La sentinelle (sécurité)
 
@@ -288,6 +316,6 @@ Les tests simulent Ollama et Claude : ils ne coûtent rien et ne demandent aucun
 - Mot de réveil plus robuste au bruit (openWakeWord), et pouvoir interrompre Jarvis quand il parle.
 - Idées vues dans d'autres projets Jarvis : recherche web, journal des conversations, dictée dans d'autres applications.
 - Démarrage automatique du bot Telegram à l'allumage du Mac.
-- Outils Notion (QG « Jarvis — QG » et base « Tâches Jarvis »), agenda, mails, domotique (Home Assistant) :
+- Outils Notion (QG « Jarvis — QG » et base « Tâches Jarvis »), agenda, mails, mails :
   ils demandent un compte ou un jeton à toi, on les ajoutera un par un.
 - Chaque nouvel outil qui **agit** (envoyer, supprimer, payer, ouvrir) reçoit une confirmation.

@@ -92,6 +92,10 @@ PROACTIVE_FILE = DATA_DIR / "initiatives.json"
 SENTINEL = _env("JARVIS_SENTINELLE", "1") == "1"
 SENTINEL_FILE = DATA_DIR / "sentinelle.json"
 
+# --- Maison connectée (Home Assistant, local) ---
+HA_URL = _env("HOMEASSISTANT_URL", "").strip()      # ex. http://homeassistant.local:8123
+HA_TOKEN = _env("HOMEASSISTANT_TOKEN", "").strip()  # jeton d'accès longue durée
+
 # Mode mains libres : secondes d'écoute après une réponse, sans redire « Jarvis ».
 AWAKE_SECONDS = float(_env("JARVIS_ECOUTE_SECONDES", "30"))
 

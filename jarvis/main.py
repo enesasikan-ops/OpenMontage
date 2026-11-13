@@ -19,6 +19,7 @@ from claude_bridge import ClaudeBridge  # noqa: E402
 from memory import Memory  # noqa: E402
 from proactive import Proactive  # noqa: E402
 from security import Sentinel  # noqa: E402
+from smarthome import SmartHome  # noqa: E402
 from skills import Lists, Reminders, ReminderWatcher  # noqa: E402
 from tools import build_tools  # noqa: E402
 
@@ -112,8 +113,9 @@ def main() -> None:
 
     reminders, lists = Reminders(config.REMINDERS_FILE), Lists(config.LISTS_FILE)
     sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
+    home = SmartHome()
     tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists,
-                            sentinel=sentinel)
+                            sentinel=sentinel, home=home)
     brain = Brain(client, tools, memory, confirm)
     ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
     Proactive(reminders, lists, security=sentinel.check if sentinel else None,
