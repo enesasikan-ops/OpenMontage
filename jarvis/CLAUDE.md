@@ -20,6 +20,25 @@ Telegram/Signal). Ce code n'appartient pas aux sessions Claude Code.
 
 Le `plugin_manager.py`, lui, fait partie du cœur et suit les règles ci-dessous.
 
+## Bugs dans le code de Jarvis : rapporter, ne pas corriger sans aval
+
+Quand une session Claude Code **détecte une erreur ou un bug** dans le code source de
+Jarvis (hors tâche demandée), elle le **signale au propriétaire** — description claire,
+fichier et ligne, conséquence — et **ne le corrige pas d'elle-même**.
+
+Le propriétaire décide :
+
+- **Il donne l'aval** → Claude corrige et commit, le propriétaire relit le diff.
+- **Il ne donne pas l'aval** → Claude n'y touche pas. La réparation revient alors à
+  l'auto-amélioration de Jarvis (Gemini en renfort) : le propriétaire l'ajoute aux
+  demandes d'amélioration, Jarvis propose un correctif, et le propriétaire l'active
+  avec ✅. Claude ne force jamais ce correctif à sa place.
+
+Nuance honnête : les **fichiers du cœur** (liste ci-dessous) ne peuvent pas être
+réparés par l'auto-amélioration (ils lui sont interdits). Pour un bug dans un fichier
+du cœur, il n'y a donc que deux issues : l'aval du propriétaire pour que Claude corrige,
+ou le laisser tel quel. Dans ce cas, Claude le dit clairement au propriétaire.
+
 ## Fichiers du cœur — jamais modifiés par l'auto-amélioration
 
 L'auto-amélioration de Jarvis (la nuit) ne doit jamais toucher aux fichiers du cœur

@@ -1,0 +1,274 @@
+"""Bot Signal deux-sens : parler à Jarvis par Signal (chiffré bout en bout).
+
+Équivalent de telegram_bot.py, mais Signal n'a pas de boutons : l'approbation se fait
+par réponse texte.
+  - Action sensible      -> Jarvis demande « OUI ou NON », tu réponds oui / non.
+  - Amélioration de nuit -> Jarvis envoie la proposition, tu réponds « valide 3 » /
+                            « rejette 3 » (ou juste oui / non pour la dernière).
+
+Sécurité : le bot ne répond qu'à TON numéro (JARVIS_SIGNAL_DESTINATAIRE).
+
+Le cœur (SignalJarvis) est indépendant du transport : il reçoit (expéditeur, texte) et
+envoie via une fonction `envoyer`. Le transport réel (signal-cli) est branché dans main().
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import re
+import subprocess
+import threading
+from typing import Callable
+
+log = logging.getLogger(__name__)
+
+CONFIRM_TIMEOUT_S = 180
+
+_OUI = re.compile(r"^\s*(oui|o|ok|yes|y|valide|active|d'accord|vas-y)\b", re.IGNORECASE)
+_NON = re.compile(r"^\s*(non|n|no|rejette|refuse|annule|stop)\b", re.IGNORECASE)
+_PROPOSITION = re.compile(
+    r"^\s*(?P<verbe>valide|active|accepte|rejette|refuse|oui|non)\s*(?P<id>\d+)?\s*$",
+    re.IGNORECASE)
+_VERBES_POUR = {"valide", "active", "accepte", "oui"}
+
+
+class SignalJarvis:
+    """Logique du bot, sans transport. `envoyer(texte, piece_jointe=None)`."""
+
+    def __init__(self, brain_factory, owner_number: str, envoyer: Callable):
+        self.owner = (owner_number or "").strip()
+        self.envoyer = envoyer
+        self._lock = threading.Lock()          # une conversation à la fois
+        self._attente: "tuple[threading.Event, list[bool]] | None" = None
+        self._derniere_proposition: int | None = None
+        self.proposals = None                  # renseigné au démarrage (nuit)
+        self.brain = brain_factory(self._confirmer, self._statut)
+
+    # --- Sorties vers toi --------------------------------------------------------
+
+    def _statut(self, texte: str) -> None:
+        self.envoyer(f"⏳ {texte}")
+
+    def notify_owner(self, texte: str) -> None:
+        self.envoyer(texte)
+
+    def send_proposal(self, texte: str, pid: int) -> None:
+        """Annonce une amélioration codée cette nuit (réponse texte : valide / rejette)."""
+        self._derniere_proposition = pid
+        self.envoyer(f"{texte}\n\nPour l'activer réponds : valide {pid} — pour refuser : rejette {pid}.")
+
+    # --- Confirmation d'une action sensible (appelée depuis le thread du cerveau) -
+
+    def _confirmer(self, description: str) -> bool:
+        event, answer = threading.Event(), [False]
+        self._attente = (event, answer)
+        self.envoyer(f"⚠️ {description}\nRéponds OUI ou NON.")
+        if not event.wait(CONFIRM_TIMEOUT_S):
+            self.envoyer("⌛ Pas de réponse, j'annule.")
+        self._attente = None
+        return answer[0]
+
+    # --- Entrée : un message reçu ------------------------------------------------
+
+    def traiter(self, expediteur: str, texte: str) -> None:
+        """Route un message reçu. Ignore tout numéro autre que le propriétaire."""
+        if self.owner and expediteur.strip() != self.owner:
+            log.warning("Message ignoré d'un numéro non autorisé : %s", expediteur)
+            return
+        texte = (texte or "").strip()
+        if not texte:
+            return
+
+        # 1. Une confirmation est en attente -> ce message est la réponse oui/non.
+        if self._attente is not None:
+            event, answer = self._attente
+            answer[0] = bool(_OUI.match(texte)) and not _NON.match(texte)
+            event.set()
+            return
+
+        # 2. Décision sur une proposition d'amélioration (valide 3 / rejette 3 / oui / non).
+        decision = self._decision_proposition(texte)
+        if decision is not None:
+            self._traiter_proposition(*decision)
+            return
+
+        # 3. Sinon : une question normale pour le cerveau.
+        self._repondre(texte)
+
+    def _decision_proposition(self, texte: str) -> "tuple[bool, int] | None":
+        m = _PROPOSITION.match(texte)
+        if m is None:
+            return None
+        pid = int(m.group("id")) if m.group("id") else self._derniere_proposition
+        if pid is None:
+            return None
+        return (m.group("verbe").lower() in _VERBES_POUR, pid)
+
+    def _traiter_proposition(self, accepter: bool, pid: int) -> None:
+        if self.proposals is None:
+            self.envoyer("Aucune amélioration à valider pour le moment.")
+            return
+        key = str(pid)
+        if accepter:
+            resultat = self.proposals.activate(key)
+        else:
+            resultat = self.proposals.reject(key)
+        self._derniere_proposition = None
+        self.envoyer(resultat or ("Activée." if accepter else "Rejetée."))
+
+    def _repondre(self, texte: str) -> None:
+        """Lance le cerveau dans un thread : _confirmer peut ainsi bloquer sans figer la réception."""
+        def travail():
+            with self._lock:
+                try:
+                    reponse = self.brain.reply(texte) or "…"
+                except Exception as exc:  # un plantage du cerveau ne doit pas tuer le bot
+                    log.exception("Cerveau en erreur")
+                    reponse = f"Désolé, j'ai eu un souci : {exc}"
+            self.envoyer(reponse)
+
+        threading.Thread(target=travail, name="jarvis-signal-reply", daemon=True).start()
+
+
+# --- Transport réel : signal-cli en mode démon JSON-RPC ----------------------------
+# Un seul processus signal-cli gère l'envoi ET la réception (le compte est verrouillé,
+# on ne lance pas deux processus en parallèle). À vérifier une fois sur ta machine.
+
+class SignalCliDaemon:
+    """Reçoit et envoie via `signal-cli -a <compte> jsonRpc` (stdin/stdout)."""
+
+    def __init__(self, account: str, recipient: str, signal_cli: str = "signal-cli"):
+        self.account = account
+        self.recipient = recipient
+        self.signal_cli = signal_cli
+        self.proc: "subprocess.Popen | None" = None
+        self.on_message: "Callable[[str, str], None] | None" = None
+        self._id = 0
+        self._lock = threading.Lock()
+
+    def demarrer(self) -> None:
+        self.proc = subprocess.Popen(
+            [self.signal_cli, "-a", self.account, "jsonRpc"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, bufsize=1)
+        threading.Thread(target=self._lire, name="signal-receive", daemon=True).start()
+
+    def _lire(self) -> None:
+        for ligne in self.proc.stdout:  # type: ignore[union-attr]
+            ligne = ligne.strip()
+            if not ligne:
+                continue
+            try:
+                msg = json.loads(ligne)
+            except json.JSONDecodeError:
+                continue
+            if msg.get("method") != "receive":
+                continue
+            env = (msg.get("params") or {}).get("envelope") or {}
+            data = env.get("dataMessage") or {}
+            texte = data.get("message")
+            source = env.get("sourceNumber") or env.get("source")
+            if texte and source and self.on_message is not None:
+                try:
+                    self.on_message(source, texte)
+                except Exception:
+                    log.exception("Erreur en traitant un message Signal")
+
+    def envoyer(self, texte: str, piece_jointe: str | None = None) -> None:
+        if self.proc is None or self.proc.stdin is None:
+            log.warning("Signal pas démarré, message non envoyé.")
+            return
+        params = {"recipient": [self.recipient], "message": texte}
+        if piece_jointe:
+            params["attachments"] = [piece_jointe]
+        with self._lock:
+            self._id += 1
+            requete = {"jsonrpc": "2.0", "method": "send", "params": params, "id": str(self._id)}
+            try:
+                self.proc.stdin.write(json.dumps(requete) + "\n")
+                self.proc.stdin.flush()
+            except OSError as exc:
+                log.error("Envoi Signal échoué : %s", exc)
+
+
+def main() -> None:
+    import os
+
+    import config
+    from brain import Brain
+    from claude_bridge import ClaudeBridge
+    from main import check_ollama  # charge aussi le .env
+    from memory import Memory
+    from proactive import Proactive
+    from security import Sentinel
+    from skills import Lists, ReminderWatcher, Reminders
+    from smarthome import SmartHome
+    from tools import build_tools
+    # Constructeurs partagés (drone, caméras, visages, Gemini) : réutilisés tels quels.
+    from telegram_bot import gemini_advisor, make_cameras, make_drone, make_faces
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
+    if config.OFFLINE:
+        raise SystemExit("❌ Signal passe par internet : désactive JARVIS_HORS_LIGNE.")
+    account = config._env("JARVIS_SIGNAL_EXPEDITEUR", "").strip()
+    owner = config._env("JARVIS_SIGNAL_DESTINATAIRE", "").strip()
+    if not account or not owner:
+        raise SystemExit("❌ Renseigne JARVIS_SIGNAL_EXPEDITEUR et JARVIS_SIGNAL_DESTINATAIRE (voir signal_notify.py).")
+
+    client = check_ollama(wait_s=180)
+    memory = Memory(config.MEMORY_FILE)
+    claude = ClaudeBridge()
+    reminders, lists = Reminders(config.REMINDERS_FILE), Lists(config.LISTS_FILE)
+    sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
+    home = SmartHome()
+    gemini = gemini_advisor()
+    drone = make_drone(gemini)
+    faces, face_frame = make_faces(drone)
+    cameras = make_cameras(gemini)
+    from growth import GrowthJournal, NightlyImprover, Proposals
+    growth = GrowthJournal(config.GROWTH_FILE)
+    proposals = Proposals(growth)
+
+    plugins = None
+    if config.PLUGINS_HOT:
+        from plugin_manager import PluginManager, build_plugin_tools
+        plugins = PluginManager(interval_s=config.PLUGINS_INTERVAL)
+
+    def brain_factory(confirm, on_status):
+        tools = build_tools(memory, claude, on_status=on_status, reminders=reminders, lists=lists,
+                            sentinel=sentinel, home=home,
+                            agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
+                            faces=faces, face_frame=face_frame, cameras=cameras, growth=growth,
+                            proposals=proposals, plugins=plugins is None)
+        if plugins is not None:
+            tools.update({t.name: t for t in build_plugin_tools(plugins)})
+        return Brain(client, tools, memory, confirm)
+
+    transport = SignalCliDaemon(account, owner, config._env("JARVIS_SIGNAL_CLI", "signal-cli"))
+    jarvis = SignalJarvis(brain_factory, owner, transport.envoyer)
+    transport.on_message = jarvis.traiter
+    transport.demarrer()
+
+    jarvis.proposals = proposals
+    ReminderWatcher(reminders, notify=jarvis.notify_owner).start()
+    Proactive(reminders, lists, security=sentinel.check if sentinel else None,
+              notify=jarvis.notify_owner).start()
+    if plugins is not None:
+        plugins.attach(jarvis.brain)
+        plugins.reload()
+        plugins.start()
+        proposals.hot_reload = plugins.reload
+    if config.AGENT and config.IMPROVE_AT:
+        NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
+                        notify=jarvis.send_proposal).start()
+
+    log.info("Jarvis est en ligne sur Signal (Ctrl+C pour arrêter).")
+    try:
+        transport.proc.wait()  # type: ignore[union-attr]
+    except KeyboardInterrupt:
+        log.info("Arrêt de Jarvis Signal.")
+
+
+if __name__ == "__main__":
+    main()
