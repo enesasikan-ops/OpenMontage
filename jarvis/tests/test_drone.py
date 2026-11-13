@@ -8,7 +8,7 @@ from types import SimpleNamespace as NS
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import skills  # noqa: E402
-from drone import AnafiController, DronePilot, SimDrone, build_drone_tools  # noqa: E402
+from drone import AnafiController, DronePilot, MavlinkController, SimDrone, build_drone_tools  # noqa: E402
 from tools import build_tools  # noqa: E402
 
 
@@ -171,3 +171,48 @@ def test_gemini_describe_image_mock():
     assert out == "Je vois un jardin avec un arbre."
     part0 = captured["contents"][0]["parts"][0]
     assert "inline_data" in part0 and part0["inline_data"]["mime_type"] == "image/jpeg"
+
+
+# --- Drone DIY via MAVLink (ArduPilot/PX4) ---
+
+class RecordingMavlink(MavlinkController):
+    """MavlinkController dont les appels bas niveau sont enregistrés (pas de pymavlink)."""
+
+    def __init__(self):
+        super().__init__(connection=object())  # connexion déjà « ouverte »
+        self.events = []
+
+    def _set_mode(self, name): self.events.append(("mode", name))
+    def _arm(self, on): self.events.append(("arm", on))
+    def _takeoff(self, alt): self.events.append(("takeoff", alt))
+    def _move_ned(self, n, e, d): self.events.append(("move", n, e, d))
+    def _yaw(self, deg): self.events.append(("yaw", deg))
+    def _telemetry(self): return {"vole": True, "batterie": 80}
+
+
+def test_mavlink_pilot_full_sequence():
+
+    ctrl = RecordingMavlink()
+    p = DronePilot(ctrl)
+    assert "Décollage" in p.takeoff()
+    assert ("mode", "GUIDED") in ctrl.events     # connexion → mode piloté
+    assert ("arm", True) in ctrl.events and any(e[0] == "takeoff" for e in ctrl.events)
+    p.move(forward=2, up=1)
+    # haut=1 doit devenir « bas = -1 » en MAVLink
+    assert ("move", 2.0, 0.0, -1.0) in ctrl.events
+    p.rotate(90)
+    assert ("yaw", 90.0) in ctrl.events
+    assert "Atterrissage" in p.land() and ("mode", "LAND") in ctrl.events
+
+
+def test_mavlink_emergency_returns_home():
+    ctrl = RecordingMavlink()
+    p = DronePilot(ctrl)
+    p.takeoff()
+    assert "urgence" in p.emergency().lower()
+    assert ("mode", "RTL") in ctrl.events        # urgence = retour maison, réflexe sûr
+
+
+def test_mavlink_without_pymavlink_is_graceful():
+    # pymavlink non installé ici : connect() doit échouer proprement, pas planter.
+    assert "joindre le drone" in DronePilot(MavlinkController(url="udp:127.0.0.1:14550")).takeoff()

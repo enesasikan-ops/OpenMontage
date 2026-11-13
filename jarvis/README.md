@@ -251,6 +251,9 @@ Exemples :
 
 Réglages dans `.env` :
 - `JARVIS_DRONE=sim` : **simulateur**, pour tester sans matériel (le drone « vole » pour de faux).
+- `JARVIS_DRONE=mavlink` : **drone DIY** (ArduPilot/PX4) via MAVLink, pour un mini-Jarvis
+  **embarqué** sur le drone. Montage, matériel et test en simulateur : voir
+  [DRONE_DIY.md](DRONE_DIY.md). Testable sans matériel dans le simulateur ArduPilot SITL.
 - `JARVIS_DRONE=anafi` : le vrai drone, via le **SDK officiel Parrot Olympe** (Linux) :
   `pip install parrot-olympe`, le PC connecté au Wi-Fi du drone.
   Le même mode marche avec **Parrot Sphinx**, le simulateur officiel de Parrot : lance

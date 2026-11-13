@@ -37,8 +37,13 @@ def make_drone(gemini):
     import config as _c
     if _c.DRONE in ("0", ""):
         return None
-    from drone import AnafiController, DronePilot, SimDrone
-    controller = SimDrone() if _c.DRONE == "sim" else AnafiController()
+    from drone import AnafiController, DronePilot, MavlinkController, SimDrone
+    if _c.DRONE == "sim":
+        controller = SimDrone()
+    elif _c.DRONE == "mavlink":
+        controller = MavlinkController()
+    else:
+        controller = AnafiController()
     from vision import VisionRouter
     router = VisionRouter(gemini=gemini)
     describe = router.describe if router.available else None

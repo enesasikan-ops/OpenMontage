@@ -132,6 +132,90 @@ class AnafiController:
         return {"vole": None, "batterie": None}
 
 
+class MavlinkController:
+    """Drone DIY (ArduPilot/PX4) via MAVLink. Pour un mini-Jarvis EMBARQUÉ sur le drone.
+
+    Le même code tourne sur l'ordinateur de bord (Raspberry Pi/Jetson) ou au sol.
+    Les appels bas niveau MAVLink sont isolés dans les méthodes `_...`, pour pouvoir
+    les tester et les valider dans le simulateur ArduPilot (SITL) avant de voler.
+    """
+
+    def __init__(self, url: str = "", connection=None, takeoff_alt: float = 2.0):
+        self.url = url or config.DRONE_URL
+        self._conn = connection
+        self._takeoff_alt = takeoff_alt
+
+    def connect(self) -> bool:
+        if self._conn is None:
+            from pymavlink import mavutil
+
+            self._conn = mavutil.mavlink_connection(self.url)
+            self._conn.wait_heartbeat(timeout=15)
+        self._set_mode("GUIDED")   # mode piloté par programme
+        return True
+
+    def takeoff(self) -> None:
+        self._arm(True)
+        self._takeoff(self._takeoff_alt)
+
+    def land(self) -> None:
+        self._set_mode("LAND")
+
+    def emergency(self) -> None:
+        self._set_mode("RTL")      # réflexe sûr : le drone rentre tout seul à son point de départ
+
+    def move(self, forward: float, right: float, up: float) -> None:
+        self._move_ned(forward, right, -up)  # MAVLink : l'axe « bas » est positif
+
+    def rotate(self, degrees: float) -> None:
+        self._yaw(degrees)
+
+    def frame(self) -> "bytes | None":
+        getter = getattr(self, "_camera", None)  # la caméra embarquée se branche ici
+        return getter() if callable(getter) else None
+
+    def telemetry(self) -> dict:
+        return self._telemetry()
+
+    # --- Bas niveau MAVLink (à valider dans ArduPilot SITL) -----------------------------
+
+    def _set_mode(self, name: str) -> None:
+        self._conn.set_mode_apm(name)
+
+    def _arm(self, on: bool) -> None:
+        from pymavlink import mavutil
+
+        self._conn.mav.command_long_send(
+            self._conn.target_system, self._conn.target_component,
+            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0, 1 if on else 0, 0, 0, 0, 0, 0, 0)
+
+    def _takeoff(self, alt: float) -> None:
+        from pymavlink import mavutil
+
+        self._conn.mav.command_long_send(
+            self._conn.target_system, self._conn.target_component,
+            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0, 0, 0, 0, alt)
+
+    def _move_ned(self, north: float, east: float, down: float) -> None:
+        from pymavlink import mavutil
+
+        self._conn.mav.set_position_target_local_ned_send(
+            0, self._conn.target_system, self._conn.target_component,
+            mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED, 0b0000111111111000,
+            north, east, down, 0, 0, 0, 0, 0, 0, 0, 0)
+
+    def _yaw(self, degrees: float) -> None:
+        from pymavlink import mavutil
+
+        self._conn.mav.command_long_send(
+            self._conn.target_system, self._conn.target_component,
+            mavutil.mavlink.MAV_CMD_CONDITION_YAW, 0,
+            abs(degrees), 0, 1 if degrees > 0 else -1, 1, 0, 0, 0)
+
+    def _telemetry(self) -> dict:
+        return {"vole": None, "batterie": None}
+
+
 class DronePilot:
     """Couche de sécurité : borne les commandes et garde l'ordre des opérations."""
 

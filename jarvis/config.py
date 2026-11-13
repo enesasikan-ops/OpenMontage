@@ -107,6 +107,8 @@ PROACTIVE_FILE = DATA_DIR / "initiatives.json"
 # "0" = pas de drone, "sim" = simulateur (démo sans matériel), "anafi" = vrai drone.
 DRONE = _env("JARVIS_DRONE", "0").strip().lower()
 DRONE_IP = _env("JARVIS_DRONE_IP", "192.168.42.1").strip()  # IP du Parrot ANAFI en Wi-Fi direct
+# Drone DIY (ArduPilot/PX4) via MAVLink. udp:127.0.0.1:14550 = simulateur ArduPilot SITL.
+DRONE_URL = _env("JARVIS_DRONE_URL", "udp:127.0.0.1:14550").strip()
 
 # --- Vision (décrire une image : vue du drone, capture...) ---
 # "auto" (local si dispo, sinon Gemini), "local", "gemini", ou "0" pour couper.
