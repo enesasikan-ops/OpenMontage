@@ -102,6 +102,11 @@ ALERTS = _env("JARVIS_ALERTES", "1") == "1"
 # Heures de silence : ni briefing ni alerte (les rappels, eux, passent toujours).
 QUIET_HOURS = _env("JARVIS_SILENCE", "22:00-07:00").strip()
 PROACTIVE_FILE = DATA_DIR / "initiatives.json"
+
+# --- Tableau de bord (écran/télé) ---
+# localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
+DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()
+DASHBOARD_PORT = int(_env("JARVIS_ECRAN_PORT", "8765"))
 # Sentinelle : surveille les signes d'intrusion (nouveaux programmes en écoute, nouveaux
 # appareils sur le réseau, pare-feu coupé, menaces Defender...). "0" pour la couper.
 SENTINEL = _env("JARVIS_SENTINELLE", "1") == "1"

@@ -261,6 +261,27 @@ l'ordinateur, comme un agent, puis je te rends un résumé à voix haute.
 Ainsi Jarvis fait lui-même le simple et le quotidien, et pour le compliqué il
 s'appuie sur moi — exactement comme tu l'as demandé.
 
+## Le tableau de bord sur la télé
+
+Jarvis peut afficher un écran plein écran (façon film) avec tes vraies données,
+mises à jour en direct : heure, météo, rappels du jour, maison connectée,
+sécurité, état du PC.
+
+```bash
+.venv/bin/python dashboard.py            # Mac/Linux
+.venv\Scripts\python.exe dashboard.py   # Windows
+```
+
+Puis ouvre **http://localhost:8765** dans le navigateur, en plein écran (touche F11).
+Branche le mini-PC sur la télé en HDMI : la télé devient ton écran Jarvis.
+
+- Par défaut, l'écran n'est visible que **sur ce PC** (`JARVIS_ECRAN_HOTE=127.0.0.1`).
+- Pour l'afficher depuis une **tablette** sur ton réseau, mets `JARVIS_ECRAN_HOTE=0.0.0.0`
+  et ouvre `http://<adresse-du-PC>:8765`. Ne fais ça que sur un réseau de confiance :
+  la page montre tes données à qui est sur le réseau (il n'y a pas de mot de passe).
+- La météo se met à jour toutes les 15 min, la sécurité toutes les 2 min, le reste en continu.
+- Tout reste **en local** : la page ne parle qu'à ton ordinateur.
+
 ## La sentinelle (sécurité)
 
 Jarvis **ne remplace ni l'antivirus ni le pare-feu** et ne bloque aucune attaque :
@@ -365,7 +386,7 @@ Les tests simulent Ollama et Claude : ils ne coûtent rien et ne demandent aucun
 
 - Mot de réveil plus robuste au bruit (openWakeWord), et pouvoir interrompre Jarvis quand il parle.
 - Idées vues dans d'autres projets Jarvis : recherche web, journal des conversations, dictée dans d'autres applications.
-- Démarrage automatique du bot Telegram à l'allumage du Mac.
+- Démarrage automatique du bot Telegram et du tableau de bord à l'allumage.
 - Outils Notion (QG « Jarvis — QG » et base « Tâches Jarvis »), agenda, mails, mails :
   ils demandent un compte ou un jeton à toi, on les ajoutera un par un.
 - Chaque nouvel outil qui **agit** (envoyer, supprimer, payer, ouvrir) reçoit une confirmation.
