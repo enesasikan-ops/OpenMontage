@@ -322,7 +322,7 @@ class DronePilot:
         if u:
             bits.append(f"{'monte' if u > 0 else 'descend'} de {abs(u):g} m")
         msg = "D'accord, le drone " + (", ".join(bits) if bits else "ne bouge pas") + "."
-        if capped:
+        if capped and self.alt_max != float("inf"):
             msg += f" (Je reste sous le plafond de {self.alt_max:g} m.)"
         return msg
 

@@ -235,3 +235,11 @@ def test_mavlink_emergency_returns_home():
 def test_mavlink_without_pymavlink_is_graceful():
     # pymavlink non installé ici : connect() doit échouer proprement, pas planter.
     assert "joindre le drone" in DronePilot(MavlinkController(url="udp:127.0.0.1:14550")).takeoff()
+
+
+def test_simulator_has_no_ceiling():
+    # En simulateur, aucune limite : c'est virtuel, sans danger.
+    p = DronePilot(SimDrone(), alt_max=float("inf"), step_max=float("inf"))
+    p.takeoff()
+    msg = p.move(up=1000)
+    assert p.c.pos[2] > 1000 and "plafond" not in msg

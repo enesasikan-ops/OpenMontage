@@ -280,8 +280,9 @@ Cette même vision servira aussi, plus tard, pour décrire une capture d'écran 
 
 Sécurité, toujours :
 - Confirmation avant le décollage ; « atterris » et « stop » passent en priorité.
-- Déplacements bornés et réglables ; altitude plafonnée au maximum légal par défaut
-  (120 m, `JARVIS_DRONE_ALT_MAX`), déplacement max 20 m par commande (`JARVIS_DRONE_PAS_MAX`).
+- **Simulateur** (`JARVIS_DRONE=sim`) : aucune limite, c'est virtuel.
+- **Vrai vol** : limites réglables, altitude par défaut au plafond légal (120 m / 400 ft,
+  `JARVIS_DRONE_ALT_MAX`), 20 m max par commande (`JARVIS_DRONE_PAS_MAX`). À toi de rester légal.
 - Jarvis **exécute tes ordres**, il ne vole pas en autonomie (pas de « suis cette personne »
   tout seul) : analyser une image prend 1 à 3 s, trop lent pour éviter un obstacle en vol.
 - **Garde le drone à vue** et respecte les règles (pas au-dessus des gens, pas en zone interdite).

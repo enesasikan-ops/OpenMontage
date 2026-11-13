@@ -229,8 +229,12 @@ def make_drone(gemini):
     from vision import VisionRouter
     router = VisionRouter(gemini=gemini)
     describe = router.describe if router.available else None
-    return DronePilot(controller, describe=describe,
-                      step_max=_c.DRONE_STEP_MAX, alt_max=_c.DRONE_ALT_MAX)
+    # Simulateur : aucune limite (c'est virtuel). Vrai vol : limites configurées (légales par défaut).
+    if _c.DRONE == "sim":
+        step_max = alt_max = float("inf")
+    else:
+        step_max, alt_max = _c.DRONE_STEP_MAX, _c.DRONE_ALT_MAX
+    return DronePilot(controller, describe=describe, step_max=step_max, alt_max=alt_max)
 
 
 def gemini_advisor():
