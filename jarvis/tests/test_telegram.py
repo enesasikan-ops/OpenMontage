@@ -105,8 +105,21 @@ def test_claude_status_is_sent(tmp_path):
                {"content": "Réponse de Claude."}]
     jarvis, ctx, _ = make(replies, tmp_path)
     up = update(text="question difficile")
+    timeline = []
+    original_send, original_reply = ctx.bot.send_message, up.effective_message.reply_text
+
+    async def send(chat_id, text, reply_markup=None):
+        timeline.append(("statut", text))
+        await original_send(chat_id, text, reply_markup)
+
+    async def reply(text):
+        timeline.append(("réponse", text))
+        await original_reply(text)
+
+    ctx.bot.send_message, up.effective_message.reply_text = send, reply
     asyncio.run(jarvis.on_text(up, ctx))
-    assert any("Claude" in text for text, _ in ctx.bot.sent)
+    assert [kind for kind, _ in timeline] == ["statut", "réponse"]  # le statut arrive AVANT
+    assert "Claude" in timeline[0][1]
     assert up.effective_message.replies == ["Réponse de Claude."]
 
 

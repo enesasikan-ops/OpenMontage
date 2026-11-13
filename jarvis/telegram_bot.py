@@ -58,9 +58,17 @@ class TelegramJarvis:
     def _call_soon(self, coro):
         return asyncio.run_coroutine_threadsafe(coro, self.loop)
 
+    def _send_and_wait(self, coro, timeout: float = 15) -> None:
+        """Depuis le thread du cerveau : envoie et attend que ce soit parti,
+        pour que les messages arrivent dans le bon ordre."""
+        try:
+            self._call_soon(coro).result(timeout)
+        except Exception as exc:
+            log.warning("Message Telegram non envoyé : %s", exc)
+
     def _status_from_thread(self, text: str) -> None:
         if self.chat_id is not None:
-            self._call_soon(self.bot.send_message(self.chat_id, f"⏳ {text}"))
+            self._send_and_wait(self.bot.send_message(self.chat_id, f"⏳ {text}"))
 
     def _confirm_from_thread(self, description: str) -> bool:
         """Appelé par le cerveau : envoie des boutons Oui/Non et attend la réponse."""
@@ -72,10 +80,10 @@ class TelegramJarvis:
             InlineKeyboardButton("✅ Oui", callback_data=f"ok:{key}"),
             InlineKeyboardButton("❌ Non", callback_data=f"no:{key}"),
         ]])
-        self._call_soon(self.bot.send_message(
+        self._send_and_wait(self.bot.send_message(
             self.chat_id, f"⚠️ {description}\nJe confirme ?", reply_markup=buttons))
         if not event.wait(CONFIRM_TIMEOUT_S):
-            self._call_soon(self.bot.send_message(self.chat_id, "⌛ Pas de réponse, j'annule."))
+            self._send_and_wait(self.bot.send_message(self.chat_id, "⌛ Pas de réponse, j'annule."))
         self._pending.pop(key, None)
         return answer[0]
 
