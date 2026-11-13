@@ -155,6 +155,10 @@ VISION_MODEL = _env("JARVIS_MODELE_VISION", "").strip()
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()
 DASHBOARD_PORT = int(_env("JARVIS_ECRAN_PORT", "8765"))
+# Jeton d'accès au tableau de bord. VIVEMENT conseillé si tu l'exposes au réseau
+# (JARVIS_ECRAN_HOTE=0.0.0.0) : sinon tes rappels/listes/état maison sont lisibles par
+# tout le monde sur le Wi-Fi. Ouvre alors la page avec ...:8765/?jeton=TON_JETON.
+DASHBOARD_TOKEN = _env("JARVIS_ECRAN_JETON", "").strip()
 # Sentinelle : surveille les signes d'intrusion (nouveaux programmes en écoute, nouveaux
 # appareils sur le réseau, pare-feu coupé, menaces Defender...). "0" pour la couper.
 SENTINEL = _env("JARVIS_SENTINELLE", "1") == "1"

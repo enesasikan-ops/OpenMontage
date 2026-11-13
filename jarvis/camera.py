@@ -19,7 +19,12 @@ GRAB_TIMEOUT_S = 25
 
 def grab_frame(url: str, run: Callable = subprocess.run, timeout: int = GRAB_TIMEOUT_S) -> "bytes | None":
     """Capture une seule image du flux (via ffmpeg). Renvoie un JPEG, ou None."""
-    cmd = ["ffmpeg", "-y", "-loglevel", "error"]
+    # Seules les caméras réseau sont permises : pas de file:// (lecture de fichiers locaux).
+    if not url.lower().startswith(("rtsp://", "http://", "https://")):
+        return None
+    cmd = ["ffmpeg", "-y", "-loglevel", "error",
+           # Liste blanche de protocoles : ffmpeg ne touchera jamais au disque (pas de "file").
+           "-protocol_whitelist", "rtsp,rtp,tcp,udp,https,tls,http"]
     if url.lower().startswith("rtsp://"):
         cmd += ["-rtsp_transport", "tcp"]
     cmd += ["-i", url, "-frames:v", "1", "-f", "image2", "-vcodec", "mjpeg", "pipe:1"]

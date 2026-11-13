@@ -12,12 +12,14 @@ depuis une tablette sur ton réseau, mets JARVIS_ECRAN_HOTE=0.0.0.0 (voir le REA
 
 import json
 import logging
+import hmac
 import threading
 import time
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Callable
+from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
@@ -143,6 +145,7 @@ class StateProvider:
 class Handler(BaseHTTPRequestHandler):
     provider: StateProvider = None  # injecté par make_server
     html: bytes = b""
+    token: str = ""                 # si défini, exigé sur chaque requête (?jeton=...)
 
     def log_message(self, *args):  # silence : pas de log par requête
         pass
@@ -156,10 +159,20 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
+    def _autorise(self, query: str) -> bool:
+        if not self.token:            # pas de jeton configuré : accès libre (ex. en local)
+            return True
+        fourni = parse_qs(query).get("jeton", [""])[0]
+        return hmac.compare_digest(fourni, self.token)  # comparaison à temps constant
+
     def do_GET(self):
-        if self.path in ("/", "/index.html"):
+        parsed = urlparse(self.path)
+        if not self._autorise(parsed.query):
+            self._send(401, b"jeton requis", "text/plain; charset=utf-8")
+            return
+        if parsed.path in ("/", "/index.html"):
             self._send(200, self.html, "text/html; charset=utf-8")
-        elif self.path.startswith("/api/etat"):
+        elif parsed.path == "/api/etat":
             body = json.dumps(self.provider.state(), ensure_ascii=False).encode("utf-8")
             self._send(200, body, "application/json; charset=utf-8")
         else:
@@ -169,9 +182,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def make_server(provider: StateProvider, host: str, port: int,
-                html_path: Path = HTML_FILE) -> ThreadingHTTPServer:
+                html_path: Path = HTML_FILE, token: str = "") -> ThreadingHTTPServer:
     handler = type("JarvisHandler", (Handler,),
-                   {"provider": provider, "html": html_path.read_bytes()})
+                   {"provider": provider, "html": html_path.read_bytes(), "token": token})
     return ThreadingHTTPServer((host, port), handler)
 
 
@@ -190,11 +203,17 @@ def main() -> None:
     sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
     provider = StateProvider(reminders, lists, home, sentinel)
 
-    server = make_server(provider, config.DASHBOARD_HOST, config.DASHBOARD_PORT)
-    where = "cet ordinateur uniquement" if config.DASHBOARD_HOST in ("127.0.0.1", "localhost") \
-        else f"le réseau ({config.DASHBOARD_HOST})"
+    server = make_server(provider, config.DASHBOARD_HOST, config.DASHBOARD_PORT,
+                         token=config.DASHBOARD_TOKEN)
+    local = config.DASHBOARD_HOST in ("127.0.0.1", "localhost")
+    where = "cet ordinateur uniquement" if local else f"le réseau ({config.DASHBOARD_HOST})"
     print(f"🖥️  Tableau de bord Jarvis sur http://{config.DASHBOARD_HOST}:{config.DASHBOARD_PORT}")
     print(f"   Accessible depuis : {where}. Ctrl+C pour arrêter.")
+    if not local and not config.DASHBOARD_TOKEN:
+        print("   ⚠️  Exposé au réseau SANS jeton : tout le monde sur le Wi-Fi peut le lire.")
+        print("      Ajoute JARVIS_ECRAN_JETON=un_secret dans .env, puis ouvre /?jeton=un_secret")
+    elif config.DASHBOARD_TOKEN:
+        print(f"   🔒 Jeton requis : ouvre http://{config.DASHBOARD_HOST}:{config.DASHBOARD_PORT}/?jeton=...")
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
         while True:

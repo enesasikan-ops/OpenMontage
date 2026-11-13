@@ -147,6 +147,29 @@ def test_server_serves_html_and_json(tmp_path):
         server.shutdown()
 
 
+def test_token_protege_le_tableau_de_bord(tmp_path):
+    import threading
+    p, reminders, _ = provider(tmp_path)
+    server = dashboard.make_server(p, "127.0.0.1", 0, token="s3cret")
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        port = server.server_address[1]
+        # Sans jeton -> 401
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/api/etat", timeout=5)
+        assert exc.value.code == 401
+        # Mauvais jeton -> 401
+        with pytest.raises(urllib.error.HTTPError) as exc2:
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/api/etat?jeton=faux", timeout=5)
+        assert exc2.value.code == 401
+        # Bon jeton -> 200
+        data = json.loads(urllib.request.urlopen(
+            f"http://127.0.0.1:{port}/api/etat?jeton=s3cret", timeout=5).read())
+        assert "heure" in data
+    finally:
+        server.shutdown()
+
+
 def test_html_escapes_values(tmp_path):
     """Un nom de rappel piégé ne doit pas pouvoir injecter de HTML (XSS)."""
     html = dashboard.HTML_FILE.read_text()

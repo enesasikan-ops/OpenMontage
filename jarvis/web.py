@@ -78,6 +78,11 @@ def read_page(url: str, fetch: Callable[[str], str] = _fetch) -> str:
     url = url.strip()
     if not re.match(r"^https?://", url):
         url = "https://" + url
+    if fetch is _fetch:  # pour un vrai accès réseau : refuser les adresses internes (anti-SSRF)
+        from netguard import url_externe_sure
+        ok, raison = url_externe_sure(url)
+        if not ok:
+            return f"Je refuse d'ouvrir cette adresse : {raison}."
     try:
         text = _strip_html(_fetch(url) if fetch is _fetch else fetch(url))
     except Exception:
