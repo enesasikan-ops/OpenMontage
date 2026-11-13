@@ -1,12 +1,14 @@
 """Renfort Claude : Jarvis (le modèle local) m'appelle pour les questions difficiles.
 
-Trois modes, choisis avec JARVIS_RENFORT dans le fichier .env :
+Modes, choisis avec JARVIS_RENFORT dans le fichier .env :
 - "abonnement" : passe par Claude Code installé sur le Mac, connecté à ton compte
                  Claude (ton abonnement, pas de coût en plus, usage personnel) ;
 - "api"        : passe par l'API Anthropic avec ANTHROPIC_API_KEY (payé à l'usage) ;
+- "gemini"     : passe par Gemini (Google) avec GEMINI_API_KEY (payé à l'usage) ;
 - "aucun"      : pas de renfort, Jarvis reste 100 % local.
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -196,6 +198,66 @@ class SubscriptionBackend:
         return self._read_result(result)
 
 
+class GeminiBackend:
+    """Renfort via Gemini, l'IA de Google (clé API Google AI Studio, payé à l'usage)."""
+
+    name = "Gemini (Google)"
+    _endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+    def __init__(self, request: Callable | None = None):
+        self._request = request or self._http
+
+    @property
+    def available(self) -> bool:
+        return bool(config.GEMINI_KEY)
+
+    def unavailable_reason(self) -> str:
+        return ("il manque la clé GEMINI_API_KEY dans le fichier .env "
+                "(à créer sur aistudio.google.com)")
+
+    def _http(self, body: dict) -> dict:
+        import urllib.request
+
+        url = self._endpoint.format(model=config.GEMINI_MODEL)
+        req = urllib.request.Request(
+            url, data=json.dumps(body).encode("utf-8"), method="POST",
+            headers={"Content-Type": "application/json", "x-goog-api-key": config.GEMINI_KEY})
+        with urllib.request.urlopen(req, timeout=CLI_TIMEOUT_S) as response:  # noqa: S310 (URL fixe, https)
+            return json.loads(response.read().decode("utf-8"))
+
+    def delegate(self, task: str) -> str:  # noqa: ARG002
+        return ("Pour exécuter une vraie tâche sur l'ordinateur, il me faut Claude Code "
+                "(mode abonnement). Gemini ne peut que répondre, pas agir sur la machine.")
+
+    def ask(self, question: str, context: str = "") -> str:
+        import urllib.error
+
+        body = {
+            "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "contents": [{"role": "user", "parts": [{"text": _format(question, context)}]}],
+        }
+        try:
+            data = self._request(body)
+        except urllib.error.HTTPError as exc:
+            if exc.code in (400, 401, 403):
+                return "Ma clé Gemini est refusée. Vérifie GEMINI_API_KEY dans le fichier .env."
+            if exc.code == 429:
+                return "Gemini est surchargé ou ta limite est atteinte. Réessaie plus tard."
+            return f"Gemini a renvoyé une erreur ({exc.code}). Réessaie plus tard."
+        except (urllib.error.URLError, OSError):
+            return "Je n'arrive pas à joindre Gemini. Vérifie la connexion internet."
+        except (json.JSONDecodeError, ValueError):
+            return "Gemini a renvoyé une réponse illisible."
+
+        candidates = data.get("candidates") or []
+        if not candidates:
+            reason = (data.get("promptFeedback") or {}).get("blockReason")
+            return "Gemini a préféré ne pas répondre." if reason else "Gemini n'a rien répondu."
+        parts = (candidates[0].get("content") or {}).get("parts") or []
+        text = "".join(p.get("text", "") for p in parts).strip()
+        return text or "Gemini n'a rien répondu."
+
+
 class NoBackend:
     name = "aucun renfort (100 % local)"
     available = False
@@ -219,6 +281,8 @@ class ClaudeBridge:
         mode = config.RENFORT
         if mode == "api":
             return ApiBackend()
+        if mode == "gemini":
+            return GeminiBackend()
         if mode == "aucun":
             return NoBackend()
         return SubscriptionBackend()

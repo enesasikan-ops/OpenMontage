@@ -1,0 +1,82 @@
+"""Tests du renfort Gemini (Google), avec un faux service (aucun réseau)."""
+
+import sys
+import urllib.error
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import config  # noqa: E402
+from claude_bridge import ClaudeBridge, GeminiBackend  # noqa: E402
+
+
+@pytest.fixture
+def key(monkeypatch):
+    monkeypatch.setattr(config, "GEMINI_KEY", "cle-test")
+    monkeypatch.setattr(config, "GEMINI_MODEL", "gemini-2.5-flash")
+
+
+def reply(text):
+    return {"candidates": [{"content": {"parts": [{"text": text}]}, "finishReason": "STOP"}]}
+
+
+def test_selected_by_config(monkeypatch):
+    monkeypatch.setattr(config, "RENFORT", "gemini")
+    monkeypatch.setattr(config, "OFFLINE", False)
+    assert isinstance(ClaudeBridge().backend, GeminiBackend)
+
+
+def test_available_needs_key(monkeypatch):
+    monkeypatch.setattr(config, "GEMINI_KEY", "")
+    b = GeminiBackend()
+    assert not b.available
+    assert "GEMINI_API_KEY" in ClaudeBridge(b).ask("salut")
+
+
+def test_ask_sends_prompt_and_reads_answer(key):
+    captured = {}
+
+    def request(body):
+        captured.update(body)
+        return reply("Bonjour Enes, voici ma réponse.")
+
+    out = ClaudeBridge(GeminiBackend(request=request)).ask("Explique la relativité", "contexte")
+    assert out == "Bonjour Enes, voici ma réponse."
+    assert "Jarvis" in captured["system_instruction"]["parts"][0]["text"]
+    assert "Contexte : contexte" in captured["contents"][0]["parts"][0]["text"]
+
+
+def test_safety_block_and_empty(key):
+    blocked = GeminiBackend(request=lambda b: {"promptFeedback": {"blockReason": "SAFETY"}})
+    assert "préféré ne pas" in blocked.ask("?")
+    empty = GeminiBackend(request=lambda b: {"candidates": []})
+    assert "rien répondu" in empty.ask("?")
+
+
+@pytest.mark.parametrize("code, expected", [
+    (400, "clé Gemini est refusée"), (403, "clé Gemini est refusée"),
+    (429, "surchargé"), (500, "erreur (500)"),
+])
+def test_http_errors(key, code, expected):
+    def boom(body):
+        raise urllib.error.HTTPError("u", code, "no", {}, None)
+
+    assert expected in GeminiBackend(request=boom).ask("?")
+
+
+def test_network_and_bad_json(key):
+    def down(body):
+        raise urllib.error.URLError("refused")
+
+    assert "joindre Gemini" in GeminiBackend(request=down).ask("?")
+
+    def garbage(body):
+        raise ValueError("pas du json")
+
+    assert "illisible" in GeminiBackend(request=garbage).ask("?")
+
+
+def test_gemini_cannot_act_on_pc(key):
+    assert "Claude Code" in GeminiBackend(request=lambda b: reply("x")).delegate("range mes photos")

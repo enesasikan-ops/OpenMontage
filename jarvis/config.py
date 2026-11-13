@@ -59,6 +59,10 @@ CLAUDE_EFFORT = _env("JARVIS_EFFORT_CLAUDE", "medium")  # low | medium | high | 
 # Mode "abonnement" : modèle choisi dans Claude Code (vide = celui par défaut de ton compte).
 CLAUDE_CLI_MODEL = _env("JARVIS_MODELE_ABONNEMENT", "")
 
+# Mode "gemini" : clé sur https://aistudio.google.com (Google AI Studio).
+GEMINI_KEY = _env("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = _env("JARVIS_MODELE_GEMINI", "gemini-2.5-flash").strip()
+
 # --- Mode mentor : Claude exécute des tâches importantes en agent sur le PC ---
 # Puissant : Claude peut lire/écrire des fichiers et lancer des commandes, mais
 # UNIQUEMENT dans l'atelier ci-dessous, et seulement après ta confirmation.

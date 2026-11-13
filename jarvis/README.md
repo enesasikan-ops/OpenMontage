@@ -88,7 +88,8 @@ Choisis le mode avec `JARVIS_RENFORT` dans le fichier `.env` :
 | Mode | Comment | Coût |
 |---|---|---|
 | `abonnement` *(par défaut)* | Passe par **Claude Code** connecté à ton compte Claude | Inclus dans ton abonnement (partage ta limite d'usage) |
-| `api` | Passe par une clé API (`ANTHROPIC_API_KEY`) | Environ 3 centimes par question difficile (Claude Opus 5.5) |
+| `api` | Passe par une clé API Anthropic (`ANTHROPIC_API_KEY`) | Environ 3 centimes par question difficile (Claude Opus 5.5) |
+| `gemini` | Passe par Gemini, l'IA de Google (`GEMINI_API_KEY`) | Payé à l'usage (offre gratuite disponible) |
 | `aucun` | Pas de renfort | Gratuit, 100 % local |
 
 **Mode abonnement**, une seule fois :
@@ -106,6 +107,12 @@ usage personnel, sur ta propre machine.
 **Mode API** : crée une clé sur <https://console.anthropic.com> (séparé de
 l'abonnement, paiement à l'usage, pense à fixer un plafond), colle-la après
 `ANTHROPIC_API_KEY=` et mets `JARVIS_RENFORT=api`.
+
+**Mode Gemini** : crée une clé sur <https://aistudio.google.com> (Google AI Studio),
+colle-la après `GEMINI_API_KEY=` et mets `JARVIS_RENFORT=gemini`. Le modèle se règle
+avec `JARVIS_MODELE_GEMINI` (défaut `gemini-2.5-flash`). Gemini peut **répondre**,
+mais pas **agir** sur l'ordinateur : le mode mentor (exécuter des tâches) reste réservé
+à Claude Code.
 
 ## Confidentialité
 
