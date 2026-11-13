@@ -117,6 +117,7 @@ Write-Host ""
 Write-Host "✅ Jarvis est installé. Pour le lancer :" -ForegroundColor Green
 Write-Host "   .venv\Scripts\python.exe main.py          # au clavier"
 Write-Host "   .venv\Scripts\python.exe main.py --mains-libres   # à la voix, sans clavier : dis « Jarvis »"
-Write-Host "   .venv\Scripts\python.exe telegram_bot.py  # sur Telegram"
+Write-Host "   .venv\Scripts\python.exe telegram_bot.py  # sur Telegram (depuis ton téléphone)"
+Write-Host "   .venv\Scripts\python.exe signal_bot.py    # sur Signal (plus privé ; voir signal_notify.py pour relier signal-cli)"
 Write-Host ""
 Write-Host "Ensuite, pour optimiser le PC (en administrateur) : .\optimiser_windows.ps1"
