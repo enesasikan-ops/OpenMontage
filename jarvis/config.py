@@ -279,6 +279,20 @@ GLASSES_HOST = _env("JARVIS_LUNETTES_HOTE", "127.0.0.1").strip()
 GLASSES_PORT = int(_env("JARVIS_LUNETTES_PORT", "8766"))
 GLASSES_TOKEN = _env("JARVIS_LUNETTES_JETON", "").strip()
 
+# --- Authentification par empreinte vocale (voiceprint.py) ---
+# Les actions sensibles (ouvrir le portail, déverrouiller, désarmer) ne passent que si
+# la VOIX est celle du propriétaire. Échoue fermé (au doute, on refuse), avec un code
+# maître comme porte de secours. Les empreintes restent locales. 1 = activé.
+# Nécessite SpeechBrain + un enrôlement : python enroll_voice.py
+VOICE_AUTH = _env("JARVIS_VOIX_AUTH", "0") == "1"
+VOICE_OWNER = _env("JARVIS_VOIX_PROPRIO", "proprietaire").strip()
+VOICE_SEUIL = float(_env("JARVIS_VOIX_SEUIL", "0.65"))        # similarité minimale (0-1)
+VOICE_FILE = DATA_DIR / "empreintes_vocales.json"
+VOICE_ACTIONS = tuple(x.strip() for x in _env(
+    "JARVIS_VOIX_ACTIONS", "ouvrir,deverrouiller").split(",") if x.strip())
+VOICE_PIN = _env("JARVIS_VOIX_CODE", "").strip()              # code maître (porte de secours)
+VOICE_FENETRE = float(_env("JARVIS_VOIX_FENETRE", "60"))      # durée (s) débloquée par le code
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()

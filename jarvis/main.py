@@ -194,6 +194,13 @@ def main() -> None:
 
         plugins = PluginManager(interval_s=config.PLUGINS_INTERVAL)
         tools.update({t.name: t for t in build_plugin_tools(plugins)})
+    if config.VOICE_AUTH:   # les actions sensibles exigent la voix du propriétaire
+        from voiceprint import build_voice_tools, make_guard, proteger_outils
+        _guard = make_guard(source=lambda: getattr(listener, "derniere_voix", None))
+        if _guard is not None:
+            proteges = proteger_outils(tools, _guard, config.VOICE_ACTIONS)
+            tools.update({t.name: t for t in build_voice_tools(_guard)})
+            print(f"🔐 Auth vocale active sur : {', '.join(proteges) or 'aucun outil'}.")
     brain = Brain(client, tools, memory, confirm)
     if plugins is not None:
         plugins.attach(brain)          # le cœur = les outils actuels ; les extensions s'y ajoutent

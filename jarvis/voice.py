@@ -47,7 +47,9 @@ class Listener:
         return " ".join(s.text.strip() for s in segments).strip()
 
     def listen(self) -> str:
-        return self.transcribe(self.record())
+        audio = self.record()
+        self.derniere_voix = audio   # gardée pour l'authentification vocale (voiceprint.py)
+        return self.transcribe(audio)
 
 
 def find_program(name: str) -> str | None:
