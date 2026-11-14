@@ -507,7 +507,7 @@ def main() -> None:
 
     if config.MOWER:   # kill-switch visuel tondeuse (Frigate -> coupe les lames)
         from mower import make_mower_watcher
-        _tondeuse = make_mower_watcher(jarvis.notify_owner)
+        _tondeuse = make_mower_watcher(jarvis.notify_owner, home)
         if _tondeuse is not None:
             _tondeuse.demarrer()
 

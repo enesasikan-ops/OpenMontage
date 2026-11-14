@@ -44,9 +44,12 @@ def analyser_frigate(charge: bytes, zones: tuple, camera: str, labels: tuple) ->
 
 
 class MowerGuard:
-    def __init__(self, publier: Callable, notify: Callable[[str], None], store,
-                 settings: "dict | None" = None, horloge: "Callable[[], float]" = time.monotonic):
-        self.publier = publier          # publier(topic, charge) -> None
+    def __init__(self, publier: "Callable | None", notify: Callable[[str], None], store,
+                 settings: "dict | None" = None, horloge: "Callable[[], float]" = time.monotonic,
+                 arreter: "Callable | None" = None, reprendre: "Callable | None" = None):
+        self.publier = publier          # publier(topic, charge) -> None (backend MQTT)
+        self._arreter = arreter         # backend Home Assistant : commandes injectées
+        self._reprendre = reprendre
         self.notify = notify
         self.store = store
         self.s = settings or {}
@@ -79,10 +82,16 @@ class MowerGuard:
     # --- Réaction ---------------------------------------------------------------
 
     def _stop(self) -> None:
-        self.publier(self.s.get("topic", "mower/command"), self.s.get("stop", "stop"))
+        if self._arreter is not None:
+            self._arreter()
+        else:
+            self.publier(self.s.get("topic", "mower/command"), self.s.get("stop", "stop"))
 
     def _start(self) -> None:
-        self.publier(self.s.get("topic", "mower/command"), self.s.get("start", "start"))
+        if self._reprendre is not None:
+            self._reprendre()
+        else:
+            self.publier(self.s.get("topic", "mower/command"), self.s.get("start", "start"))
 
     def sur_detection(self, info: "dict | None" = None) -> dict:
         """Objet détecté dans la zone de tonte : ARRÊT immédiat (si armé)."""
@@ -161,7 +170,16 @@ def _tools_from_guard(guard: MowerGuard) -> list:
 _GUARD: "MowerGuard | None" = None
 
 
-def guard(notify) -> "MowerGuard | None":
+def _commandes_ha(home, entite: str):
+    """Backend Home Assistant : pause (arrêt sur place, lames coupées) / reprise."""
+    def arreter():
+        home.call("lawn_mower", "pause", entite)
+    def reprendre():
+        home.call("lawn_mower", "start_mowing", entite)
+    return arreter, reprendre
+
+
+def guard(notify, home=None) -> "MowerGuard | None":
     global _GUARD
     import config
     from skills import JsonStore
@@ -169,13 +187,18 @@ def guard(notify) -> "MowerGuard | None":
     if not (config.MOWER and config.MOWER_ZONES):
         return None
     if _GUARD is None:
-        _GUARD = MowerGuard(_publier_mqtt, notify, JsonStore(config.MOWER_FILE, {}),
-                            settings=config.tondeuse_settings())
+        store = JsonStore(config.MOWER_FILE, {})
+        settings = config.tondeuse_settings()
+        if config.MOWER_BACKEND == "ha" and home is not None and config.MOWER_ENTITE:
+            arreter, reprendre = _commandes_ha(home, config.MOWER_ENTITE)
+            _GUARD = MowerGuard(None, notify, store, settings, arreter=arreter, reprendre=reprendre)
+        else:
+            _GUARD = MowerGuard(_publier_mqtt, notify, store, settings)
     return _GUARD
 
 
-def build_mower_tools(notify) -> list:
-    g = guard(notify)
+def build_mower_tools(notify, home=None) -> list:
+    g = guard(notify, home)
     return _tools_from_guard(g) if g is not None else []
 
 
@@ -233,10 +256,10 @@ class MowerWatcher:
         return {"statut": "succès", "message": "Kill-switch tondeuse actif"}
 
 
-def make_mower_watcher(notify) -> "MowerWatcher | None":
+def make_mower_watcher(notify, home=None) -> "MowerWatcher | None":
     import config
 
-    g = guard(notify)
+    g = guard(notify, home)
     if g is None:
         return None
     return MowerWatcher(g, config.MOWER_ZONES, config.MOWER_CAMERA, config.MOWER_LABELS,

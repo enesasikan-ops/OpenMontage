@@ -147,6 +147,30 @@ def test_pas_d_outils_sans_config(monkeypatch):
     assert build_mower_tools(lambda m: None) == []
 
 
+class FakeHome:
+    def __init__(self):
+        self.appels = []
+
+    def call(self, domaine, service, entity_id, **data):
+        self.appels.append((domaine, service, entity_id))
+
+
+def test_backend_home_assistant(monkeypatch, tmp_path):
+    import config
+    monkeypatch.setattr(config, "MOWER", True)
+    monkeypatch.setattr(config, "MOWER_ZONES", ZONES)
+    monkeypatch.setattr(config, "MOWER_FILE", tmp_path / "t.json")
+    monkeypatch.setattr(config, "MOWER_BACKEND", "ha")
+    monkeypatch.setattr(config, "MOWER_ENTITE", "lawn_mower.jardin")
+    home = FakeHome()
+    g = mower.guard(lambda m: None, home)
+    g.armer()
+    g.sur_detection({"label": "person"})
+    assert ("lawn_mower", "pause", "lawn_mower.jardin") in home.appels   # pause = arrêt sur place
+    g.reprendre_maintenant()
+    assert ("lawn_mower", "start_mowing", "lawn_mower.jardin") in home.appels
+
+
 def test_outils_et_make_partagent_la_garde(monkeypatch, tmp_path):
     import config
     monkeypatch.setattr(config, "MOWER", True)

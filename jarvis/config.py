@@ -409,6 +409,9 @@ MOWER_ZONES = tuple(x.strip() for x in _env("JARVIS_TONDEUSE_ZONES", "").split("
 MOWER_CAMERA = _env("JARVIS_TONDEUSE_CAMERA", "").strip()
 MOWER_LABELS = tuple(x.strip() for x in _env("JARVIS_TONDEUSE_LABELS", "person,dog,cat").split(",") if x.strip())
 MOWER_FILE = DATA_DIR / "tondeuse.json"
+# Backend : "mqtt" (topic brut) ou "ha" (entité lawn_mower de Home Assistant — Husqvarna, Worx…).
+MOWER_BACKEND = _env("JARVIS_TONDEUSE_BACKEND", "mqtt").strip().lower()
+MOWER_ENTITE = _env("JARVIS_TONDEUSE_ENTITE", "").strip()   # ex. lawn_mower.jardin (backend ha)
 
 
 def tondeuse_settings() -> dict:

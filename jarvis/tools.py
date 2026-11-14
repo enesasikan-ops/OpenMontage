@@ -167,7 +167,7 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     tools += build_sighting_tools()
     from mower import build_mower_tools   # kill-switch visuel tondeuse (armer/arrêter), si configuré
 
-    tools += build_mower_tools(on_status)
+    tools += build_mower_tools(on_status, home)
     from freebox import build_freebox_tools   # qui est sur le Wi-Fi (Freebox), si appairée
 
     tools += build_freebox_tools()
