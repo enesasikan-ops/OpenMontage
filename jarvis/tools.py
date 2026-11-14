@@ -132,6 +132,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from thermal import build_thermal_tools
 
         tools += build_thermal_tools(home)   # vigilance thermique (plaque oubliée, lecture seule)
+        from presence import build_presence_tools
+
+        tools += build_presence_tools(home)   # carte de présence (occupation anonyme par pièce)
         from audiofollow import build_audio_tools
 
         tools += build_audio_tools(home)   # le son qui suit de pièce en pièce (Snapcast + présence)

@@ -328,6 +328,13 @@ THERMAL_DUREE = float(_env("JARVIS_THERMIQUE_DUREE", "120"))   # s au-dessus du 
 THERMAL_INTERVAL = float(_env("JARVIS_THERMIQUE_INTERVALLE", "30"))
 THERMAL_ARME_ENTITE = _env("JARVIS_THERMIQUE_ARME", "").strip()  # input_boolean forçant la vigilance
 
+# --- Carte de présence (presence.py) : quelles pièces sont occupées (anonyme) ---
+# Source indifférente : PIR, radar mmWave, ou présence Wi-Fi (ESP32-CSI) publiée en
+# binary_sensor. Jarvis raisonne en occupation binaire et anonyme, chez toi — pas
+# d'identité, pas de respiration, pas de suivi de personne.
+# JARVIS_PRESENCE_PIECES : {"salon":"binary_sensor.salon_presence","cuisine":"binary_sensor.cuisine_csi"}
+PRESENCE_PIECES: dict = _json_env("JARVIS_PRESENCE_PIECES")
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()
