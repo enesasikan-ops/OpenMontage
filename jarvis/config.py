@@ -225,6 +225,11 @@ TITLE = _env("JARVIS_TITRE", "").strip()  # ex. Monsieur, Madame, Patron ; vide 
 CONCISION = _env("JARVIS_CONCISION", "normal").strip().lower()
 PREFERENCES_FILE = DATA_DIR / "consignes.json"   # consignes de comportement dictées par toi
 ARCHIVE_FILE = DATA_DIR / "archive.json"         # mémoire d'archive (cherchée à la demande, pas chargée)
+# Réflexion proactive : Jarvis fait le point de lui-même et n'alerte que s'il a à dire.
+# Respecte les heures de silence. Chaque tour envoie un instantané au renfort (cloud) : garde
+# un intervalle large. 1 = activé.
+CONSCIENCE_PROACTIVE = _env("JARVIS_CONSCIENCE_PROACTIVE", "0") == "1"
+CONSCIENCE_INTERVAL = float(_env("JARVIS_CONSCIENCE_SECONDES", "1800"))
 
 # --- Initiatives de Jarvis ---
 # Heure du briefing du matin (HH:MM). Vide = pas de briefing.

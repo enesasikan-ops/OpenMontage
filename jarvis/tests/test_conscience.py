@@ -5,7 +5,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from conscience import Conscience, build_conscience_tools  # noqa: E402
+import config  # noqa: E402
+import conscience as csc_mod  # noqa: E402
+from conscience import (Conscience, ConscienceWatcher,  # noqa: E402
+                        build_conscience_tools, make_conscience_watcher)
 
 
 class FauxRenfort:
@@ -68,3 +71,55 @@ def test_outil_present_avec_renfort():
     tools = build_conscience_tools(None, FauxRenfort())
     assert len(tools) == 1 and tools[0].name == "fais_le_point"
     assert "calme" in tools[0].run()
+
+
+# --- Réflexion proactive ---
+
+def test_veille_ras_ne_dit_rien():
+    for r in ("RAS", "RAS.", " ras ", "« RAS »"):
+        c = Conscience({"a": lambda: "x"}, FauxRenfort(reponse=r).ask)
+        assert c.veille() == ""              # rien à signaler -> silence
+
+
+def test_veille_notable_renvoie_le_message():
+    c = Conscience({"maison": lambda: "cuisine 80°C"},
+                   FauxRenfort(reponse="La plaque semble restée allumée.").ask)
+    assert "plaque" in c.veille()
+
+
+def test_veille_sans_perception():
+    assert Conscience({}, FauxRenfort().ask).veille() == ""
+
+
+def test_watcher_silence_pendant_heures_calmes():
+    notifs = []
+    c = Conscience({"a": lambda: "x"}, FauxRenfort(reponse="Alerte utile.").ask)
+    w = ConscienceWatcher(c, notifs.append, quiet=lambda: True)   # heures de silence
+    assert w.un_tour() == "" and notifs == []
+
+
+def test_watcher_alerte_si_notable_et_actif():
+    notifs = []
+    c = Conscience({"a": lambda: "x"}, FauxRenfort(reponse="La plaque est chaude.").ask)
+    w = ConscienceWatcher(c, notifs.append, quiet=lambda: False)
+    w.un_tour()
+    assert any("plaque" in n for n in notifs)
+
+
+def test_watcher_muet_si_ras():
+    notifs = []
+    c = Conscience({"a": lambda: "x"}, FauxRenfort(reponse="RAS").ask)
+    ConscienceWatcher(c, notifs.append, quiet=lambda: False).un_tour()
+    assert notifs == []
+
+
+def test_make_watcher_desactive(monkeypatch):
+    monkeypatch.setattr(config, "CONSCIENCE_PROACTIVE", False)
+    assert make_conscience_watcher(None, FauxRenfort(), lambda m: None) is None
+
+
+def test_make_watcher_pret(monkeypatch):
+    monkeypatch.setattr(config, "CONSCIENCE_PROACTIVE", True)
+    monkeypatch.setattr(config, "CONSCIENCE_INTERVAL", 1800.0)
+    w = make_conscience_watcher(None, FauxRenfort(), lambda m: None)
+    assert isinstance(w, ConscienceWatcher)

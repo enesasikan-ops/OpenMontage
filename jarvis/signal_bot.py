@@ -517,6 +517,12 @@ def main() -> None:
         if _aerien is not None:
             _aerien.demarrer()
 
+    if config.CONSCIENCE_PROACTIVE:   # réflexion proactive (fait le point s'il a à dire)
+        from conscience import make_conscience_watcher
+        _csc = make_conscience_watcher(home, claude, jarvis.notify_owner)
+        if _csc is not None:
+            _csc.demarrer()
+
     if config.THERMAL:   # vigilance thermique (plaque de cuisson oubliée)
         from thermal import make_thermal_watcher
         _thermique = make_thermal_watcher(home, jarvis.notify_owner)

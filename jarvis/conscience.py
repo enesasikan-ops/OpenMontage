@@ -17,13 +17,24 @@ sort). Si tu veux la réflexion 100 % locale, c'est l'option « 2ᵉ modèle loc
 
 from __future__ import annotations
 
+import logging
+import threading
 from typing import Callable
+
+log = logging.getLogger("jarvis.conscience")
 
 PROMPT = ("Voici l'état actuel de la maison et de son environnement, vu par mes capteurs. "
           "Fais une brève RÉFLEXION (ton majordome) : relie les signaux entre eux, signale "
           "ce qui mérite l'attention, et propose une action SEULEMENT si c'est pertinent — "
           "mais tu ne décides ni n'agis, tu éclaires. Si tout est normal, dis-le simplement. "
           "N'invente aucune donnée absente. Deux à quatre phrases.")
+
+PROMPT_PROACTIF = ("Voici l'état actuel de la maison et de son environnement, vu par mes capteurs. "
+                   "Dois-je DÉRANGER le propriétaire ? Réponds EXACTEMENT « RAS » (rien à signaler) "
+                   "si tout est normal ou banal — c'est le cas le plus fréquent, n'hésite pas. "
+                   "Signale quelque chose SEULEMENT si un signal, ou une combinaison de signaux, "
+                   "mérite vraiment son attention (anomalie, oubli probable, risque). Alors une seule "
+                   "phrase utile, qui propose sans agir. N'invente rien.")
 
 
 class Conscience:
@@ -52,6 +63,21 @@ class Conscience:
             return self.demander(PROMPT, contexte)
         except Exception:
             return "Je n'arrive pas à faire le point (renfort indisponible)."
+
+    def veille(self) -> str:
+        """Réflexion PROACTIVE : renvoie un message seulement si ça mérite de déranger, sinon ''."""
+        instantane = self.percevoir()
+        if not instantane:
+            return ""
+        contexte = "\n".join(f"- {nom} : {v}" for nom, v in instantane.items())
+        try:
+            rep = (self.demander(PROMPT_PROACTIF, contexte) or "").strip()
+        except Exception:
+            log.warning("veille de conscience : renfort indisponible")
+            return ""
+        if rep.strip(" .!\"'«»").upper() == "RAS":
+            return ""
+        return rep
 
 
 def _perceptions(home) -> dict:
@@ -112,3 +138,63 @@ def build_conscience_tools(home, renfort) -> list:
         parameters={"type": "object", "properties": {}, "required": []},
         run=lambda: c.reflechir(),
     )]
+
+
+# --- Réflexion proactive (Jarvis fait le point de lui-même, s'il a à dire) -----------
+
+
+class ConscienceWatcher(threading.Thread):
+    """Réfléchit à intervalle régulier et n'alerte QUE si ça mérite de déranger.
+
+    Respecte les heures de silence (ne parle pas la nuit). Chaque tour envoie un
+    instantané au renfort (cloud) : garde un intervalle large pour le coût et la vie privée.
+    """
+
+    def __init__(self, conscience: Conscience, notify: Callable[[str], None],
+                 quiet: "Callable[[], bool]", interval_s: float = 1800.0):
+        super().__init__(daemon=True, name="jarvis-conscience")
+        self.conscience = conscience
+        self.notify = notify
+        self.quiet = quiet
+        self.interval_s = interval_s
+        self._halt = threading.Event()
+
+    def un_tour(self) -> str:
+        if self.quiet():
+            return ""
+        message = self.conscience.veille()
+        if message:
+            try:
+                self.notify("💭 " + message)
+            except Exception:
+                log.exception("réflexion proactive")
+        return message
+
+    def demarrer(self) -> None:
+        self.start()
+
+    def run(self) -> None:
+        while not self._halt.wait(self.interval_s):
+            self.un_tour()
+
+    def arreter(self) -> None:
+        self._halt.set()
+
+
+def make_conscience_watcher(home, renfort, notify) -> "ConscienceWatcher | None":
+    import config
+
+    if not config.CONSCIENCE_PROACTIVE:
+        return None
+    ask = getattr(renfort, "ask", None)
+    if not (callable(ask) and getattr(renfort, "available", False)):
+        return None
+    c = Conscience(_perceptions(home), ask)
+
+    def _quiet() -> bool:
+        from datetime import datetime
+
+        from proactive import in_quiet_hours
+        return in_quiet_hours(datetime.now())
+
+    return ConscienceWatcher(c, notify, _quiet, interval_s=config.CONSCIENCE_INTERVAL)
