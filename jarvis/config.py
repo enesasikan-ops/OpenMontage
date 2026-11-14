@@ -335,6 +335,17 @@ THERMAL_ARME_ENTITE = _env("JARVIS_THERMIQUE_ARME", "").strip()  # input_boolean
 # JARVIS_PRESENCE_PIECES : {"salon":"binary_sensor.salon_presence","cuisine":"binary_sensor.cuisine_csi"}
 PRESENCE_PIECES: dict = _json_env("JARVIS_PRESENCE_PIECES")
 
+# --- Radio logicielle (radio.py) : avions au-dessus (ADS-B) + météo radio locale ---
+# Clé RTL-SDR (~25 €). Données publiques (avions) ou à toi (tes capteurs rtl_433).
+# Pas de pistage TPMS, pas de ciblage d'un appareil d'autrui : voir radio.py.
+ADSB = _env("JARVIS_ADSB", "0") == "1"
+ADSB_URL = _env("JARVIS_ADSB_URL", "http://localhost:8080/data/aircraft.json").strip()
+ADSB_LAT = float(_env("JARVIS_LAT", "0") or "0")        # coordonnées de la maison
+ADSB_LON = float(_env("JARVIS_LON", "0") or "0")
+ADSB_RAYON_KM = float(_env("JARVIS_ADSB_RAYON", "15"))  # rayon « au-dessus de nous » (km)
+# Météo captée par TES capteurs rtl_433 (entity_id Home Assistant) :
+METEO_RADIO: dict = _json_env("JARVIS_METEO_RADIO")     # {"temperature":"sensor.rtl_433_temp", ...}
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()
