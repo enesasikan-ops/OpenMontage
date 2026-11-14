@@ -254,6 +254,9 @@ ARROSEUR_ZONES: dict = _json_env("JARVIS_ARROSEUR")
 # Vide = désactivé. « Y a-t-il un colis à l'entrée ? »
 YOLO_MODEL = _env("JARVIS_YOLO_MODELE", "").strip()
 YOLO_SEUIL = float(_env("JARVIS_YOLO_SEUIL", "0.4"))
+# Robot mobile (ROS 2 / Nav2) : destinations autorisées, séparées par des virgules.
+# Jarvis envoie l'ordre par MQTT ; un noeud ROS sur le robot fait la navigation.
+ROBOT_LIEUX = tuple(x.strip() for x in _env("JARVIS_ROBOT_LIEUX", "").split(",") if x.strip())
 
 # Mode mains libres : secondes d'écoute après une réponse, sans redire « Jarvis ».
 AWAKE_SECONDS = float(_env("JARVIS_ECOUTE_SECONDES", "30"))

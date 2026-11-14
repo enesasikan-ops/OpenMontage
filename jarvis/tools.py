@@ -132,6 +132,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from people import build_people_tools   # mémoire par personne (toujours disponible, local)
 
     tools += build_people_tools()
+    from robot import build_robot_tools   # robot mobile (ROS 2), si des lieux sont configurés
+
+    tools += build_robot_tools()
     if watchdog is not None:   # mode Sentinelle (armer/désarmer à la voix)
         from watchdog import build_watchdog_tools
 
