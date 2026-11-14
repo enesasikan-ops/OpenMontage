@@ -19,6 +19,9 @@ OLLAMA_HOST = _env("JARVIS_OLLAMA_HOST", "http://localhost:11434")
 # comme un gros, rapide comme un petit — idéal sur un mini PC sans GPU dédié. Le code dur
 # part de toute façon au renfort (Claude/Gemini). Alternative plus fine mais plus lente : qwen3:32b.
 LOCAL_MODEL = _env("JARVIS_MODELE_LOCAL", "qwen3:30b-a3b")
+# Modèle local SECONDAIRE, consultable comme un outil (ex. dolphin-llama3). Vide = pas d'outil.
+# Il répond, il n'agit pas ; ses réponses ne sont pas filtrées selon le modèle choisi.
+SECOND_MODEL = _env("JARVIS_MODELE_SECONDAIRE", "").strip()
 # Réflexion du modèle local (Qwen3 et autres modèles « qui pensent ») :
 # "0" = répond directement (plus rapide, conseillé pour la voix), "1" = réfléchit,
 # vide = comportement par défaut du modèle (ne rien envoyer).

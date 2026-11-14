@@ -112,6 +112,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from consolidation import build_consolidation_tools   # « sommeil cognitif » : range la mémoire (propose)
 
     tools += build_consolidation_tools(memory, claude)
+    from secondmodel import build_second_model_tools   # second modèle local consultable (ex. dolphin-llama3)
+
+    tools += build_second_model_tools()
     if reminders is not None and lists is not None:
         from skills import build_skills  # import tardif : skills.py importe Tool d'ici
 
