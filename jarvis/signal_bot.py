@@ -496,6 +496,12 @@ def main() -> None:
         from glasses import demarrer_lunettes
         demarrer_lunettes(gemini)
 
+    if config.POOL:   # surveillance piscine (Frigate -> alarme, baies, escalade urgence)
+        from poolguard import make_poolguard
+        _piscine = make_poolguard(home, jarvis.notify_owner)
+        if _piscine is not None:
+            _piscine.demarrer()
+
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
                         notify=jarvis.send_proposal).start()

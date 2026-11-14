@@ -293,6 +293,31 @@ VOICE_ACTIONS = tuple(x.strip() for x in _env(
 VOICE_PIN = _env("JARVIS_VOIX_CODE", "").strip()              # code maître (porte de secours)
 VOICE_FENETRE = float(_env("JARVIS_VOIX_FENETRE", "60"))      # durée (s) débloquée par le code
 
+# --- Surveillance piscine (poolguard.py) — ALERTE, PAS un détecteur de noyade ---
+# Frigate détecte « une personne dans la zone piscine » (pas une noyade) ; sur détection,
+# Jarvis déclenche l'alarme, allume, (option) déverrouille les baies, t'alerte à voix haute,
+# et — si le mode Urgence est armé — alerte tes contacts d'urgence après un décompte annulable.
+# NE REMPLACE JAMAIS une barrière, une couverture, une alarme de porte et ta surveillance.
+POOL = _env("JARVIS_PISCINE", "0") == "1"
+POOL_ZONES = tuple(x.strip() for x in _env("JARVIS_PISCINE_ZONES", "").split(",") if x.strip())
+POOL_CAMERA = _env("JARVIS_PISCINE_CAMERA", "").strip()        # caméra Frigate (vide = toutes)
+POOL_FILE = DATA_DIR / "piscine.json"
+POOL_WEBHOOK = _env("JARVIS_PISCINE_WEBHOOK", "").strip()      # service d'alerte à TOI (téléphone/gardien)
+
+
+def piscine_settings() -> dict:
+    return {
+        "sirene": _env("JARVIS_PISCINE_SIRENE", "").strip(),
+        "sirene_service": _env("JARVIS_PISCINE_SIRENE_SERVICE", "siren.turn_on").strip(),
+        "lumieres": list(_liste("JARVIS_PISCINE_LUMIERES")),
+        "baies": list(_liste("JARVIS_PISCINE_BAIES")),          # serrures des baies vitrées à ouvrir
+        "haut_parleur": _env("JARVIS_PISCINE_HAUTPARLEUR", "").strip(),
+        "tts_service": _env("JARVIS_PISCINE_TTS", "tts.google_translate_say").strip(),
+        "message": _env("JARVIS_PISCINE_MESSAGE", "").strip(),  # vide = message vrai par défaut
+        "urgence_delai": float(_env("JARVIS_PISCINE_URGENCE_DELAI", "15")),
+        "cooldown": float(_env("JARVIS_PISCINE_COOLDOWN", "20")),
+    }
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()

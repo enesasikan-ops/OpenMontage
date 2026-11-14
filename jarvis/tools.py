@@ -126,6 +126,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from habits import build_habit_tools
 
         tools += build_habit_tools(home)   # habitudes apprises (lecture seule : propose, n'agit pas)
+        from poolguard import build_pool_tools
+
+        tools += build_pool_tools(home, on_status)   # surveillance piscine (armer/annuler l'urgence)
         from audiofollow import build_audio_tools
 
         tools += build_audio_tools(home)   # le son qui suit de pièce en pièce (Snapcast + présence)
