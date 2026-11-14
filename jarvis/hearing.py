@@ -11,7 +11,9 @@ sans micro ni TensorFlow.
 
 from __future__ import annotations
 
+import json
 import logging
+import threading
 import time
 from typing import Callable
 
@@ -28,6 +30,9 @@ SONS = {
     "civil defense siren": "sirène", "siren": "sirène",
     "alarm": "alarme", "smoke": "alarme incendie",
     "bark": "aboiement",
+    # Classes typiques d'un modèle TinyML d'effraction (Edge Impulse sur ESP32) :
+    "kick": "coup dans une porte", "door_break": "porte forcée", "break": "effraction",
+    "pry": "porte forcée", "distress": "aboiement de détresse",
 }
 SEUIL = 0.5
 COOLDOWN_S = 30
@@ -117,3 +122,84 @@ class SoundWatcher:
 
     def arreter(self) -> None:
         self._halt = True
+
+
+# --- Ouïe TinyML au bord (ESP32 + Edge Impulse) : l'événement arrive, pas l'audio ------
+#
+# Un ESP32 fait tourner un petit modèle entraîné sur des bruits d'effraction (verre brisé,
+# coup dans une porte, aboiement de détresse). La DÉTECTION se fait SUR LA PUCE ; seul le
+# RÉSULTAT (le label + un score) est publié sur MQTT. L'audio de la maison ne sort jamais.
+# Jarvis réutilise toute la logique de SoundWatcher (seuil, anti-répétition, réaction).
+
+
+def parse_evenement(charge: bytes) -> list:
+    """Normalise un message d'inférence Edge Impulse en [(label, score)]. Souple sur le format."""
+    try:
+        d = json.loads(charge.decode("utf-8", "ignore"))
+    except (json.JSONDecodeError, ValueError, AttributeError):
+        return []
+    if not isinstance(d, dict):
+        return []
+    label = d.get("label") or d.get("event") or d.get("class")
+    if label is not None:
+        brut = d.get("value", d.get("score", d.get("confidence", 1.0)))
+        try:
+            return [(str(label), float(brut))]
+        except (TypeError, ValueError):
+            return [(str(label), 1.0)]
+    cls = d.get("classification") or d.get("results") or d.get("predictions")
+    source = cls if isinstance(cls, dict) else d
+    out = []
+    for k, v in source.items():
+        if isinstance(v, (int, float)):
+            out.append((str(k), float(v)))
+    return out
+
+
+class AcousticMqttWatcher:
+    """Écoute les événements acoustiques d'un ESP32 (Edge Impulse) sur MQTT."""
+
+    def __init__(self, sound: "SoundWatcher", host: str = "localhost", port: int = 1883,
+                 topic: str = "jarvis/oreille/#", username: str = "", password: str = "", client=None):
+        self.sound = sound
+        self.host, self.port, self.topic = host, port, topic
+        self.username, self.password = username, password
+        self._client = client
+
+    def traiter(self, charge: bytes) -> None:
+        resultats = parse_evenement(charge)
+        if resultats:
+            try:
+                self.sound.traiter(resultats)
+            except Exception:
+                log.exception("événement acoustique")
+
+    def demarrer(self) -> dict:
+        if self._client is None:
+            try:
+                import paho.mqtt.client as mqtt
+            except ImportError:
+                return {"statut": "erreur", "message": "paho-mqtt manquant (pip install paho-mqtt)"}
+            self._client = mqtt.Client()
+        if self.username:
+            self._client.username_pw_set(self.username, self.password)
+        self._client.on_message = lambda c, u, msg: self.traiter(msg.payload)
+        try:
+            self._client.connect(self.host, self.port, keepalive=60)
+            self._client.subscribe(self.topic)
+        except OSError as exc:
+            return {"statut": "erreur", "message": f"MQTT injoignable : {exc}"}
+        threading.Thread(target=self._client.loop_forever, name="jarvis-oreille-mqtt", daemon=True).start()
+        log.info("👂 Ouïe TinyML à l'écoute (%s)", self.topic)
+        return {"statut": "succès", "message": "À l'écoute des capteurs sonores (ESP32)"}
+
+
+def make_acoustic_watcher(on_son: "Callable[[str, str, float], None]") -> "AcousticMqttWatcher | None":
+    import config
+
+    if not config.OREILLE_MQTT:
+        return None
+    sound = SoundWatcher(on_son, seuil=config.OREILLE_SEUIL)
+    return AcousticMqttWatcher(sound, host=config.MQTT_HOST, port=config.MQTT_PORT,
+                               topic=config.OREILLE_TOPIC, username=config.MQTT_USER,
+                               password=config.MQTT_PASS)

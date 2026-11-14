@@ -106,6 +106,10 @@ CROWDSEC_KEY = _env("JARVIS_CROWDSEC_CLE", "").strip()
 # Un micro + YAMNet : Jarvis entend bris de glace, alarme incendie, pleurs… 1 = activé.
 OREILLE = _env("JARVIS_OREILLE", "0") == "1"
 OREILLE_SEUIL = float(_env("JARVIS_OREILLE_SEUIL", "0.5"))
+# Ouïe TinyML au bord : un ESP32 (Edge Impulse) détecte les bruits d'effraction et publie
+# l'ÉVÉNEMENT sur MQTT (l'audio ne sort pas de la puce). 1 = activé.
+OREILLE_MQTT = _env("JARVIS_OREILLE_MQTT", "0") == "1"
+OREILLE_TOPIC = _env("JARVIS_OREILLE_SUJET", "jarvis/oreille/#").strip()
 
 # --- Pot de miel (honeypot.py) ---
 # Un faux serveur leurre : toute connexion est suspecte, Jarvis note l'IP et t'alerte.

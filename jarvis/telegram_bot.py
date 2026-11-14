@@ -477,6 +477,16 @@ def main() -> None:
         if _csc is not None:
             _csc.demarrer()
 
+    if config.OREILLE_MQTT:   # ouïe TinyML au bord (ESP32 -> événement acoustique)
+        from hearing import make_acoustic_watcher
+
+        def _sur_son(fr, label, score):
+            jarvis.notify_owner(f"👂 {fr.capitalize()} détecté dans la maison.")
+            watchdog.sur_son(fr)      # réaction active si la Sentinelle est armée
+        _oreille = make_acoustic_watcher(_sur_son)
+        if _oreille is not None:
+            _oreille.demarrer()
+
     if config.THERMAL:   # vigilance thermique (plaque de cuisson oubliée)
         from thermal import make_thermal_watcher
         _thermique = make_thermal_watcher(home, jarvis.notify_owner)
