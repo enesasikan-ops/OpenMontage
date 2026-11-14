@@ -65,6 +65,16 @@ def _cle(d: dict):
     return d.get("id") or (d.get("value"), d.get("type"), d.get("scenario"), d.get("origin"))
 
 
+# Origine « locale » = CrowdSec a détecté une VRAIE attaque sur TON réseau (ou toi, manuel).
+# Les autres (CAPI, blocklists communautaires/premium) sont du blocage PRÉVENTIF : il ne faut
+# pas les annoncer une par une (des milliers d'IP du « bouclier de meute » te noieraient).
+_ORIGINES_LOCALES = {"crowdsec", "cscli"}
+
+
+def _locale(d: dict) -> bool:
+    return str(d.get("origin", "crowdsec")).strip().lower() in _ORIGINES_LOCALES
+
+
 class CrowdSec:
     """Client minimal de la LAPI CrowdSec : les décisions actives = les IP bloquées."""
 
@@ -106,7 +116,10 @@ class CrowdSecWatcher:
         if self._vus is None:            # premier passage : on apprend sans annoncer
             self._vus = presentes
             return []
-        nouvelles = [(True, _texte(d)) for d in decisions if _cle(d) not in self._vus]
+        # On n'ANNONCE que les attaques LOCALES (réelles, sur ton réseau). Les décisions
+        # préventives de la meute sont suivies mais pas criées une par une (anti-rafale).
+        nouvelles = [(True, _texte(d)) for d in decisions
+                     if _cle(d) not in self._vus and _locale(d)]
         self._vus = presentes
         return nouvelles
 
@@ -136,11 +149,20 @@ def build_crowdsec_tools(client: "CrowdSec | None" = None) -> list:
             return "Je n'arrive pas à joindre CrowdSec pour l'instant."
         if not decisions:
             return "Aucune IP bloquée pour le moment : le réseau est calme."
-        n = len(decisions)
-        apercu = " ; ".join(f"{d.get('value', '?')} ({_raison(d.get('scenario', ''))})"
-                            for d in decisions[:5])
-        reste = f" (et {n - 5} autres)" if n > 5 else ""
-        return f"{n} IP actuellement bloquées par CrowdSec : {apercu}{reste}."
+        locales = [d for d in decisions if _locale(d)]
+        communaute = len(decisions) - len(locales)
+        parts = []
+        if locales:
+            apercu = " ; ".join(f"{d.get('value', '?')} ({_raison(d.get('scenario', ''))})"
+                                for d in locales[:5])
+            reste = f" (et {len(locales) - 5} autres)" if len(locales) > 5 else ""
+            parts.append(f"{len(locales)} attaque(s) directe(s) sur votre réseau, bloquée(s) : {apercu}{reste}")
+        else:
+            parts.append("Aucune attaque directe sur votre réseau")
+        if communaute:
+            parts.append(f"bouclier communautaire : {communaute} IP bloquées préventivement "
+                         "(immunité de meute, avant même qu'elles vous visent)")
+        return ". ".join(parts) + "."
 
     return [Tool(
         name="point_securite_reseau",

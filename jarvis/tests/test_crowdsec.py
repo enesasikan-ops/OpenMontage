@@ -138,7 +138,7 @@ def test_outil_rapport(monkeypatch):
     tools = build_crowdsec_tools(client=client)
     assert len(tools) == 1 and tools[0].name == "point_securite_reseau"
     out = tools[0].run()
-    assert "2 IP" in out and EXTERNE in out
+    assert "2 attaque" in out and EXTERNE in out   # 2 décisions locales (origin crowdsec par défaut)
 
 
 def test_outil_reseau_calme(monkeypatch):
@@ -146,3 +146,27 @@ def test_outil_reseau_calme(monkeypatch):
     monkeypatch.setattr(config, "CROWDSEC_KEY", "cle-bouncer")
     tools = build_crowdsec_tools(client=_client([[]]))
     assert "calme" in tools[0].run()
+
+
+# --- Liste communautaire (immunité de meute) : préventif, pas annoncé un par un ---
+
+def test_watcher_annonce_les_attaques_locales_pas_la_meute():
+    locale = _decision(ip=EXTERNE, id_=1, origin="crowdsec")       # vraie attaque sur toi
+    comm = _decision(ip="45.9.1.1", id_=2, origin="CAPI")          # bouclier communautaire
+    client = _client([[], [locale, comm]])                         # passif puis +2
+    w = CrowdSecWatcher(client)
+    w.check()                                                      # apprentissage
+    alertes = w.check()
+    assert len(alertes) == 1                                       # seule l'attaque locale est annoncée
+    assert EXTERNE in alertes[0][1] and "45.9.1.1" not in alertes[0][1]
+
+
+def test_outil_distingue_local_et_communautaire(monkeypatch):
+    monkeypatch.setattr(config, "CROWDSEC", True)
+    monkeypatch.setattr(config, "CROWDSEC_KEY", "cle-bouncer")
+    decisions = [_decision(ip=EXTERNE, origin="crowdsec"),
+                 _decision(ip="45.9.1.1", id_=2, origin="CAPI"),
+                 _decision(ip="45.9.1.2", id_=3, origin="lists:firehol")]
+    tools = build_crowdsec_tools(client=_client([decisions]))
+    out = tools[0].run()
+    assert "1 attaque" in out and "bouclier communautaire : 2 IP" in out
