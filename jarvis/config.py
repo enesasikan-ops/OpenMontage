@@ -149,6 +149,20 @@ HABITS_JOURS = int(_env("JARVIS_HABITUDES_JOURS", "60"))        # fenêtre d'his
 HABITS_SUPPORT = int(_env("JARVIS_HABITUDES_SUPPORT", "3"))     # occurrences minimales
 HABITS_CONFIANCE = float(_env("JARVIS_HABITUDES_CONFIANCE", "0.6"))  # fiabilité minimale (0-1)
 
+# --- Suivi audio multi-room (audiofollow.py) : le son te suit de pièce en pièce ---
+# Snapcast diffuse un son synchronisé sur plusieurs enceintes ; Jarvis route le volume
+# selon ta présence (capteurs mmWave / Frigate exposés par Home Assistant). 1 = activé.
+# JARVIS_AUDIO_PIECES : {"cuisine":{"presence":"binary_sensor.cuisine_presence",
+#                                   "enceinte":"media_player.snapcast_cuisine"}, ...}
+# L'« enceinte » est un media_player HA (défaut) ou un nom de client Snapcast (si SNAPSERVER).
+AUDIO_FOLLOW = _env("JARVIS_AUDIO_SUIVI", "0") == "1"
+AUDIO_PIECES: dict = _json_env("JARVIS_AUDIO_PIECES")
+AUDIO_PRESENT = float(_env("JARVIS_AUDIO_PRESENT", "0.35"))     # volume (0-1) dans la pièce occupée
+AUDIO_ABSENT = float(_env("JARVIS_AUDIO_ABSENT", "0.0"))        # volume (0-1) dans une pièce vide
+AUDIO_INTERVAL = float(_env("JARVIS_AUDIO_INTERVALLE", "3"))    # fréquence de vérif présence (s)
+SNAPSERVER = _env("JARVIS_SNAPSERVER", "").strip()             # hôte snapserver (vide = via HA)
+SNAPSERVER_PORT = int(_env("JARVIS_SNAPSERVER_PORT", "1705"))
+
 # --- Mode Sentinelle (réaction active anti-intrusion, watchdog.py) ---
 # Armé par toi ; sur visage inconnu, Jarvis allume/verrouille/enregistre/avertit + t'alerte.
 # (SURV_FILE est défini plus bas, après DATA_DIR.)

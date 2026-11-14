@@ -126,6 +126,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from habits import build_habit_tools
 
         tools += build_habit_tools(home)   # habitudes apprises (lecture seule : propose, n'agit pas)
+        from audiofollow import build_audio_tools
+
+        tools += build_audio_tools(home)   # le son qui suit de pièce en pièce (Snapcast + présence)
         ask = getattr(claude, "ask", None)
         if callable(ask):   # créer des règles à la voix (nécessite le renfort pour traduire)
             from automations import build_automation_tools

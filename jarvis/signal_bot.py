@@ -486,6 +486,12 @@ def main() -> None:
                        topic=config.MQTT_TOPIC, username=config.MQTT_USER,
                        password=config.MQTT_PASS).demarrer()
 
+    if config.AUDIO_FOLLOW:   # le son suit de pièce en pièce (Snapcast + présence HA)
+        from audiofollow import make_audio_follow
+        _suivi = make_audio_follow(home)
+        if _suivi is not None:
+            _suivi.demarrer()
+
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
                         notify=jarvis.send_proposal).start()
