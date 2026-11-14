@@ -106,6 +106,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
             run=ask_claude,
         ),
     ]
+    from council import build_planner_tools   # planificateur multi-angles (propose, n'exécute pas)
+
+    tools += build_planner_tools(claude)
     if reminders is not None and lists is not None:
         from skills import build_skills  # import tardif : skills.py importe Tool d'ici
 
