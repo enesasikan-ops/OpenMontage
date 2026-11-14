@@ -502,6 +502,12 @@ def main() -> None:
         if _piscine is not None:
             _piscine.demarrer()
 
+    if config.THERMAL:   # vigilance thermique (plaque de cuisson oubliée)
+        from thermal import make_thermal_watcher
+        _thermique = make_thermal_watcher(home, jarvis.notify_owner)
+        if _thermique is not None:
+            _thermique.demarrer()
+
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
                         notify=jarvis.send_proposal).start()

@@ -318,6 +318,16 @@ def piscine_settings() -> dict:
         "cooldown": float(_env("JARVIS_PISCINE_COOLDOWN", "20")),
     }
 
+# --- Vigilance thermique (thermal.py) : la plaque oubliée (MLX90640 via ESPHome) ---
+# Une caméra thermique publie la température d'une zone ; si elle reste chaude pendant
+# que la maison est endormie (heures de silence) ou armée, Jarvis te prévient. 1 = activé.
+# JARVIS_THERMIQUE_ZONES : {"plaque gauche":{"capteur":"sensor.thermique_cuisine_max","seuil":70}}
+THERMAL = _env("JARVIS_THERMIQUE", "0") == "1"
+THERMAL_ZONES: dict = _json_env("JARVIS_THERMIQUE_ZONES")
+THERMAL_DUREE = float(_env("JARVIS_THERMIQUE_DUREE", "120"))   # s au-dessus du seuil avant alerte
+THERMAL_INTERVAL = float(_env("JARVIS_THERMIQUE_INTERVALLE", "30"))
+THERMAL_ARME_ENTITE = _env("JARVIS_THERMIQUE_ARME", "").strip()  # input_boolean forçant la vigilance
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()

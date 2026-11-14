@@ -129,6 +129,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from poolguard import build_pool_tools
 
         tools += build_pool_tools(home, on_status)   # surveillance piscine (armer/annuler l'urgence)
+        from thermal import build_thermal_tools
+
+        tools += build_thermal_tools(home)   # vigilance thermique (plaque oubliée, lecture seule)
         from audiofollow import build_audio_tools
 
         tools += build_audio_tools(home)   # le son qui suit de pièce en pièce (Snapcast + présence)
