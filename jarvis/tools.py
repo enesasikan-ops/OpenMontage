@@ -162,6 +162,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from pwstrength import build_pwcheck_tools   # robustesse d'un mot de passe / clé Wi-Fi (local)
 
     tools += build_pwcheck_tools()
+    from freebox import build_freebox_tools   # qui est sur le Wi-Fi (Freebox), si appairée
+
+    tools += build_freebox_tools()
     from robot import build_robot_tools   # robot mobile (ROS 2), si des lieux sont configurés
 
     tools += build_robot_tools()

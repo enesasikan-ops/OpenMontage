@@ -362,6 +362,12 @@ HEARTBEAT_INTERVAL = float(_env("JARVIS_COEUR_SECONDES", "30"))
 VULNSCAN = _env("JARVIS_AUDIT_RESEAU", "0") == "1"
 VULNSCAN_RESEAU = _env("JARVIS_AUDIT_CIBLE", "192.168.1.0/24").strip()
 
+# --- Freebox (API locale) : qui est sur le Wi-Fi, repérer les inconnus ---
+# Appaire une fois avec « python appairer_freebox.py » puis colle le jeton ici (secret).
+FREEBOX_URL = _env("JARVIS_FREEBOX_URL", "http://mafreebox.freebox.fr").strip()
+FREEBOX_TOKEN = _env("JARVIS_FREEBOX_JETON", "").strip()
+FREEBOX_CONNUS = tuple(x.strip() for x in _env("JARVIS_FREEBOX_CONNUS", "").split(",") if x.strip())
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()
