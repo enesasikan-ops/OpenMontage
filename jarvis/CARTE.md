@@ -1,102 +1,136 @@
 # Carte de Jarvis — qui fait quoi
 
-~6 900 lignes de code + ~4 560 lignes de tests (387 tests), sur 63 fichiers Python.
+~12 400 lignes de code + ~8 000 lignes de tests (**718 tests**), sur 129 fichiers Python.
 Chaque fichier fait **une** chose. Voici comment ils s'assemblent.
 
 ## Le flux, en un coup d'œil
 
 ```
           TOI
-   voix / Telegram / Signal
+   voix / Telegram / Signal / lunettes
             │
             ▼
-   ┌─────────────────┐     questions dures     ┌──────────────────┐
-   │  CERVEAU LOCAL  │ ──────────────────────▶ │ RENFORT Claude/  │
-   │  (Qwen3, Ollama)│ ◀────────────────────── │ Gemini           │
-   └────────┬────────┘                          └──────────────────┘
-            │ choisit un OUTIL
+   ┌─────────────────┐   questions dures   ┌──────────────────┐
+   │  CERVEAU LOCAL  │ ──────────────────▶ │ RENFORT Claude/  │
+   │  (Qwen3, Ollama)│ ◀────────────────── │ Gemini           │
+   └────────┬────────┘                     └──────────────────┘
+            │ choisit un OUTIL        (+ 2ᵉ modèle local consultable)
             ▼
-   ┌─────────────────────────────────────────────────────────┐
-   │ Rappels · Maison · Web · Drone · Vision · Caméras · …    │
-   └─────────────────────────────────────────────────────────┘
+   ┌─────────────────────────────────────────────────────────────┐
+   │ Rappels · Maison · Web · Vision · Caméras · Audio · Robot ·  │
+   │ Habitudes · Confort · Planificateur · Sécurité · Réseau · …  │
+   └─────────────────────────────────────────────────────────────┘
             │
-   SÉCURITÉ (en fond, tout le temps) ── ALERTES ──▶ TOI
+   SÉCURITÉ + RÉSEAU (en fond, tout le temps) ── ALERTES ──▶ TOI
 ```
+
+**Principe tenu partout :** Jarvis **surveille, propose, alerte** — il n'agit sur le monde
+(portail, serrure, pare-feu, code) qu'après confirmation. Il **n'attaque jamais**.
 
 ## 🧠 Cerveau & renfort
 
-| Fichier | Lignes | Rôle |
-|---|---|---|
-| `brain.py` | 138 | le cerveau local (Ollama) et sa boucle « choisir un outil → agir » |
-| `claude_bridge.py` | 607 | le renfort Claude/Gemini, avec le repli automatique entre les deux |
-| `config.py` | 202 | tous les réglages (lus dans `.env`) |
-| `persona.py` | 108 | la personnalité, le ton de Jarvis |
+| Fichier | Rôle |
+|---|---|
+| `brain.py` | le cerveau local (Ollama) et sa boucle « choisir un outil → agir » |
+| `claude_bridge.py` | le renfort Claude/Gemini, avec repli automatique entre les deux |
+| `secondmodel.py` | un 2ᵉ modèle local **consultable** (ex. dolphin-llama3) — il répond, n'agit pas |
+| `council.py` | planificateur multi-angles (tempête, absence…) : **propose**, n'exécute pas |
+| `consolidation.py` | « sommeil cognitif » : range/oublie la mémoire — **proposé**, pas de poids modifiés |
+| `routing_eval.py` | banc d'essai : mesure si le cerveau choisit le bon outil (préalable à toute optim.) |
+| `config.py` | tous les réglages (lus dans `.env`) |
+| `persona.py` | la personnalité, le ton de Jarvis |
 
-## 🗣️ Interfaces (comment tu lui parles)
+## 🗣️ Interfaces
 
-| Fichier | Lignes | Rôle |
-|---|---|---|
-| `main.py` | 250 | point d'entrée (clavier ou voix) |
-| `voice.py` | 132 | oreilles (Whisper) + voix (Piper), 100 % local |
-| `handsfree.py` | 183 | mode mains libres : dis « Jarvis » |
-| `telegram_bot.py` | 405 | Jarvis sur Telegram (texte + vocal) |
-| `signal_bot.py` | 451 | Jarvis sur Signal (chiffré, deux sens) |
-| `signal_notify.py` | 89 | alertes Signal (envoi seul) |
-| `dashboard.py` + `.html` | 226 | tableau de bord pour la télé |
+| Fichier | Rôle |
+|---|---|
+| `main.py` | point d'entrée (clavier ou voix) |
+| `voice.py` | oreilles (Whisper) + voix (Piper), 100 % local |
+| `handsfree.py` | mode mains libres : dis « Jarvis » |
+| `telegram_bot.py` / `signal_bot.py` | Jarvis sur Telegram / Signal (chiffré) |
+| `dashboard.py` + `.html` | tableau de bord pour la télé (jeton si exposé) |
+| `glasses.py` | lunettes connectées (OpenGlass/Monocle) : tu regardes, tu demandes, réponse sur le verre |
 
-## 🧰 Outils & capacités
+## 🧰 Outils & mémoire
 
-| Fichier | Lignes | Rôle |
-|---|---|---|
-| `tools.py` | 186 | catalogue des outils donnés au cerveau |
-| `skills.py` | 497 | rappels, listes, calcul, météo, état du PC |
-| `memory.py` | 56 | mémoire à long terme |
-| `web.py` | 114 | recherche et lecture de pages web |
-| `smarthome.py` | 273 | pilotage de la maison (Home Assistant) |
+| Fichier | Rôle |
+|---|---|
+| `tools.py` | catalogue des outils donnés au cerveau |
+| `skills.py` | rappels, listes, calcul, météo, état du PC |
+| `memory.py` / `people.py` | mémoire à long terme (générale / par personne) |
+| `web.py` | recherche et lecture de pages web (anti-SSRF) |
+| `pwstrength.py` | robustesse d'un mot de passe / clé Wi-Fi, en local (sans rien attaquer) |
 
-## 👁️ Vision & drone
+## 🏠 Maison, confort & habitudes
 
-| Fichier | Lignes | Rôle |
-|---|---|---|
-| `vision.py` | 92 | décrire une image |
-| `camera.py` | 145 | caméras par flux |
-| `faces.py` | 195 | reconnaissance de visages (locale, tes proches) |
-| `drone.py` | 446 | pilotage + vision du drone, avec limites de vol |
+| Fichier | Rôle |
+|---|---|
+| `smarthome.py` | pilotage Home Assistant (actions sensibles confirmées) |
+| `vacuum.py` / `deterrent.py` | aspirateur robot / arroseur anti-nuisibles (dissuasion par zone) |
+| `automations.py` | créer des règles HA à la voix (traduites par le renfort, confirmées) |
+| `comfort.py` | « mode détente » que **tu** déclenches (lumières douces + musique) |
+| `audiofollow.py` | le son te suit de pièce en pièce (Snapcast + présence) |
+| `habits.py` | apprend tes routines par comptage **explicable** → **propose** (ne fait pas tout seul) |
+| `presence.py` | carte d'occupation anonyme par pièce (PIR / mmWave / Wi-Fi CSI) |
+
+## 👁️ Vision, caméras & robots
+
+| Fichier | Rôle |
+|---|---|
+| `vision.py` | décrire une image (local d'abord, Gemini en secours) |
+| `camera.py` + `ptz.py` | caméras par flux, rotation/presets/ronde (ONVIF) |
+| `faces.py` | reconnaissance de visages (locale, tes proches enrôlés) |
+| `arrivals.py` + `sightings.py` | annonces d'arrivée (Double Take/CompreFace) + « qui as-tu vu ? » |
+| `hearing.py` / `vision_yolo.py` | ouïe analytique (YAMNet) / détection d'objets (YOLO) |
+| `drone.py` / `robot.py` | drone (limites de vol) / robot mobile (ROS 2), sur commande |
+
+## 🚨 Sécurité physique (du foyer)
+
+| Fichier | Rôle |
+|---|---|
+| `poolguard.py` | surveillance piscine : alarme + baies + escalade **annulable** (PAS un détecteur de noyade) |
+| `thermal.py` | plaque de cuisson oubliée (caméra thermique MLX90640) |
+| `voiceprint.py` | authentification par empreinte **vocale** des actions sensibles (échoue fermé + code de secours) |
+| `watchdog.py` | mode Sentinelle (réaction active anti-intrusion, si armé) |
+
+## 🛡️ Cyberdéfense & réseau (en fond, tout le temps)
+
+| Fichier | Rôle |
+|---|---|
+| `security.py` + `cyberwatch.py` | sentinelle (ports, réseau, pare-feu) + surveillance continue |
+| `core_integrity.py` + `defense.py` | tripwire du cœur + preuves + restauration saine |
+| `honeypot.py` / `ipblock.py` / `netguard.py` | leurre / blocage d'IP (confirmé) / anti-SSRF |
+| `crowdsec.py` | annonce les intrusions réseau bloquées par CrowdSec |
+| `vulnscan.py` | audit de posture (ports exposés, firmware périmé) — **détecte, n'exploite pas** |
+| `freebox.py` | qui est sur le Wi-Fi via la Freebox, repère les inconnus |
+| `wifiwatch.py` | instabilité Wi-Fi = symptôme d'une attaque de déauth (le PMF protège, Jarvis alerte) |
+| `radius.py` | lit le journal FreeRADIUS (802.1X) : authentifications rejetées |
+| `opnsense.py` | fil d'alarme sur la segmentation VLAN : tentative IoT → cœur bloquée |
+| `starlink.py` | surveillance de la liaison Internet (coupure, obstruction) |
+| `heartbeat.py` | battement de cœur : détecteur d'homme mort (résilience si le serveur tombe) |
 
 ## 🔧 Auto-amélioration & plugins
 
-| Fichier | Lignes | Rôle |
-|---|---|---|
-| `growth.py` | 379 | Jarvis progresse (la nuit), toujours avec ta ✅ |
-| `plugin_manager.py` | 378 | charge/recharge des capacités à chaud |
-| `core_proposals.py` | 116 | modifier le cœur sur proposition relue (réservé à toi) |
-| `scaffold/` | ~690 | générateur de nouvelles capacités |
-
-## 🛡️ Cyberdéfense (en fond, tout le temps)
-
-| Fichier | Lignes | Rôle |
-|---|---|---|
-| `security.py` | 239 | sentinelle : ports, réseau, pare-feu, comptes |
-| `cyberwatch.py` | 111 | surveillance continue (machine + cœur) |
-| `core_integrity.py` | 74 | tripwire : alerte si le code du cœur change |
-| `defense.py` | 71 | preuves + restauration du cœur sain |
-| `honeypot.py` | 116 | faux serveur leurre pour piéger les intrus |
-| `ipblock.py` | 95 | blocage d'IP défensif (sur ta décision) |
-| `netguard.py` | 53 | anti-SSRF (bloque les adresses internes) |
-| `proactive.py` | 169 | initiatives : Jarvis parle en premier quand c'est utile |
+| Fichier | Rôle |
+|---|---|
+| `growth.py` | Jarvis progresse (la nuit), toujours avec ta ✅ |
+| `plugin_manager.py` | charge/recharge des capacités à chaud |
+| `core_proposals.py` | modifier le cœur sur proposition relue (réservé à toi) |
+| `scaffold/` | générateur de nouvelles capacités |
 
 ## ⚙️ Installation & outillage
 
 | Fichier | Rôle |
 |---|---|
-| `installer.ps1` / `installer.sh` | tout installer d'un coup (Windows / macOS-Linux) |
-| `optimiser_windows.ps1` | régler le PC pour Jarvis |
+| `installer.ps1` / `installer.sh` | tout installer d'un coup |
+| `appairer_freebox.py` | appairer Jarvis à la Freebox (une fois) |
+| `enroll_voice.py` | enrôler ta voix pour l'auth des actions sensibles |
 | `bench.py` | trouver les réglages les plus rapides sur ta machine |
 | `installer_embarque.sh` | mini-Jarvis pour le drone |
 
 ## 🧪 Tests
 
-`tests/` — 387 tests (~4 560 lignes). Chaque brique est vérifiée, la sécurité en particulier.
+`tests/` — **718 tests** (~8 000 lignes). Chaque brique est vérifiée, la sécurité en particulier.
 
 ---
 

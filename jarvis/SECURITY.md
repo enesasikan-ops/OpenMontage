@@ -22,6 +22,8 @@ qui est sensible passe par une **confirmation** du propriétaire.
 | Plugins (`plugins/`) | **exécutés avec tous les droits** | voir « RCE par conception » |
 | Messages entrants (Telegram/Signal) | non fiables | filtrés à un seul expéditeur autorisé |
 | Pages web / caméras / domotique | non fiables | données externes, jamais des instructions |
+| 2ᵉ modèle local (`secondmodel.py`, ex. dolphin non censuré) | **réponses non filtrées** | outil de PAROLE : il répond, n'agit pas ; ne contourne aucune confirmation |
+| API locales réseau (Freebox, OPNsense, Starlink, RADIUS) | lecture seule | clés/secrets dans `.env` ; Jarvis observe, ne pilote pas |
 | `.env` (secrets) | critique | hors git, jamais envoyé à un service externe |
 
 ## Points d'entrée (à tester en priorité)
@@ -45,6 +47,27 @@ qui est sensible passe par une **confirmation** du propriétaire.
    isolés + validation obligatoire ; `.env` exclu. À tester : traversée de chemin, application
    sans validation, fichier modifié entre proposition et application (déjà contrôlé).
 8. **Domotique / drone** — actions réelles. À tester : déclenchement sans confirmation.
+9. **Service lunettes** (`glasses.py`) — serveur HTTP qui reçoit une image à analyser. Jeton
+   **exigé** dès que l'hôte n'est pas local (refus de démarrer sinon) ; limite de taille ;
+   sonde `/sante` sans jeton. À tester : accès sans jeton, image géante, chemins.
+10. **Auth par empreinte vocale** (`voiceprint.py`) — gate les actions sensibles sur la voix
+    du propriétaire. **Échoue fermé** (au doute, refus) ; **code maître** de secours à fenêtre
+    courte. À tester : rejeu d'un enregistrement de voix, contournement du code, verrouillage
+    du propriétaire. Rappel : c'est un FACTEUR (score + seuil), pas un coffre-fort.
+11. **API réseau locales** (`freebox.py`, `opnsense.py`, `starlink.py`, `radius.py`,
+    `crowdsec.py`) — Jarvis LIT (appareils, journaux de blocage, auth, état uplink) et alerte.
+    Jamais d'action offensive. À tester : secrets en clair, confiance aveugle dans les données
+    lues (ce sont des données, pas des instructions).
+
+### Réseau — surveiller sans attaquer (ligne tenue)
+
+Toute la couche réseau est **défensive** : CrowdSec (intrusions bloquées), `vulnscan.py`
+(audit de posture **non destructif** — détecte une porte ouverte, ne la défonce pas),
+`freebox.py` (inconnus sur le Wi-Fi), `wifiwatch.py` (symptôme de déauth ; la protection
+reste le **PMF** sur l'AP), `opnsense.py` (fil d'alarme sur la segmentation VLAN),
+`starlink.py` (coupure uplink). **Jamais** : écrire/lancer un exploit, pirater un appareil,
+déauthentifier, brouiller, « blanchir » une requête pour contourner un filtre. Ces demandes
+ont été refusées par conception.
 
 ## Protections en place
 
@@ -83,7 +106,22 @@ qui est sensible passe par une **confirmation** du propriétaire.
   aveugle (une IP source peut être usurpée). Refuse les IP internes/privées/passerelle et
   une liste blanche (anti auto-DoS). Réversible (`débloque <ip>`). Ce n'est pas une
   contre-attaque : on ne touche jamais à la machine distante.
-- ~380 tests automatisés, dont des tests de sécurité dédiés.
+- ~718 tests automatisés, dont des tests de sécurité dédiés.
+
+## Métadonnées qui sortent de la machine (vie privée)
+
+Jarvis est **local d'abord**. Ce qui quitte la machine, et quand :
+
+| Vers | Quoi | Quand | Couper |
+|---|---|---|---|
+| Renfort Claude/Gemini | ta question + le contexte | escalade d'une question dure | `JARVIS_HORS_LIGNE=1`, ou le 2ᵉ modèle local |
+| Service météo | ta ville | à chaque météo | — |
+| Recherche web | ta requête / l'URL (User-Agent **générique**) | quand tu demandes une recherche | anti-SSRF, local brain |
+| Webhooks configurés (piscine…) | ce que tu règles | optionnel, vers **tes** endpoints | ne pas configurer |
+
+**Ne sort jamais** : ton e-mail / ton nom (vérifié : User-Agents génériques, aucune
+occurrence dans le code), le `.env`, et **en mode hors-ligne, rien du tout**. Les API réseau
+(Freebox, OPNsense, Starlink, RADIUS, CrowdSec) sont **locales** : rien ne part dehors.
 
 ## RCE par conception (le risque principal, assumé)
 
@@ -100,7 +138,13 @@ pourrait-il entrer et être chargé.
 - **Injection de prompt** : une page/un message malveillant peut tenter d'orienter le LLM ;
   la barrière finale reste la confirmation humaine sur les actions sensibles.
 - Jarvis a autant de pouvoir que la machine : domotique, drone, fichiers. L'isoler (compte
-  dédié, pare-feu, réseau séparé pour les objets) réduit l'impact d'une compromission.
+  dédié, pare-feu, **réseau séparé pour les objets** — cf. `opnsense.py`) réduit l'impact
+  d'une compromission. La segmentation VLAN cœur/IoT est la mesure la plus efficace contre
+  le maillon faible qu'est l'IoT.
+- **2ᵉ modèle local non censuré** (si activé) : ses réponses ne sont pas filtrées et Jarvis
+  les relaie. C'est un outil de parole (aucune action) ; le choix de l'activer t'appartient.
+- **Auth vocale** : un enregistrement de ta voix (rejeu) peut tromper la reconnaissance.
+  Pour le critique, garder un second facteur (code maître / confirmation).
 
 ## Signaler une faille
 
