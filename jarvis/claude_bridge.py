@@ -22,7 +22,34 @@ import anthropic
 import config
 import persona
 
-SYSTEM_PROMPT = f"""Tu es le renfort de Jarvis, l'assistant vocal personnel de {config.USER_NAME}.
+
+def _designation() -> str:
+    """Comment nommer le propriétaire VERS LE CLOUD : neutre si l'anonymisation est active."""
+    return "son propriétaire" if getattr(config, "RENFORT_ANONYME", True) else config.USER_NAME
+
+
+def _anonymiser(texte: str) -> str:
+    """Retire les identifiants évidents (prénom, ville) d'un texte qui part au cloud.
+
+    Point de contrôle UNIQUE de la vie privée côté renfort : tout ce qui sort par ask()
+    passe ici. Ne prétend pas tout attraper (le modèle local peut glisser une autre PII),
+    mais supprime les fuites systématiques du prénom et de la ville.
+    """
+    if not texte or not getattr(config, "RENFORT_ANONYME", True):
+        return texte
+    out = texte
+    nom = (config.USER_NAME or "").strip()
+    if len(nom) >= 2:
+        out = re.sub(rf"\b{re.escape(nom)}\b", "mon propriétaire", out, flags=re.IGNORECASE)
+    ville = (getattr(config, "CITY", "") or "").strip()
+    if len(ville) >= 2:
+        out = re.sub(rf"\b{re.escape(ville)}\b", "ma région", out, flags=re.IGNORECASE)
+    return out
+
+
+# Les prompts partent au cloud : on les passe par _anonymiser pour qu'AUCUN identifiant
+# (prénom via persona, ville…) ne s'y glisse, d'où qu'il vienne.
+SYSTEM_PROMPT = _anonymiser(f"""Tu es le renfort de Jarvis, l'assistant vocal personnel de {_designation()}.
 Jarvis (un petit modèle local) te transmet les questions trop difficiles pour lui.
 Ta réponse sera LUE À VOIX HAUTE par Jarvis :
 - réponds en français, de façon directe et naturelle, comme à l'oral ;
@@ -30,24 +57,25 @@ Ta réponse sera LUE À VOIX HAUTE par Jarvis :
 - pas de Markdown, pas de tableaux, pas de listes à puces, pas d'emojis ;
 - vise 2 à 6 phrases, sauf si on te demande explicitement un texte long
   (un mail, un document) : dans ce cas, donne le texte complet.
-"""
+""")
 
 CLI_TIMEOUT_S = 180
 AGENT_TIMEOUT_S = 900  # une tâche d'agent peut être longue
 
-AGENT_PROMPT = f"""Tu es le mentor de Jarvis, l'assistant personnel de {config.USER_NAME}.
+AGENT_PROMPT = _anonymiser(f"""Tu es le mentor de Jarvis, l'assistant personnel de {_designation()}.
 Jarvis te confie une tâche importante (souvent du code ou une recherche approfondie)
-parce qu'elle dépasse ses moyens. Tu travailles sur l'ordinateur de {config.USER_NAME},
+parce qu'elle dépasse ses moyens. Tu travailles sur l'ordinateur de {_designation()},
 uniquement dans le dossier de travail autorisé (l'atelier de Jarvis).
 - Fais le travail de bout en bout, proprement.
 - Ne touche à rien en dehors de l'atelier. Ne lance aucune commande destructrice.
 - Termine par un résumé clair et court, en français, de ce que tu as fait et de
-  l'endroit où se trouve le résultat. Ce résumé sera lu à voix haute par Jarvis."""
+  l'endroit où se trouve le résultat. Ce résumé sera lu à voix haute par Jarvis.""")
 
 Runner = Callable[..., subprocess.CompletedProcess]
 
 
 def _format(question: str, context: str) -> str:
+    question, context = _anonymiser(question), _anonymiser(context)
     return question if not context else f"Contexte : {context}\n\nQuestion : {question}"
 
 
@@ -295,7 +323,7 @@ class GeminiBackend:
         import base64
         import urllib.error
 
-        q = question or "Décris ce que tu vois sur cette image, en une ou deux phrases, en français."
+        q = _anonymiser(question or "Décris ce que tu vois sur cette image, en une ou deux phrases, en français.")
         body = {
             "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
             "contents": [{"role": "user", "parts": [

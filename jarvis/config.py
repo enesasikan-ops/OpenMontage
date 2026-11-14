@@ -61,6 +61,14 @@ if OFFLINE:
 # "abonnement" (Claude Code, ton compte Claude) | "api" (clé payante) | "aucun"
 RENFORT = "aucun" if OFFLINE else _env("JARVIS_RENFORT", "abonnement").strip().lower()
 
+# Anonymisation du renfort : avant d'envoyer quoi que ce soit au cloud (Claude/Gemini),
+# Jarvis retire les identifiants ÉVIDENTS — ton prénom (USER_NAME) et ta ville (CITY) —
+# qu'il remplace par des termes neutres. Le cloud reçoit la substance, pas ton identité.
+# Ça ne peut pas tout attraper (si le modèle local glisse une autre donnée perso), mais
+# ça tue les fuites SYSTÉMATIQUES. 1 = activé (défaut, vie privée d'abord), 0 = le cloud
+# voit ton vrai prénom (utile si tu veux qu'il t'appelle par ton nom).
+RENFORT_ANONYME = _env("JARVIS_RENFORT_ANONYME", "1") == "1"
+
 # Mode "api" : la clé est lue dans ANTHROPIC_API_KEY (jamais écrite dans le code).
 CLAUDE_MODEL = _env("JARVIS_MODELE_CLAUDE", "claude-opus-5-5")
 CLAUDE_EFFORT = _env("JARVIS_EFFORT_CLAUDE", "medium")  # low | medium | high | xhigh | max

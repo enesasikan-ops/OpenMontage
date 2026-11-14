@@ -114,14 +114,24 @@ Jarvis est **local d'abord**. Ce qui quitte la machine, et quand :
 
 | Vers | Quoi | Quand | Couper |
 |---|---|---|---|
-| Renfort Claude/Gemini | ta question + le contexte | escalade d'une question dure | `JARVIS_HORS_LIGNE=1`, ou le 2ᵉ modèle local |
-| Service météo | ta ville | à chaque météo | — |
+| Renfort Claude/Gemini | ta question + le contexte (**prénom et ville retirés par défaut**, voir plus bas) | escalade d'une question dure | `JARVIS_HORS_LIGNE=1`, ou le 2ᵉ modèle local |
+| Renfort Claude/Gemini (vision) | une **image** (vue drone / caméra / lunettes) | quand tu demandes de décrire une image | pas de vision cloud (`JARVIS_VISION=local`/`0`) |
+| Service météo (open-meteo) | ta ville | à chaque météo (inhérent au service) | ne pas utiliser la météo / `JARVIS_HORS_LIGNE=1` |
 | Recherche web | ta requête / l'URL (User-Agent **générique**) | quand tu demandes une recherche | anti-SSRF, local brain |
+| Messagerie (Telegram / Signal / Matrix) | tes alertes et ton dialogue (texte, voix, clips, snapshots) | selon le canal configuré | Telegram **non chiffré E2E** → préférer Signal/Matrix |
 | Webhooks configurés (piscine…) | ce que tu règles | optionnel, vers **tes** endpoints | ne pas configurer |
 
-**Ne sort jamais** : ton e-mail / ton nom (vérifié : User-Agents génériques, aucune
-occurrence dans le code), le `.env`, et **en mode hors-ligne, rien du tout**. Les API réseau
-(Freebox, OPNsense, Starlink, RADIUS, CrowdSec) sont **locales** : rien ne part dehors.
+**Anonymisation du renfort (par défaut, `JARVIS_RENFORT_ANONYME=1`)** : avant tout envoi au
+cloud, un point de contrôle unique (`claude_bridge._anonymiser`, appliqué au prompt système,
+au prompt mentor et à chaque `ask`) remplace ton **prénom** et ta **ville** par des termes
+neutres. Ça tue les fuites **systématiques** ; ça ne peut pas garantir qu'une autre donnée
+perso glissée par le modèle local dans la question ne parte pas — pour ça, le mode hors-ligne.
+
+**Ne sort jamais** : ton e-mail (vérifié : aucune occurrence dans le code), les clés/secrets
+(seulement vers leur hôte légitime, jamais loggés), le `.env`, et **en mode hors-ligne, rien
+du tout**. Les API réseau (Freebox, OPNsense, Starlink, RADIUS, CrowdSec) sont **locales**.
+Nuance honnête : une **image** envoyée à la vision cloud ne peut pas être anonymisée (c'est
+la fonction même) — elle montre ce qu'elle montre ; coupe la vision cloud si c'est un souci.
 
 ## RCE par conception (le risque principal, assumé)
 
