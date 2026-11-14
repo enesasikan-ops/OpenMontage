@@ -435,10 +435,14 @@ def main() -> None:
         evidence = EvidenceLog(config.DATA_DIR / "preuves_securite.json")
         from crowdsec import make_crowdsec
         from persistance import make_persistence_monitor
+        from exfilwatch import make_exfil_monitor
+        from bruteforce import detecteur
+        _brute = detecteur(jarvis.notify_owner)   # corrélation force brute (nourrie par honeypot/labyrinthe)
         SecurityWatcher(jarvis.notify_owner, sentinel=sentinel, integrity=jarvis.integrity,
                         interval_s=config.CYBERWATCH_INTERVAL, evidence=evidence,
                         backup=jarvis.backup, auto_restore=config.AUTO_RESTORE,
-                        crowdsec=make_crowdsec(), persistance=make_persistence_monitor()).start()
+                        crowdsec=make_crowdsec(), persistance=make_persistence_monitor(),
+                        exfil=make_exfil_monitor()).start()
         from ipblock import IpBlocker
         jarvis.blocker = IpBlocker(config.DATA_DIR / "ip_bloquees.json",
                                    liste_blanche=config.IP_LISTE_BLANCHE)
@@ -450,8 +454,22 @@ def main() -> None:
                 jarvis.notify_owner(
                     f"🍯 ALERTE : tentative d'accès au leurre depuis {ip}.\n"
                     f"Pour la bloquer au pare-feu, réponds : bloque {ip}")
+                _brute.enregistrer(ip, "honeypot")
 
             Honeypot(on_intrusion=_sur_intrusion, port=config.HONEYPOT_PORT).demarrer()
+        if config.LABYRINTHE:   # déception : faux services + tarpit qui piègent l'intrus
+            from labyrinthe import make_labyrinthe
+
+            def _sur_leurre(ip, nom):
+                evidence.consigner(f"labyrinthe : {nom} touché depuis {ip}")
+                jarvis.notify_owner(
+                    f"🕸️ Intrus piégé dans le labyrinthe ({nom}) depuis {ip}.\n"
+                    f"Pour le bloquer au pare-feu, réponds : bloque {ip}")
+                _brute.enregistrer(ip, "labyrinthe")
+
+            _laby = make_labyrinthe(on_contact=_sur_leurre)
+            if _laby is not None:
+                _laby.demarrer()
         if config.OREILLE:   # l'ouïe : sons hors champ des caméras (bris de glace, alarme…)
             from hearing import SoundWatcher
 

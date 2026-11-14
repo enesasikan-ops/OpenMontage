@@ -217,6 +217,12 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from persistance import build_persistence_tools   # détection de porte dérobée (clé SSH, cron, autostart)
 
     tools += build_persistence_tools()
+    from exfilwatch import build_exfil_tools   # exfiltration : destination sortante inconnue (C2/vol)
+
+    tools += build_exfil_tools()
+    from bruteforce import build_bruteforce_tools   # corrélation force brute (point de situation)
+
+    tools += build_bruteforce_tools()
     if watchdog is not None:   # mode Sentinelle (armer/désarmer à la voix)
         from watchdog import build_watchdog_tools
 

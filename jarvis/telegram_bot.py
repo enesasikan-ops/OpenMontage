@@ -395,18 +395,34 @@ def main() -> None:
         evidence = EvidenceLog(config.DATA_DIR / "preuves_securite.json")
         from crowdsec import make_crowdsec
         from persistance import make_persistence_monitor
+        from exfilwatch import make_exfil_monitor
+        from bruteforce import detecteur
+        _brute = detecteur(jarvis.notify_owner)   # corrélation force brute (nourrie par honeypot/labyrinthe)
         SecurityWatcher(jarvis.notify_owner, sentinel=sentinel, integrity=integrity,
                         interval_s=config.CYBERWATCH_INTERVAL, evidence=evidence,
                         backup=backup, auto_restore=config.AUTO_RESTORE,
-                        crowdsec=make_crowdsec(), persistance=make_persistence_monitor()).start()
+                        crowdsec=make_crowdsec(), persistance=make_persistence_monitor(),
+                        exfil=make_exfil_monitor()).start()
         if config.HONEYPOT:   # faux serveur leurre (aucun accès au cœur : juste preuve + alerte)
             from honeypot import Honeypot
 
             def _sur_intrusion(ip, user, pw):
                 evidence.consigner(f"honeypot : intrusion depuis {ip} (user={user!r} pass={pw!r})")
                 jarvis.notify_owner(f"🍯 ALERTE : tentative d'accès au leurre depuis {ip}.")
+                _brute.enregistrer(ip, "honeypot")
 
             Honeypot(on_intrusion=_sur_intrusion, port=config.HONEYPOT_PORT).demarrer()
+        if config.LABYRINTHE:   # déception : faux services + tarpit qui piègent l'intrus
+            from labyrinthe import make_labyrinthe
+
+            def _sur_leurre(ip, nom):
+                evidence.consigner(f"labyrinthe : {nom} touché depuis {ip}")
+                jarvis.notify_owner(f"🕸️ Intrus piégé dans le labyrinthe ({nom}) depuis {ip}.")
+                _brute.enregistrer(ip, "labyrinthe")
+
+            _laby = make_labyrinthe(on_contact=_sur_leurre)
+            if _laby is not None:
+                _laby.demarrer()
         if config.OREILLE:   # l'ouïe : sons hors champ des caméras (bris de glace, alarme…)
             from hearing import SoundWatcher
 

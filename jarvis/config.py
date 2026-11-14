@@ -499,6 +499,25 @@ SENTINEL_FILE = DATA_DIR / "sentinelle.json"
 PERSISTENCE = _env("JARVIS_PERSISTANCE", "1") == "1"
 PERSISTENCE_FILE = DATA_DIR / "persistance.json"
 
+# --- Détection d'exfiltration (exfilwatch.py) : une destination sortante inconnue ---
+# Surveille les connexions SORTANTES établies et alerte sur un hôte public NOUVEAU (signe
+# d'un code qui « appelle la maison » / vol de données). Lecture seule. Veilleur le plus
+# BAVARD (toute nouvelle destination légitime apparaît aussi) → référence + « accepte
+# l'exfiltration » ; liste blanche de préfixes IP pour réduire le bruit. 1 = activé.
+EXFIL = _env("JARVIS_EXFILTRATION", "1") == "1"
+EXFIL_FILE = DATA_DIR / "exfiltration.json"
+EXFIL_ALLOW = tuple(x.strip() for x in _env("JARVIS_EXFIL_LISTE_BLANCHE", "").split(",") if x.strip())
+
+# --- Le labyrinthe (labyrinthe.py) : déception, piéger l'attaquant (tarpit) ---
+# Ouvre plusieurs FAUX services (SSH, panneau admin, FTP…) : toute connexion est suspecte →
+# alerte + tarpit (bannière octet par octet, connexion retenue). Jamais offensif. Ouvrir des
+# ports est un choix → opt-in. 0 = coupé (défaut). Ports hauts par défaut (pas besoin de root).
+LABYRINTHE = _env("JARVIS_LABYRINTHE", "0") == "1"
+# {port: type} parmi ssh|http|ftp|telnet|mysql. Vide = un jeu par défaut (2223/ssh, 8081/http, 2121/ftp).
+LABYRINTHE_PORTS: dict = _json_env("JARVIS_LABYRINTHE_PORTS")
+LABYRINTHE_DELAI = float(_env("JARVIS_LABYRINTHE_DELAI", "1.0"))   # secondes entre deux octets (lent = piégeant)
+LABYRINTHE_DUREE = float(_env("JARVIS_LABYRINTHE_DUREE", "120"))   # durée max de rétention d'une connexion (s)
+
 # --- Maison connectée (Home Assistant, local) ---
 HA_URL = _env("HOMEASSISTANT_URL", "").strip()      # ex. http://homeassistant.local:8123
 HA_TOKEN = _env("HOMEASSISTANT_TOKEN", "").strip()  # jeton d'accès longue durée

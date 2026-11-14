@@ -93,6 +93,21 @@ ont été refusées par conception.
   jamais de suppression auto (casserait un accès légitime et une preuve). 1re exécution = l'état
   courant devient la référence silencieuse ; après un ajout légitime, le propriétaire « accepte
   la persistance ». Même limite que le tripwire : la référence est un fichier local.
+- **Détection d'exfiltration** (`exfilwatch.py`, dans la cybersurveillance) : surveille les
+  connexions **sortantes** établies et alerte sur une destination publique **inconnue** (code
+  qui « appelle la maison » / C2 / vol). Lecture seule. C'est le veilleur le plus **bavard**
+  (toute nouvelle destination légitime apparaît aussi) → même modèle référence + « accepte
+  l'exfiltration » ; liste blanche de préfixes IP pour réduire le bruit.
+- **Corrélation anti-force-brute** (`bruteforce.py`) : agrège les échecs d'auth (honeypot,
+  labyrinthe, rejets RADIUS) par source ; au-delà d'un seuil dans une fenêtre, **une** alerte
+  corrélée et une **proposition** de blocage (« dis bloque <ip> » — jamais en aveugle, l'IP
+  peut être usurpée). Outil « point force brute ».
+- **Le labyrinthe** (`labyrinthe.py`, opt-in `JARVIS_LABYRINTHE=1`) : déception défensive. Ouvre
+  plusieurs **faux services** (SSH, panneau admin, FTP…) ; toute connexion est suspecte →
+  **alerte** + **tarpit** (bannière envoyée **octet par octet**, connexion retenue le plus
+  longtemps possible pour faire perdre du temps au scanner/brute-force). Bornes anti-DoS du
+  honeypot (connexions plafonnées, durée bornée), 1 alerte par IP. **Jamais offensif** : on ne
+  touche jamais la machine distante, on la fait seulement patienter chez soi.
 - **Défense active** (`defense.py`, sur la machine, jamais offensive) : journal horodaté
   des alertes critiques (preuves) et **copie saine du cœur** restaurable si on le trafique
   (`restaure cœur <fichier>`, sur confirmation ; `sauvegarde cœur` pour refaire la référence
