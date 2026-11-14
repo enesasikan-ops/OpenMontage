@@ -55,9 +55,9 @@ class Watchdog:
     def etat(self) -> str:
         return "Le mode Sentinelle est armé." if self.arme else "Le mode Sentinelle est désarmé."
 
-    def sur_intrusion(self, nom, camera: str, connu: bool) -> list[str]:
-        """Appelé sur détection. N'agit QUE si armé ET visage inconnu. Renvoie les actions faites."""
-        if not self.arme or connu:
+    def declencher(self, message: str) -> list[str]:
+        """Lance la réaction active (lumières, verrou, enregistrement, sommation) + alerte. Si armé."""
+        if not self.arme:
             return []
         faites = []
         lumieres = self.s.get("lumieres") or []
@@ -69,15 +69,24 @@ class Watchdog:
             self._sur(lambda: _appeler(self.home, self.s["enregistrement_service"],
                                        self.s.get("enregistrement_entite")), "enregistrement", faites)
         if self.s.get("haut_parleur"):
-            message = self.s.get("message") or MESSAGE_DEFAUT
+            annonce = self.s.get("message") or MESSAGE_DEFAUT
             self._sur(lambda: _appeler(self.home, self.s.get("tts_service", "tts.google_translate_say"),
-                                       self.s["haut_parleur"], message=message), "sommation vocale", faites)
-
-        zone = f" ({camera})" if camera else ""
-        self.notify(f"🚨 INTRUSION{zone} : individu non identifié pendant que la Sentinelle est armée. "
-                    + (f"Réaction : {', '.join(faites)}. " if faites else "")
-                    + "Si c'est une vraie intrusion, appelez la police.")
+                                       self.s["haut_parleur"], message=annonce), "sommation vocale", faites)
+        self.notify(message + (f" Réaction : {', '.join(faites)}." if faites else ""))
         return faites
+
+    def sur_intrusion(self, nom, camera: str, connu: bool) -> list[str]:
+        """Détection caméra. N'agit QUE si armé ET visage inconnu."""
+        if connu:
+            return []
+        zone = f" ({camera})" if camera else ""
+        return self.declencher(f"🚨 INTRUSION{zone} : individu non identifié pendant que la Sentinelle "
+                               "est armée. Si c'est une vraie intrusion, appelez la police.")
+
+    def sur_son(self, nom_fr: str) -> list[str]:
+        """Son suspect entendu (bris de glace…). N'agit QUE si armé."""
+        return self.declencher(f"🚨 {nom_fr.capitalize()} détecté, hors du champ des caméras. "
+                               "Si c'est une vraie intrusion, appelez la police.")
 
     @staticmethod
     def _sur(action: Callable, libelle: str, faites: list) -> None:

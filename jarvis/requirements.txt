@@ -26,3 +26,7 @@ python-telegram-bot>=22.0
 
 # Caméras motorisées (PTZ, outil tourner_camera) — optionnel
 # onvif-zeep>=0.2.12
+
+# Ouie analytique (JARVIS_OREILLE=1) — optionnel, lourd a installer
+# tensorflow>=2.15
+# tensorflow-hub>=0.16

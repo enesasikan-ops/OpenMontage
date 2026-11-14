@@ -439,6 +439,15 @@ def main() -> None:
                     f"Pour la bloquer au pare-feu, réponds : bloque {ip}")
 
             Honeypot(on_intrusion=_sur_intrusion, port=config.HONEYPOT_PORT).demarrer()
+        if config.OREILLE:   # l'ouïe : sons hors champ des caméras (bris de glace, alarme…)
+            from hearing import SoundWatcher
+
+            def _sur_son(fr, label, score):
+                jarvis.notify_owner(f"👂 {fr.capitalize()} détecté.")
+                evidence.consigner(f"son : {fr} ({label} {score:.2f})")
+                watchdog.sur_son(fr)   # réaction active si la Sentinelle est armée
+
+            SoundWatcher(_sur_son, seuil=config.OREILLE_SEUIL).demarrer()
     if plugins is not None:
         plugins.attach(jarvis.brain)
         plugins.reload()

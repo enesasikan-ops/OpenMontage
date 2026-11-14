@@ -108,3 +108,13 @@ def test_outils():
     wd = Watchdog(FauxHome(), lambda m: None, JsonStore(Path("/tmp/none.json"), {}), {})
     noms = {t.name for t in build_watchdog_tools(wd)}
     assert noms == {"armer_surveillance", "desarmer_surveillance", "etat_surveillance"}
+
+
+def test_sur_son_declenche_si_arme(tmp_path):
+    alertes = []
+    wd = _wd(tmp_path, REGLAGES, notify=alertes.append)
+    assert wd.sur_son("bris de glace") == []        # désarmé : rien
+    wd.armer()
+    faites = wd.sur_son("bris de glace")
+    assert "lumières extérieures" in faites
+    assert alertes and "Bris de glace" in alertes[-1] and "police" in alertes[-1].lower()

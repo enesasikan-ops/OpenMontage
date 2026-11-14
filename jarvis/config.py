@@ -91,6 +91,11 @@ CYBERWATCH_INTERVAL = float(_env("JARVIS_CYBERSURVEILLANCE_SECONDES", "300"))
 # toujours soumise à ta validation.
 AUTO_RESTORE = _env("JARVIS_AUTO_RESTAURATION", "0") == "1"
 
+# --- Ouïe analytique (classification des sons, hearing.py) ---
+# Un micro + YAMNet : Jarvis entend bris de glace, alarme incendie, pleurs… 1 = activé.
+OREILLE = _env("JARVIS_OREILLE", "0") == "1"
+OREILLE_SEUIL = float(_env("JARVIS_OREILLE_SEUIL", "0.5"))
+
 # --- Pot de miel (honeypot.py) ---
 # Un faux serveur leurre : toute connexion est suspecte, Jarvis note l'IP et t'alerte.
 # N'a aucun accès au cœur (pièce la plus exposée = la moins privilégiée). 0 = coupé.
