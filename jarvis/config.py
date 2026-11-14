@@ -224,6 +224,7 @@ TITLE = _env("JARVIS_TITRE", "").strip()  # ex. Monsieur, Madame, Patron ; vide 
 # Longueur des réponses : "normal" | "bref" | "militaire" (concis, une phrase, sans fioriture).
 CONCISION = _env("JARVIS_CONCISION", "normal").strip().lower()
 PREFERENCES_FILE = DATA_DIR / "consignes.json"   # consignes de comportement dictées par toi
+ARCHIVE_FILE = DATA_DIR / "archive.json"         # mémoire d'archive (cherchée à la demande, pas chargée)
 
 # --- Initiatives de Jarvis ---
 # Heure du briefing du matin (HH:MM). Vide = pas de briefing.

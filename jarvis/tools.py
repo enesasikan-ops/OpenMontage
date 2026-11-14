@@ -166,6 +166,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from preferences import build_preference_tools   # consignes de comportement dictées par toi
 
     tools += build_preference_tools()
+    from archive import build_archive_tools   # mémoire d'archive cherchée à la demande (ne charge pas le prompt)
+
+    tools += build_archive_tools()
     from sightings import build_sighting_tools   # « qui as-tu vu ? » (journal des reconnaissances)
 
     tools += build_sighting_tools()
