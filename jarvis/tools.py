@@ -110,6 +110,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from council import build_planner_tools   # planificateur multi-angles (propose, n'exécute pas)
 
     tools += build_planner_tools(claude)
+    from conscience import build_conscience_tools   # conscience de situation (relie les capteurs, réfléchit)
+
+    tools += build_conscience_tools(home, claude)
     from consolidation import build_consolidation_tools   # « sommeil cognitif » : range la mémoire (propose)
 
     tools += build_consolidation_tools(memory, claude)
