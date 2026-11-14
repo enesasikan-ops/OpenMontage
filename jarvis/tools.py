@@ -109,6 +109,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from council import build_planner_tools   # planificateur multi-angles (propose, n'exécute pas)
 
     tools += build_planner_tools(claude)
+    from consolidation import build_consolidation_tools   # « sommeil cognitif » : range la mémoire (propose)
+
+    tools += build_consolidation_tools(memory, claude)
     if reminders is not None and lists is not None:
         from skills import build_skills  # import tardif : skills.py importe Tool d'ici
 
