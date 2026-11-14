@@ -412,6 +412,7 @@ MOWER_FILE = DATA_DIR / "tondeuse.json"
 # Backend : "mqtt" (topic brut) ou "ha" (entité lawn_mower de Home Assistant — Husqvarna, Worx…).
 MOWER_BACKEND = _env("JARVIS_TONDEUSE_BACKEND", "mqtt").strip().lower()
 MOWER_ENTITE = _env("JARVIS_TONDEUSE_ENTITE", "").strip()   # ex. lawn_mower.jardin (backend ha)
+MOWER_BATTERIE = _env("JARVIS_TONDEUSE_BATTERIE", "").strip()  # ex. sensor.automower_battery (facultatif)
 
 
 def tondeuse_settings() -> dict:

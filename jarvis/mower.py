@@ -46,10 +46,12 @@ def analyser_frigate(charge: bytes, zones: tuple, camera: str, labels: tuple) ->
 class MowerGuard:
     def __init__(self, publier: "Callable | None", notify: Callable[[str], None], store,
                  settings: "dict | None" = None, horloge: "Callable[[], float]" = time.monotonic,
-                 arreter: "Callable | None" = None, reprendre: "Callable | None" = None):
+                 arreter: "Callable | None" = None, reprendre: "Callable | None" = None,
+                 lire_etat: "Callable | None" = None):
         self.publier = publier          # publier(topic, charge) -> None (backend MQTT)
         self._arreter = arreter         # backend Home Assistant : commandes injectées
         self._reprendre = reprendre
+        self._lire_etat = lire_etat     # backend HA : état réel (mowing/paused/erreur, batterie)
         self.notify = notify
         self.store = store
         self.s = settings or {}
@@ -76,8 +78,13 @@ class MowerGuard:
 
     def etat(self) -> str:
         if not self.arme:
-            return "Kill-switch tondeuse désarmé."
-        return "Tondeuse à l'arrêt (intrus détecté)." if self._stoppe_par_garde else "Kill-switch armé, tonte en cours."
+            base = "Kill-switch tondeuse désarmé."
+        elif self._stoppe_par_garde:
+            base = "Tondeuse à l'arrêt (intrus détecté)."
+        else:
+            base = "Kill-switch armé, tonte en cours."
+        reel = self._lire_etat() if self._lire_etat else ""
+        return base + reel
 
     # --- Réaction ---------------------------------------------------------------
 
@@ -170,6 +177,10 @@ def _tools_from_guard(guard: MowerGuard) -> list:
 _GUARD: "MowerGuard | None" = None
 
 
+_ETATS_FR = {"mowing": "en train de tondre", "paused": "en pause", "docked": "à la base",
+             "returning": "retour à la base", "error": "⚠️ en erreur"}
+
+
 def _commandes_ha(home, entite: str):
     """Backend Home Assistant : pause (arrêt sur place, lames coupées) / reprise."""
     def arreter():
@@ -177,6 +188,24 @@ def _commandes_ha(home, entite: str):
     def reprendre():
         home.call("lawn_mower", "start_mowing", entite)
     return arreter, reprendre
+
+
+def _lecture_ha(home, entite: str, batterie: str):
+    """Lit l'état réel de la tondeuse (mowing/paused/erreur) + batterie, depuis Home Assistant."""
+    def lire() -> str:
+        try:
+            etats = {e["entity_id"]: e for e in home.states()}
+        except Exception:
+            return ""
+        m = etats.get(entite)
+        if not m:
+            return ""
+        reel = _ETATS_FR.get(str(m.get("state", "")).lower(), m.get("state", "?"))
+        bat = ""
+        if batterie and batterie in etats and etats[batterie].get("state") not in (None, "unknown"):
+            bat = f", batterie {etats[batterie]['state']} %"
+        return f" (réel : {reel}{bat})"
+    return lire
 
 
 def guard(notify, home=None) -> "MowerGuard | None":
@@ -191,7 +220,9 @@ def guard(notify, home=None) -> "MowerGuard | None":
         settings = config.tondeuse_settings()
         if config.MOWER_BACKEND == "ha" and home is not None and config.MOWER_ENTITE:
             arreter, reprendre = _commandes_ha(home, config.MOWER_ENTITE)
-            _GUARD = MowerGuard(None, notify, store, settings, arreter=arreter, reprendre=reprendre)
+            lire = _lecture_ha(home, config.MOWER_ENTITE, config.MOWER_BATTERIE)
+            _GUARD = MowerGuard(None, notify, store, settings, arreter=arreter,
+                                reprendre=reprendre, lire_etat=lire)
         else:
             _GUARD = MowerGuard(_publier_mqtt, notify, store, settings)
     return _GUARD

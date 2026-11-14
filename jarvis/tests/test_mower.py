@@ -171,6 +171,29 @@ def test_backend_home_assistant(monkeypatch, tmp_path):
     assert ("lawn_mower", "start_mowing", "lawn_mower.jardin") in home.appels
 
 
+def test_backend_ha_lit_etat_et_batterie(monkeypatch, tmp_path):
+    import config
+    monkeypatch.setattr(config, "MOWER", True)
+    monkeypatch.setattr(config, "MOWER_ZONES", ZONES)
+    monkeypatch.setattr(config, "MOWER_FILE", tmp_path / "t.json")
+    monkeypatch.setattr(config, "MOWER_BACKEND", "ha")
+    monkeypatch.setattr(config, "MOWER_ENTITE", "lawn_mower.jardin")
+    monkeypatch.setattr(config, "MOWER_BATTERIE", "sensor.automower_battery")
+
+    class Home:
+        def call(self, *a, **k):
+            pass
+
+        def states(self):
+            return [{"entity_id": "lawn_mower.jardin", "state": "mowing"},
+                    {"entity_id": "sensor.automower_battery", "state": "84"}]
+
+    g = mower.guard(lambda m: None, Home())
+    g.armer()
+    out = g.etat()
+    assert "en train de tondre" in out and "batterie 84 %" in out
+
+
 def test_outils_et_make_partagent_la_garde(monkeypatch, tmp_path):
     import config
     monkeypatch.setattr(config, "MOWER", True)
