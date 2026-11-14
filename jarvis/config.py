@@ -400,6 +400,26 @@ OPNSENSE_COEUR = tuple(x.strip() for x in _env("JARVIS_OPNSENSE_COEUR", "").spli
 OPNSENSE_IOT = tuple(x.strip() for x in _env("JARVIS_OPNSENSE_IOT", "").split(",") if x.strip())
 OPNSENSE_INTERVALLE = float(_env("JARVIS_OPNSENSE_SECONDES", "60"))
 
+# --- Kill-switch visuel tondeuse (mower.py) : MARGE de sécurité, pas le gardien unique ---
+# Frigate voit une personne/animal entrer dans la zone de tonte -> Jarvis coupe les lames
+# par MQTT. Arrêt autonome ; reprise PRUDENTE (périmètre dégagé depuis reprise_delai, ou
+# manuelle). Ne remplace pas les sécurités propres de la tondeuse. 1 = activé.
+MOWER = _env("JARVIS_TONDEUSE", "0") == "1"
+MOWER_ZONES = tuple(x.strip() for x in _env("JARVIS_TONDEUSE_ZONES", "").split(",") if x.strip())
+MOWER_CAMERA = _env("JARVIS_TONDEUSE_CAMERA", "").strip()
+MOWER_LABELS = tuple(x.strip() for x in _env("JARVIS_TONDEUSE_LABELS", "person,dog,cat").split(",") if x.strip())
+MOWER_FILE = DATA_DIR / "tondeuse.json"
+
+
+def tondeuse_settings() -> dict:
+    return {
+        "topic": _env("JARVIS_TONDEUSE_TOPIC", "mower/command").strip(),
+        "stop": _env("JARVIS_TONDEUSE_STOP", "stop").strip(),
+        "start": _env("JARVIS_TONDEUSE_START", "start").strip(),
+        "reprise_auto": _env("JARVIS_TONDEUSE_REPRISE_AUTO", "1") == "1",
+        "reprise_delai": float(_env("JARVIS_TONDEUSE_REPRISE_DELAI", "60")),
+    }
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()

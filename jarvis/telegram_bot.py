@@ -449,6 +449,12 @@ def main() -> None:
         if _piscine is not None:
             _piscine.demarrer()
 
+    if config.MOWER:   # kill-switch visuel tondeuse (Frigate -> coupe les lames)
+        from mower import make_mower_watcher
+        _tondeuse = make_mower_watcher(jarvis.notify_owner)
+        if _tondeuse is not None:
+            _tondeuse.demarrer()
+
     if config.THERMAL:   # vigilance thermique (plaque de cuisson oubliée)
         from thermal import make_thermal_watcher
         _thermique = make_thermal_watcher(home, jarvis.notify_owner)

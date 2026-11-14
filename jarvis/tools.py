@@ -165,6 +165,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from sightings import build_sighting_tools   # « qui as-tu vu ? » (journal des reconnaissances)
 
     tools += build_sighting_tools()
+    from mower import build_mower_tools   # kill-switch visuel tondeuse (armer/arrêter), si configuré
+
+    tools += build_mower_tools(on_status)
     from freebox import build_freebox_tools   # qui est sur le Wi-Fi (Freebox), si appairée
 
     tools += build_freebox_tools()
