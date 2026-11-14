@@ -169,7 +169,17 @@ def build_camera_tools(manager: CameraManager) -> list:
              description="Oublie une caméra enregistrée.",
              parameters=obj({"nom": {**s, "description": "Le nom de la caméra à oublier."}}, ["nom"]),
              run=manager.forget),
-    ] + _ptz_tools(manager)
+    ] + _ptz_tools(manager) + _yolo_tools(manager)
+
+
+def _yolo_tools(manager: CameraManager) -> list:
+    """Détection d'objets personnalisée (YOLO), si un modèle est configuré."""
+    try:
+        from vision_yolo import build_yolo_tools
+        return build_yolo_tools(manager)
+    except Exception:
+        logging.getLogger(__name__).exception("chargement des outils YOLO")
+        return []
 
 
 def _ptz_tools(manager: CameraManager) -> list:

@@ -250,6 +250,10 @@ VACUUM_SEGMENTS: dict = _json_env("JARVIS_ASPIRATEUR_PIECES")
 TELEMETRIE = tuple(x.strip() for x in _env("JARVIS_TELEMETRIE", "").split(",") if x.strip())
 # Arroseur anti-nuisibles (dissuasion par zone) : { "parterre": "switch.arroseur_parterre" }.
 ARROSEUR_ZONES: dict = _json_env("JARVIS_ARROSEUR")
+# Détection d'objets personnalisée (Ultralytics YOLO) : chemin d'un modèle .pt entraîné par toi.
+# Vide = désactivé. « Y a-t-il un colis à l'entrée ? »
+YOLO_MODEL = _env("JARVIS_YOLO_MODELE", "").strip()
+YOLO_SEUIL = float(_env("JARVIS_YOLO_SEUIL", "0.4"))
 
 # Mode mains libres : secondes d'écoute après une réponse, sans redire « Jarvis ».
 AWAKE_SECONDS = float(_env("JARVIS_ECOUTE_SECONDES", "30"))
