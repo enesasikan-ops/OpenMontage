@@ -299,6 +299,13 @@ class NightlyImprover(threading.Thread):
 
     def work(self, now) -> "dict | None":
         """Code l'idée la plus demandée. Renvoie la proposition créée (ou None)."""
+        try:   # initiative d'auto-protection : on ne lance pas une tâche lourde si la machine souffre
+            from materiel import sous_pression
+            if sous_pression():
+                log.info("amélioration de nuit reportée : la machine est sous pression matérielle")
+                return None
+        except Exception:
+            pass
         self.journal.data["derniere_nuit"] = now.date().isoformat()
         self.journal._save()
         pend = [e for e in self.journal.pending()

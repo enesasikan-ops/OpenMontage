@@ -518,6 +518,25 @@ LABYRINTHE_PORTS: dict = _json_env("JARVIS_LABYRINTHE_PORTS")
 LABYRINTHE_DELAI = float(_env("JARVIS_LABYRINTHE_DELAI", "1.0"))   # secondes entre deux octets (lent = piégeant)
 LABYRINTHE_DUREE = float(_env("JARVIS_LABYRINTHE_DUREE", "120"))   # durée max de rétention d'une connexion (s)
 
+# --- Santé du matériel (materiel.py) : Jarvis surveille la machine où il vit ---
+# Température CPU, remplissage des disques, mémoire vive, charge, SMART. Il ALERTE, et prend
+# des initiatives SÛRES (se délester : reporter le travail de nuit quand ça chauffe/manque de
+# ressources — réversible, n'affecte que lui). 1 = activé (défaut).
+MATERIEL = _env("JARVIS_MATERIEL", "1") == "1"
+MATERIEL_INTERVALLE = float(_env("JARVIS_MATERIEL_SECONDES", "60"))
+MAT_TEMP_WARN = float(_env("JARVIS_MAT_TEMP", "75"))          # °C : température élevée
+MAT_TEMP_CRIT = float(_env("JARVIS_MAT_TEMP_CRIT", "85"))     # °C : surchauffe critique
+MAT_DISQUE_WARN = float(_env("JARVIS_MAT_DISQUE", "85"))      # % : disque qui se remplit
+MAT_DISQUE_CRIT = float(_env("JARVIS_MAT_DISQUE_CRIT", "95"))  # % : disque presque plein
+MAT_RAM_WARN = float(_env("JARVIS_MAT_RAM", "15"))           # % libre mini avant alerte
+MAT_RAM_CRIT = float(_env("JARVIS_MAT_RAM_CRIT", "7"))       # % libre : mémoire presque épuisée
+MAT_DISQUE_CHEMINS = _liste("JARVIS_MAT_DISQUES") or ("/", str(DATA_DIR))  # points à surveiller
+MAT_SMART_DEV = _env("JARVIS_MAT_SMART", "").strip()         # ex. /dev/sda (nécessite smartctl + root)
+# Initiative DRASTIQUE, opt-in : arrêt de protection sur surchauffe CRITIQUE (éteindre coupe
+# aussi la domotique → jamais par défaut ; annoncé, avec délai, annulable par « shutdown -c »).
+MAT_ARRET = _env("JARVIS_MAT_ARRET_PROTECTION", "0") == "1"
+MAT_ARRET_DELAI = float(_env("JARVIS_MAT_ARRET_DELAI", "60"))  # secondes avant l'arrêt de protection
+
 # --- Maison connectée (Home Assistant, local) ---
 HA_URL = _env("HOMEASSISTANT_URL", "").strip()      # ex. http://homeassistant.local:8123
 HA_TOKEN = _env("HOMEASSISTANT_TOKEN", "").strip()  # jeton d'accès longue durée

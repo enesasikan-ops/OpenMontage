@@ -472,6 +472,12 @@ def main() -> None:
         if _simu is not None:
             _simu.demarrer()
 
+    if config.MATERIEL:   # santé de la machine : surveille et se protège (température, disque, RAM)
+        from materiel import make_materiel_watcher
+        _mat = make_materiel_watcher(jarvis.notify_owner)
+        if _mat is not None:
+            _mat.demarrer()
+
     if config.GLASSES:   # lunettes connectées : la caméra que tu portes interroge Jarvis
         from glasses import demarrer_lunettes
         demarrer_lunettes(gemini)

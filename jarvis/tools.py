@@ -223,6 +223,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from bruteforce import build_bruteforce_tools   # corrélation force brute (point de situation)
 
     tools += build_bruteforce_tools()
+    from materiel import build_materiel_tools   # santé de la machine (température, disque, RAM, SMART)
+
+    tools += build_materiel_tools()
     if watchdog is not None:   # mode Sentinelle (armer/désarmer à la voix)
         from watchdog import build_watchdog_tools
 

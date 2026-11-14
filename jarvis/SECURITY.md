@@ -108,6 +108,14 @@ ont été refusées par conception.
   longtemps possible pour faire perdre du temps au scanner/brute-force). Bornes anti-DoS du
   honeypot (connexions plafonnées, durée bornée), 1 alerte par IP. **Jamais offensif** : on ne
   touche jamais la machine distante, on la fait seulement patienter chez soi.
+- **Santé du matériel** (`materiel.py`) : Jarvis surveille la machine où il vit (température
+  CPU, remplissage des disques, mémoire vive, charge, SMART) et **prend des initiatives pour
+  la protéger**, dans la ligne du projet : (a) **initiatives sûres, autonomes** — alerter, et
+  surtout **se délester** (reporter le travail de nuit, le plus gourmand) quand ça chauffe ou
+  manque de ressources, car c'est réversible et ça n'affecte que Jarvis ; (b) **initiative
+  drastique** — un **arrêt de protection** sur surchauffe **critique** reste **opt-in**
+  (`JARVIS_MAT_ARRET_PROTECTION=1`), annoncé, avec un délai annulable (`shutdown -c`), car
+  éteindre coupe aussi la domotique. Jamais d'arrêt par défaut.
 - **Défense active** (`defense.py`, sur la machine, jamais offensive) : journal horodaté
   des alertes critiques (preuves) et **copie saine du cœur** restaurable si on le trafique
   (`restaure cœur <fichier>`, sur confirmation ; `sauvegarde cœur` pour refaire la référence
