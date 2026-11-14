@@ -111,6 +111,14 @@ OREILLE_SEUIL = float(_env("JARVIS_OREILLE_SEUIL", "0.5"))
 OREILLE_MQTT = _env("JARVIS_OREILLE_MQTT", "0") == "1"
 OREILLE_TOPIC = _env("JARVIS_OREILLE_SUJET", "jarvis/oreille/#").strip()
 
+# --- Voiture connectée (vehicle.py) : via l'API constructeur exposée dans HA ---
+# Position, serrures, carburant/charge — PAS de bus CAN, PAS d'OpenPilot : aucun lien
+# entre l'IA et les commandes du véhicule. Déverrouiller à distance = confirmé. 1 = activé.
+VEHICLE = _env("JARVIS_VOITURE", "0") == "1"
+VEHICLE_TRACKER = _env("JARVIS_VOITURE_POSITION", "").strip()   # device_tracker.xxx
+VEHICLE_LOCK = _env("JARVIS_VOITURE_SERRURE", "").strip()       # lock.xxx
+VEHICLE_SENSORS: dict = _json_env("JARVIS_VOITURE_CAPTEURS")    # {"carburant":"sensor.xxx", ...}
+
 # --- Pot de miel (honeypot.py) ---
 # Un faux serveur leurre : toute connexion est suspecte, Jarvis note l'IP et t'alerte.
 # N'a aucun accès au cœur (pièce la plus exposée = la moins privilégiée). 0 = coupé.
