@@ -423,9 +423,11 @@ def main() -> None:
         jarvis.backup = CoreBackup(config.DATA_DIR / "sauvegarde_coeur")
         jarvis.backup.sauvegarder()            # instantané sain au démarrage
         evidence = EvidenceLog(config.DATA_DIR / "preuves_securite.json")
+        from crowdsec import make_crowdsec
         SecurityWatcher(jarvis.notify_owner, sentinel=sentinel, integrity=jarvis.integrity,
                         interval_s=config.CYBERWATCH_INTERVAL, evidence=evidence,
-                        backup=jarvis.backup, auto_restore=config.AUTO_RESTORE).start()
+                        backup=jarvis.backup, auto_restore=config.AUTO_RESTORE,
+                        crowdsec=make_crowdsec()).start()
         from ipblock import IpBlocker
         jarvis.blocker = IpBlocker(config.DATA_DIR / "ip_bloquees.json",
                                    liste_blanche=config.IP_LISTE_BLANCHE)

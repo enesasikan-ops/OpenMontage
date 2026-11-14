@@ -138,6 +138,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from robot import build_robot_tools   # robot mobile (ROS 2), si des lieux sont configurés
 
     tools += build_robot_tools()
+    from crowdsec import build_crowdsec_tools   # point sécurité réseau (CrowdSec), si configuré
+
+    tools += build_crowdsec_tools()
     if watchdog is not None:   # mode Sentinelle (armer/désarmer à la voix)
         from watchdog import build_watchdog_tools
 

@@ -383,9 +383,11 @@ def main() -> None:
         backup = CoreBackup(config.DATA_DIR / "sauvegarde_coeur")
         backup.sauvegarder()
         evidence = EvidenceLog(config.DATA_DIR / "preuves_securite.json")
+        from crowdsec import make_crowdsec
         SecurityWatcher(jarvis.notify_owner, sentinel=sentinel, integrity=integrity,
                         interval_s=config.CYBERWATCH_INTERVAL, evidence=evidence,
-                        backup=backup, auto_restore=config.AUTO_RESTORE).start()
+                        backup=backup, auto_restore=config.AUTO_RESTORE,
+                        crowdsec=make_crowdsec()).start()
         if config.HONEYPOT:   # faux serveur leurre (aucun accès au cœur : juste preuve + alerte)
             from honeypot import Honeypot
 
