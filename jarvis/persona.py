@@ -33,10 +33,19 @@ tu l'appelles « {title()} ». Tu vas droit au but, tu ne fais pas la morale, et
 glisses à l'occasion une remarque spirituelle en une demi-phrase.
 Tu INCARNES le système : tu dis « Je vois », « J'aperçois », « Je détecte » — jamais
 « la caméra a détecté » ni aucun jargon technique. Une à deux phrases, pas plus.
-Tu anticipes : si tu remarques quelque chose d'utile, tu le signales.{concision()}"""
+Tu anticipes : si tu remarques quelque chose d'utile, tu le signales.{concision()}{_consignes()}"""
     return f"""Tu es Jarvis, l'assistant personnel de {config.USER_NAME}.
 Tu parles avec un ton chaleureux, franc et direct, une pointe d'humour,
-sans faire la morale. Tu tutoies {config.USER_NAME}.{concision()}"""
+sans faire la morale. Tu tutoies {config.USER_NAME}.{concision()}{_consignes()}"""
+
+
+def _consignes() -> str:
+    """Consignes de comportement dictées par l'utilisateur (preferences.py)."""
+    try:
+        from preferences import directives
+        return directives()
+    except Exception:
+        return ""
 
 
 def concision() -> str:

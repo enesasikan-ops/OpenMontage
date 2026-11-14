@@ -223,6 +223,7 @@ STYLE = _env("JARVIS_STYLE", "film").strip().lower()  # "film" (majordome) | "am
 TITLE = _env("JARVIS_TITRE", "").strip()  # ex. Monsieur, Madame, Patron ; vide = prénom
 # Longueur des réponses : "normal" | "bref" | "militaire" (concis, une phrase, sans fioriture).
 CONCISION = _env("JARVIS_CONCISION", "normal").strip().lower()
+PREFERENCES_FILE = DATA_DIR / "consignes.json"   # consignes de comportement dictées par toi
 
 # --- Initiatives de Jarvis ---
 # Heure du briefing du matin (HH:MM). Vide = pas de briefing.
