@@ -76,6 +76,20 @@ class SmartHome:
         self._request("POST", f"/api/services/{domain}/{service}",
                       {"entity_id": entity_id, **data})
 
+    def history(self, entities, start_iso: str, end_iso: str = "") -> list:
+        """Historique des états (lecture seule) depuis `start_iso` (ISO 8601).
+
+        Renvoie la structure Home Assistant : une liste de listes, une par entité,
+        chaque élément étant un état horodaté {state, last_changed, ...}.
+        """
+        import urllib.parse
+
+        filtre = urllib.parse.quote(",".join(entities))
+        path = f"/api/history/period/{urllib.parse.quote(start_iso)}?filter_entity_id={filtre}"
+        if end_iso:
+            path += f"&end_time={urllib.parse.quote(end_iso)}"
+        return self._request("GET", path) or []
+
     @staticmethod
     def _name(entity: dict) -> str:
         return entity.get("attributes", {}).get("friendly_name") or entity["entity_id"]

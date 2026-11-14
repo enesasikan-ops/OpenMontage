@@ -123,6 +123,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         from comfort import build_comfort_tools
 
         tools += build_comfort_tools(home)   # mode détente (ambiance apaisante, déclenché par toi)
+        from habits import build_habit_tools
+
+        tools += build_habit_tools(home)   # habitudes apprises (lecture seule : propose, n'agit pas)
         ask = getattr(claude, "ask", None)
         if callable(ask):   # créer des règles à la voix (nécessite le renfort pour traduire)
             from automations import build_automation_tools

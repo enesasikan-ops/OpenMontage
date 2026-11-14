@@ -138,6 +138,17 @@ DETENTE_NIVEAU = int(_env("JARVIS_DETENTE_NIVEAU", "40"))       # luminosité pa
 DETENTE_MEDIA = _env("JARVIS_DETENTE_MEDIA", "").strip()        # entity_id du media_player
 DETENTE_SOURCE = _env("JARVIS_DETENTE_SOURCE", "").strip()      # playlist/URL douce (facultatif)
 
+# --- Habitudes (habits.py) : Jarvis anticipe, mais PROPOSE ---
+# Jarvis lit l'historique Home Assistant (lecture seule), repère les routines par
+# comptage explicable (« les mardis soirs de pluie, tu allumes le porche : 4/5 ») et
+# te les PROPOSE. Pas de boîte noire, pas d'action en douce. 1 = activé.
+HABITS = _env("JARVIS_HABITUDES", "0") == "1"
+HABITS_ENTITES = tuple(x.strip() for x in _env("JARVIS_HABITUDES_ENTITES", "").split(",") if x.strip())
+HABITS_METEO = _env("JARVIS_HABITUDES_METEO", "").strip()       # entity_id weather.* (facultatif)
+HABITS_JOURS = int(_env("JARVIS_HABITUDES_JOURS", "60"))        # fenêtre d'historique (jours)
+HABITS_SUPPORT = int(_env("JARVIS_HABITUDES_SUPPORT", "3"))     # occurrences minimales
+HABITS_CONFIANCE = float(_env("JARVIS_HABITUDES_CONFIANCE", "0.6"))  # fiabilité minimale (0-1)
+
 # --- Mode Sentinelle (réaction active anti-intrusion, watchdog.py) ---
 # Armé par toi ; sur visage inconnu, Jarvis allume/verrouille/enregistre/avertit + t'alerte.
 # (SURV_FILE est défini plus bas, après DATA_DIR.)
