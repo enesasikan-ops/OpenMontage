@@ -165,6 +165,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from freebox import build_freebox_tools   # qui est sur le Wi-Fi (Freebox), si appairée
 
     tools += build_freebox_tools()
+    from radius import build_radius_tools   # surveillance auth 802.1X (FreeRADIUS), si configuré
+
+    tools += build_radius_tools()
     from robot import build_robot_tools   # robot mobile (ROS 2), si des lieux sont configurés
 
     tools += build_robot_tools()
