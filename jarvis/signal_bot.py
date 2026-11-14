@@ -508,6 +508,12 @@ def main() -> None:
         if _thermique is not None:
             _thermique.demarrer()
 
+    if config.HEARTBEAT:   # battement de cœur (détecteur d'homme mort pour la résilience)
+        from heartbeat import make_heartbeat
+        _coeur = make_heartbeat()
+        if _coeur is not None:
+            _coeur.demarrer()
+
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
                         notify=jarvis.send_proposal).start()

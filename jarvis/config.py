@@ -346,6 +346,13 @@ ADSB_RAYON_KM = float(_env("JARVIS_ADSB_RAYON", "15"))  # rayon « au-dessus de 
 # Météo captée par TES capteurs rtl_433 (entity_id Home Assistant) :
 METEO_RADIO: dict = _json_env("JARVIS_METEO_RADIO")     # {"temperature":"sensor.rtl_433_temp", ...}
 
+# --- Battement de cœur (heartbeat.py) : détecteur d'homme mort pour la résilience ---
+# Tant que Jarvis vit, il publie un battement MQTT. Un veilleur INDÉPENDANT (automation
+# Home Assistant / puce ESPHome) bascule la maison en mode sûr s'il s'arrête. 1 = activé.
+HEARTBEAT = _env("JARVIS_COEUR", "0") == "1"
+HEARTBEAT_TOPIC = _env("JARVIS_COEUR_SUJET", "jarvis/coeur").strip()
+HEARTBEAT_INTERVAL = float(_env("JARVIS_COEUR_SECONDES", "30"))
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()
