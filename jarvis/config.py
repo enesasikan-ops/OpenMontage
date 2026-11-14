@@ -374,6 +374,14 @@ FREEBOX_CONNUS = tuple(x.strip() for x in _env("JARVIS_FREEBOX_CONNUS", "").spli
 RADIUS = _env("JARVIS_RADIUS", "0") == "1"
 RADIUS_LOG = _env("JARVIS_RADIUS_LOG", "/var/log/freeradius/radius.log").strip()
 
+# --- Détection d'instabilité Wi-Fi (wifiwatch.py) : symptôme d'une attaque de déauth ---
+# Le PMF (802.11w) empêche la déauth ; Jarvis détecte le symptôme (appareils qui se
+# déconnectent en rafale) via la liste Freebox. Nécessite la Freebox appairée. 1 = activé.
+WIFI_STABILITE = _env("JARVIS_WIFI_STABILITE", "0") == "1"
+WIFI_STABILITE_SEUIL = int(_env("JARVIS_WIFI_STABILITE_SEUIL", "4"))      # déconnexions avant alerte
+WIFI_STABILITE_FENETRE = float(_env("JARVIS_WIFI_STABILITE_FENETRE", "120"))  # fenêtre (s)
+WIFI_STABILITE_INTERVALLE = float(_env("JARVIS_WIFI_STABILITE_SECONDES", "20"))  # fréquence de vérif
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()

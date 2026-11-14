@@ -514,6 +514,12 @@ def main() -> None:
         if _coeur is not None:
             _coeur.demarrer()
 
+    if config.WIFI_STABILITE:   # détection d'instabilité Wi-Fi (symptôme de déauth)
+        from wifiwatch import make_wifi_watcher
+        _wifi = make_wifi_watcher(jarvis.notify_owner)
+        if _wifi is not None:
+            _wifi.demarrer()
+
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
                         notify=jarvis.send_proposal).start()
