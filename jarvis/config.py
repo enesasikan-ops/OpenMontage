@@ -22,6 +22,9 @@ LOCAL_MODEL = _env("JARVIS_MODELE_LOCAL", "qwen3:30b-a3b")
 # Modèle local SECONDAIRE, consultable comme un outil (ex. dolphin-llama3). Vide = pas d'outil.
 # Il répond, il n'agit pas ; ses réponses ne sont pas filtrées selon le modèle choisi.
 SECOND_MODEL = _env("JARVIS_MODELE_SECONDAIRE", "").strip()
+# Mémoire associative (liens.py) : modèle d'embeddings Ollama LOCAL pour relier les souvenirs
+# PAR LE SENS (ex. "nomic-embed-text"). Vide = liens par mots partagés (local, sans dépendance).
+EMBED_MODEL = _env("JARVIS_EMBEDDINGS", "").strip()
 # Réflexion du modèle local (Qwen3 et autres modèles « qui pensent ») :
 # "0" = répond directement (plus rapide, conseillé pour la voix), "1" = réfléchit,
 # vide = comportement par défaut du modèle (ne rien envoyer).

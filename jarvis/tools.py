@@ -178,6 +178,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from archive import build_archive_tools   # mémoire d'archive cherchée à la demande (ne charge pas le prompt)
 
     tools += build_archive_tools()
+    from liens import build_link_tools   # mémoire associative : relie les souvenirs entre eux (local)
+
+    tools += build_link_tools(memory)
     from sightings import build_sighting_tools   # « qui as-tu vu ? » (journal des reconnaissances)
 
     tools += build_sighting_tools()
