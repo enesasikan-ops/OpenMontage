@@ -162,6 +162,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from radio import build_radio_tools   # radio SDR : avion au-dessus (ADS-B), météo radio locale
 
     tools += build_radio_tools(home)
+    from vulnscan import build_vulnscan_tools   # audit de posture réseau (détecte, n'attaque pas)
+
+    tools += build_vulnscan_tools()
     if watchdog is not None:   # mode Sentinelle (armer/désarmer à la voix)
         from watchdog import build_watchdog_tools
 

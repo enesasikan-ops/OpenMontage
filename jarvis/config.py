@@ -353,6 +353,12 @@ HEARTBEAT = _env("JARVIS_COEUR", "0") == "1"
 HEARTBEAT_TOPIC = _env("JARVIS_COEUR_SUJET", "jarvis/coeur").strip()
 HEARTBEAT_INTERVAL = float(_env("JARVIS_COEUR_SECONDES", "30"))
 
+# --- Audit de posture réseau (vulnscan.py) : trouver les failles SANS les exploiter ---
+# Scan NON destructif (nmap) : ports exposés, firmwares périmés, risques connus + conseils.
+# Pas d'agent offensif, pas d'exploit, pas de pivot : on détecte, on n'attaque pas. 1 = activé.
+VULNSCAN = _env("JARVIS_AUDIT_RESEAU", "0") == "1"
+VULNSCAN_RESEAU = _env("JARVIS_AUDIT_CIBLE", "192.168.1.0/24").strip()
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()
