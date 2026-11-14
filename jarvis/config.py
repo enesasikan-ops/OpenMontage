@@ -120,6 +120,16 @@ MQTT_PASS = _env("JARVIS_MQTT_PASS", "")
 # Sans danger (bouger une caméra est réversible), donc autonome. 1 = activé.
 AUTO_REGARD = _env("JARVIS_AUTO_REGARD", "1") == "1"
 
+# --- Mode détente (comfort.py) : ambiance apaisante que TU déclenches ---
+# Pas de détection d'émotion (peu fiable, intrusive pour toi et tes invités) : c'est
+# toi (ou une routine « je rentre ») qui le lances. Jarvis baisse les lumières et met
+# une musique douce. L'outil n'apparaît que si des lumières OU un media_player sont
+# configurés ci-dessous.
+DETENTE_LUMIERES = tuple(x.strip() for x in _env("JARVIS_DETENTE_LUMIERES", "").split(",") if x.strip())
+DETENTE_NIVEAU = int(_env("JARVIS_DETENTE_NIVEAU", "40"))       # luminosité par défaut (%)
+DETENTE_MEDIA = _env("JARVIS_DETENTE_MEDIA", "").strip()        # entity_id du media_player
+DETENTE_SOURCE = _env("JARVIS_DETENTE_SOURCE", "").strip()      # playlist/URL douce (facultatif)
+
 # --- Mode Sentinelle (réaction active anti-intrusion, watchdog.py) ---
 # Armé par toi ; sur visage inconnu, Jarvis allume/verrouille/enregistre/avertit + t'alerte.
 # (SURV_FILE est défini plus bas, après DATA_DIR.)
