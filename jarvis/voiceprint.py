@@ -8,8 +8,10 @@ HONNÊTETÉ (c'est de la sécurité, pas de la magie) :
 - La biométrie vocale est un FACTEUR, pas un coffre-fort. Un enregistrement de ta voix
   (attaque par rejeu) ou un très bon imitateur peut tromper le système : c'est un score
   de similarité avec un seuil, donc probabiliste.
-- Donc on échoue FERMÉ : au moindre doute (voix non reconnue, pas de son, moteur absent),
-  on REFUSE — jamais on n'ouvre « dans le doute ».
+- Donc on échoue FERMÉ : au moindre doute (voix non reconnue, pas de son, moteur absent,
+  OU empreinte manquante/illisible), on REFUSE — jamais on n'ouvre « dans le doute ». En
+  particulier, activer l'auth vocale SANS t'être enrôlé NE désactive PAS la garde : les
+  actions sensibles restent REFUSÉES (via le code maître en attendant l'enrôlement).
 - Et on garde une PORTE DE SECOURS : un code maître débloque une courte fenêtre, pour que
   Jarvis ne t'enferme jamais dehors si ta voix est mal reconnue (bruit, rhume, cri).
 - Tout est local : les empreintes ne quittent pas la maison. On n'enregistre que les
@@ -142,13 +144,15 @@ class SpeakerVerifier:
 class SpeakerGuard:
     def __init__(self, verifier: SpeakerVerifier, proprietaire: str,
                  source: "Callable | None" = None, code: str = "",
-                 fenetre_s: float = 60.0, horloge: "Callable[[], float]" = time.monotonic):
+                 fenetre_s: float = 60.0, horloge: "Callable[[], float]" = time.monotonic,
+                 enrole: bool = True):
         self.verifier = verifier
         self.proprietaire = proprietaire
         self.source = source or (lambda: None)   # -> audio de la commande en cours
         self.code = code
         self.fenetre_s = fenetre_s
         self.horloge = horloge
+        self.enrole = enrole                      # False = aucune empreinte : on refuse (fermé)
         self._debloque_jusqu = -1e18
 
     def _fenetre_ouverte(self) -> bool:
@@ -167,6 +171,11 @@ class SpeakerGuard:
         """True si l'action sensible peut passer. Échoue FERMÉ."""
         if self._fenetre_ouverte():
             return (True, "")
+        if not self.enrole:          # auth activée mais aucune empreinte : on NE s'ouvre pas
+            secours = (" Dites votre code maître." if self.code
+                       else " Enrôlez votre voix (enroll_voice.py) ou configurez un code maître.")
+            return (False, "Auth vocale active mais aucune empreinte enregistrée : action refusée."
+                    + secours)
         audio = self.source()
         ok, _ = self.verifier.verifier(audio, self.proprietaire)
         if ok:
@@ -234,11 +243,13 @@ def make_guard(source: "Callable | None" = None,
     if not config.VOICE_AUTH:
         return None
     store = VoiceStore(config.VOICE_FILE)
-    if not store.empreintes(config.VOICE_OWNER):
-        log.warning("Auth vocale activée mais aucune empreinte pour « %s » : "
-                    "enrôle-toi (python enroll_voice.py). En attendant, auth vocale inactive.",
-                    config.VOICE_OWNER)
-        return None
+    enrole = bool(store.empreintes(config.VOICE_OWNER))
+    if not enrole:
+        # ÉCHEC FERMÉ : pas d'empreinte ne veut PAS dire « laisse passer ». On renvoie quand
+        # même une garde, qui refuse les actions sensibles (le code maître reste la porte de secours).
+        log.warning("Auth vocale activée mais aucune empreinte pour « %s » : les actions "
+                    "sensibles sont REFUSÉES (échec fermé) jusqu'à l'enrôlement "
+                    "(python enroll_voice.py) ou via le code maître.", config.VOICE_OWNER)
     verifier = SpeakerVerifier(store, embed=embed, seuil=config.VOICE_SEUIL)
     return SpeakerGuard(verifier, config.VOICE_OWNER, source=source,
-                        code=config.VOICE_PIN, fenetre_s=config.VOICE_FENETRE)
+                        code=config.VOICE_PIN, fenetre_s=config.VOICE_FENETRE, enrole=enrole)

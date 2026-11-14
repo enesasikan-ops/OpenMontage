@@ -66,3 +66,22 @@ def _OutilFactice(nom, journal):
     from tools import Tool
     return Tool(name=nom, description="", parameters={"type": "object", "properties": {}, "required": []},
                 run=lambda **k: (journal.append(nom), "FAIT")[1])
+
+
+# --- Invariant : auth vocale activée SANS enrôlement échoue FERMÉ (pas d'ouverture) ---
+
+def test_auth_vocale_sans_empreinte_ne_s_ouvre_pas(monkeypatch, tmp_path):
+    """RÉGRESSION : un fichier d'empreintes vide/corrompu ne doit PAS désactiver la garde."""
+    import config
+    from voiceprint import make_guard
+
+    monkeypatch.setattr(config, "VOICE_AUTH", True)
+    monkeypatch.setattr(config, "VOICE_OWNER", "proprio")
+    monkeypatch.setattr(config, "VOICE_FILE", tmp_path / "empreintes_absentes.json")
+    monkeypatch.setattr(config, "VOICE_SEUIL", 0.65)
+    monkeypatch.setattr(config, "VOICE_PIN", "")
+    monkeypatch.setattr(config, "VOICE_FENETRE", 60.0)
+
+    guard = make_guard(source=lambda: [1.0, 0.0, 0.0], embed=IDENT)
+    assert guard is not None, "RÉGRESSION DE SÉCURITÉ : la garde a disparu (fail-open)"
+    assert guard.autorise()[0] is False, "RÉGRESSION DE SÉCURITÉ : action sensible ouverte sans empreinte"

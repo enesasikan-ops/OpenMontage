@@ -164,6 +164,9 @@ class HandsFree:
                 continue
             text = self.listener.transcribe(audio)
             if text:
+                # garde l'audio de la phrase pour l'auth vocale (voiceprint) : sans ça, la
+                # vérification de la voix ne pourrait JAMAIS réussir en mode mains-libres.
+                self.listener.derniere_voix = audio
                 return text
         raise EOFError
 

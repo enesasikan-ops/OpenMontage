@@ -186,3 +186,22 @@ def test_system_prompt_carries_the_persona(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "TITLE", "Madame")
     prompt = system_prompt(Memory(tmp_path / "m.json"))
     assert "majordome" in prompt and "« Madame »" in prompt and "demander_a_claude" in prompt
+
+
+class _FauxListener:
+    def __init__(self):
+        self.derniere_voix = None
+
+    def transcribe(self, audio):
+        return "bonjour jarvis"
+
+
+def test_mains_libres_garde_l_audio_pour_l_auth_vocale():
+    """Sans ça, l'empreinte vocale ne pourrait jamais être vérifiée en mains-libres."""
+    listener = _FauxListener()
+    frames = silence(20) + speech(40) + silence(40)
+    agent = hf.HandsFree(listener, frames=frames, flush=lambda: None, clock=lambda: 0.0)
+    texte = agent.next_utterance()
+    assert texte == "bonjour jarvis"
+    assert listener.derniere_voix is not None          # l'audio de la phrase est bien capté
+    assert len(listener.derniere_voix) >= 40 * FRAME   # c'est la vraie phrase, pas du vide

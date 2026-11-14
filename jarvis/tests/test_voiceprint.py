@@ -161,11 +161,32 @@ def test_make_guard_desactive(monkeypatch):
     assert make_guard() is None
 
 
-def test_make_guard_sans_enrolement(monkeypatch, tmp_path):
+def test_make_guard_sans_enrolement_echoue_ferme(monkeypatch, tmp_path):
+    # RÉGRESSION DE SÉCURITÉ : auth activée sans empreinte ne doit PAS désactiver la garde.
     monkeypatch.setattr(config, "VOICE_AUTH", True)
     monkeypatch.setattr(config, "VOICE_OWNER", "proprio")
     monkeypatch.setattr(config, "VOICE_FILE", tmp_path / "vide.json")
-    assert make_guard(embed=IDENT) is None            # pas d'empreinte -> inactif (prudent)
+    monkeypatch.setattr(config, "VOICE_SEUIL", 0.65)
+    monkeypatch.setattr(config, "VOICE_PIN", "")
+    monkeypatch.setattr(config, "VOICE_FENETRE", 60.0)
+    g = make_guard(source=lambda: PROPRIO, embed=IDENT)
+    assert g is not None                               # la garde existe (échec fermé, pas ouvert)
+    ok, msg = g.autorise()
+    assert ok is False and "aucune empreinte" in msg   # action sensible REFUSÉE
+
+
+def test_make_guard_sans_enrolement_code_maitre_depanne(monkeypatch, tmp_path):
+    # le propriétaire n'est pas enfermé dehors : le code maître reste la porte de secours.
+    monkeypatch.setattr(config, "VOICE_AUTH", True)
+    monkeypatch.setattr(config, "VOICE_OWNER", "proprio")
+    monkeypatch.setattr(config, "VOICE_FILE", tmp_path / "vide.json")
+    monkeypatch.setattr(config, "VOICE_SEUIL", 0.65)
+    monkeypatch.setattr(config, "VOICE_PIN", "4731")
+    monkeypatch.setattr(config, "VOICE_FENETRE", 60.0)
+    g = make_guard(source=lambda: None, embed=IDENT)
+    assert "code maître" in g.autorise()[1]            # message guide vers le code
+    g.deverrouiller("4731")
+    assert g.autorise()[0] is True                     # débloqué par le code maître
 
 
 def test_make_guard_pret(monkeypatch, tmp_path):
