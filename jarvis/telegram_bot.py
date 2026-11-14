@@ -455,6 +455,12 @@ def main() -> None:
         if _tondeuse is not None:
             _tondeuse.demarrer()
 
+    if config.DRONEWATCH:   # veille aérienne (drones Remote ID)
+        from dronewatch import make_drone_watcher
+        _aerien = make_drone_watcher(jarvis.notify_owner)
+        if _aerien is not None:
+            _aerien.demarrer()
+
     if config.THERMAL:   # vigilance thermique (plaque de cuisson oubliée)
         from thermal import make_thermal_watcher
         _thermique = make_thermal_watcher(home, jarvis.notify_owner)

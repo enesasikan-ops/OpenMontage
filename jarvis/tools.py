@@ -196,6 +196,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from radio import build_radio_tools   # radio SDR : avion au-dessus (ADS-B), météo radio locale
 
     tools += build_radio_tools(home)
+    from dronewatch import build_drone_tools   # veille aérienne (drones Remote ID), si configuré
+
+    tools += build_drone_tools()
     from vulnscan import build_vulnscan_tools   # audit de posture réseau (détecte, n'attaque pas)
 
     tools += build_vulnscan_tools()

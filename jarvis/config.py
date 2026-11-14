@@ -449,6 +449,13 @@ HA_TOKEN = _env("HOMEASSISTANT_TOKEN", "").strip()  # jeton d'accès longue dur�
 VACUUM_SEGMENTS: dict = _json_env("JARVIS_ASPIRATEUR_PIECES")
 # Firmware : "valetudo" (dé-cloudé) ou "roborock" (app_segment_clean). Change la commande de pièce.
 VACUUM_BACKEND = _env("JARVIS_ASPIRATEUR_BACKEND", "valetudo").strip().lower()
+
+# --- Veille aérienne (dronewatch.py) : détection de drones par Remote ID / OpenDroneID ---
+# Un récepteur dédié publie les détections sur MQTT ; Jarvis alerte et consigne (preuve).
+# Détecte les drones conformes (qui émettent un Remote ID). 1 = activé.
+DRONEWATCH = _env("JARVIS_AERIEN", "0") == "1"
+DRONE_TOPIC = _env("JARVIS_AERIEN_SUJET", "opendroneid/#").strip()
+DRONE_COOLDOWN = float(_env("JARVIS_AERIEN_COOLDOWN", "120"))
 # Point de situation : capteurs à surveiller pour donner à Jarvis la « conscience » du moment
 # (détections caméra, état du drone, batteries…). Lecture seule. entity_id séparés par des virgules.
 TELEMETRIE = tuple(x.strip() for x in _env("JARVIS_TELEMETRIE", "").split(",") if x.strip())
