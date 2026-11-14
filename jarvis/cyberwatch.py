@@ -22,12 +22,14 @@ _RE_FICHIER_MODIFIE = re.compile(r"fichier du cœur MODIFIÉ.*?:\s*(\S+)")
 class SecurityWatcher(threading.Thread):
     def __init__(self, notify: Callable[[str], None], sentinel=None, integrity=None,
                  interval_s: float = INTERVALLE_S, quiet: "Callable[[], bool] | None" = None,
-                 evidence=None, backup=None, auto_restore: bool = False, crowdsec=None):
+                 evidence=None, backup=None, auto_restore: bool = False, crowdsec=None,
+                 persistance=None):
         super().__init__(daemon=True, name="jarvis-cyberwatch")
         self.notify = notify
         self.sentinel = sentinel
         self.integrity = integrity
         self.crowdsec = crowdsec          # CrowdSecWatcher : IP bloquées par l'IDS/IPS réseau
+        self.persistance = persistance    # PersistenceMonitor : clé SSH/cron/autostart ajoutés
         self.interval_s = interval_s
         self.quiet = quiet
         self.evidence = evidence          # EvidenceLog : garde une trace des alertes critiques
@@ -54,6 +56,11 @@ class SecurityWatcher(threading.Thread):
                 evenements += list(self.crowdsec.check())
             except Exception:
                 log.exception("vérification de CrowdSec")
+        if self.persistance is not None:          # portes dérobées : clé SSH, cron, autostart
+            try:
+                evenements += list(self.persistance.check())
+            except Exception:
+                log.exception("vérification de la persistance")
 
         nouvelles = []
         for critique, message in evenements:

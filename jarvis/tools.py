@@ -214,6 +214,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from vulnscan import build_vulnscan_tools   # audit de posture réseau (détecte, n'attaque pas)
 
     tools += build_vulnscan_tools()
+    from persistance import build_persistence_tools   # détection de porte dérobée (clé SSH, cron, autostart)
+
+    tools += build_persistence_tools()
     if watchdog is not None:   # mode Sentinelle (armer/désarmer à la voix)
         from watchdog import build_watchdog_tools
 

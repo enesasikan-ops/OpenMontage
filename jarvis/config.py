@@ -491,6 +491,14 @@ DASHBOARD_TOKEN = _env("JARVIS_ECRAN_JETON", "").strip()
 SENTINEL = _env("JARVIS_SENTINELLE", "1") == "1"
 SENTINEL_FILE = DATA_DIR / "sentinelle.json"
 
+# --- Détection de persistance (persistance.py) : la porte dérobée d'après-intrusion ---
+# Surveille les mécanismes qu'un intrus laisse pour revenir : clé SSH ajoutée à
+# authorized_keys, tâche cron, service d'autostart, fichier de démarrage (.bashrc…) modifié.
+# LECTURE SEULE + alerte (jamais de suppression auto). Tourne dans la cybersurveillance.
+# 1re exécution = l'état courant devient la référence (silencieuse). 1 = activé (défaut).
+PERSISTENCE = _env("JARVIS_PERSISTANCE", "1") == "1"
+PERSISTENCE_FILE = DATA_DIR / "persistance.json"
+
 # --- Maison connectée (Home Assistant, local) ---
 HA_URL = _env("HOMEASSISTANT_URL", "").strip()      # ex. http://homeassistant.local:8123
 HA_TOKEN = _env("HOMEASSISTANT_TOKEN", "").strip()  # jeton d'accès longue durée

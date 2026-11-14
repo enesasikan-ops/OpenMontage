@@ -86,6 +86,13 @@ ont été refusées par conception.
   propriétaire « rebase » la référence (commande `rebase cœur`). Limite : la référence est
   un fichier local — un attaquant qui modifie le code peut aussi la modifier ; c'est un
   signal précoce, à compléter par des droits de fichiers stricts et un compte dédié.
+- **Détection de persistance** (`persistance.py`, branchée dans la cybersurveillance) :
+  surveille les mécanismes de **porte dérobée d'après-intrusion** que la sentinelle ne couvre
+  pas — clé SSH ajoutée à `authorized_keys`, tâche **cron**, service d'**autostart**, fichier
+  de démarrage (`.bashrc`…) modifié. **Lecture seule + alerte** (clé SSH et cron = critiques) ;
+  jamais de suppression auto (casserait un accès légitime et une preuve). 1re exécution = l'état
+  courant devient la référence silencieuse ; après un ajout légitime, le propriétaire « accepte
+  la persistance ». Même limite que le tripwire : la référence est un fichier local.
 - **Défense active** (`defense.py`, sur la machine, jamais offensive) : journal horodaté
   des alertes critiques (preuves) et **copie saine du cœur** restaurable si on le trafique
   (`restaure cœur <fichier>`, sur confirmation ; `sauvegarde cœur` pour refaire la référence
