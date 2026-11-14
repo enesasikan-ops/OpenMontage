@@ -388,6 +388,18 @@ WIFI_STABILITE_INTERVALLE = float(_env("JARVIS_WIFI_STABILITE_SECONDES", "20")) 
 STARLINK = _env("JARVIS_STARLINK", "0") == "1"
 STARLINK_INTERVALLE = float(_env("JARVIS_STARLINK_SECONDES", "60"))
 
+# --- Bastion OPNsense (opnsense.py) : fil d'alarme sur la segmentation VLAN ---
+# OPNsense sépare le réseau en VLAN (cœur vs IoT) ; Jarvis lit son journal et alerte
+# quand un appareil IoT tente d'atteindre le cœur (objet compromis). La clé/secret API
+# sont des SECRETS (.env). 1 = activé.
+OPNSENSE = _env("JARVIS_OPNSENSE", "0") == "1"
+OPNSENSE_URL = _env("JARVIS_OPNSENSE_URL", "https://opnsense.local").strip()
+OPNSENSE_KEY = _env("JARVIS_OPNSENSE_CLE", "").strip()
+OPNSENSE_SECRET = _env("JARVIS_OPNSENSE_SECRET", "").strip()
+OPNSENSE_COEUR = tuple(x.strip() for x in _env("JARVIS_OPNSENSE_COEUR", "").split(",") if x.strip())
+OPNSENSE_IOT = tuple(x.strip() for x in _env("JARVIS_OPNSENSE_IOT", "").split(",") if x.strip())
+OPNSENSE_INTERVALLE = float(_env("JARVIS_OPNSENSE_SECONDES", "60"))
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()

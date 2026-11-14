@@ -171,6 +171,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from starlink import build_starlink_tools   # état de l'Internet Starlink (WAN), si configuré
 
     tools += build_starlink_tools()
+    from opnsense import build_opnsense_tools   # fil d'alarme bastion OPNsense (VLAN), si configuré
+
+    tools += build_opnsense_tools()
     from robot import build_robot_tools   # robot mobile (ROS 2), si des lieux sont configurés
 
     tools += build_robot_tools()

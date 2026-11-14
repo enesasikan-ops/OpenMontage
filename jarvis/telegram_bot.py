@@ -470,6 +470,12 @@ def main() -> None:
         if _star is not None:
             _star.demarrer()
 
+    if config.OPNSENSE:   # fil d'alarme bastion OPNsense (tentative IoT -> cœur)
+        from opnsense import make_opnsense_watcher
+        _opn = make_opnsense_watcher(jarvis.notify_owner)
+        if _opn is not None:
+            _opn.demarrer()
+
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
                         notify=jarvis.send_proposal).start()
