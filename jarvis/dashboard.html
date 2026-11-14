@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tableau de bord Jarvis</title>
+<style>
+  :root{
+    --bg:#05090f; --panel:rgba(16,30,46,.55); --edge:rgba(86,180,255,.22);
+    --fg:#dbeafe; --muted:#6f8bab; --accent:#39c0ff; --accent2:#7df9ff;
+    --good:#34d399; --crit:#fb7185;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:"Space Grotesk",system-ui,-apple-system,sans-serif;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--fg); font-family:var(--sans); overflow-x:hidden;
+    background:
+      radial-gradient(1200px 700px at 50% -10%,rgba(57,192,255,.10),transparent 60%),
+      radial-gradient(900px 600px at 90% 110%,rgba(57,192,255,.06),transparent 55%),
+      var(--bg);
+    padding:clamp(16px,3vh,30px) max(18px,env(safe-area-inset-right,0px))
+            clamp(16px,3vh,30px) max(18px,env(safe-area-inset-left,0px));
+  }
+  .wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .core{width:46px;height:46px;flex:none;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 50% 50%,var(--accent2),var(--accent) 45%,transparent 70%);
+    box-shadow:0 0 24px rgba(57,192,255,.6)}
+  .core::after{content:"";position:absolute;inset:-7px;border-radius:50%;
+    border:1px solid var(--edge);animation:spin 8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .brand h1{font-size:clamp(1.2rem,4vw,1.7rem);margin:0;letter-spacing:.14em;font-weight:600}
+  .brand p{margin:2px 0 0;color:var(--muted);font-size:.72rem;letter-spacing:.3em;text-transform:uppercase}
+  .brand p .live{color:var(--good)}
+  .brand p.offline .live{color:var(--crit)}
+  .clock{text-align:right;min-width:0}
+  .clock .t{font-family:var(--mono);font-size:clamp(1.8rem,7vw,2.8rem);font-variant-numeric:tabular-nums;
+    line-height:1;color:#eaf4ff;text-shadow:0 0 18px rgba(57,192,255,.35)}
+  .clock .d{color:var(--muted);font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;margin-top:6px}
+  .listen{display:flex;align-items:center;gap:16px;padding:14px 18px;border-radius:16px;
+    background:var(--panel);border:1px solid var(--edge)}
+  .mic{position:relative;width:40px;height:40px;flex:none;display:grid;place-items:center}
+  .mic span{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--accent);opacity:0;
+    animation:ping 2.4s ease-out infinite}
+  .mic span:nth-child(2){animation-delay:.8s}.mic span:nth-child(3){animation-delay:1.6s}
+  @keyframes ping{0%{transform:scale(.4);opacity:.7}100%{transform:scale(1.5);opacity:0}}
+  .mic b{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 14px var(--accent)}
+  .listen .l1{font-size:1.02rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:16px}
+  .panel{background:var(--panel);border:1px solid var(--edge);border-radius:16px;padding:18px;
+    min-width:0;position:relative;overflow:hidden}
+  .panel::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.5}
+  .panel h2{margin:0 0 14px;font-size:.72rem;letter-spacing:.26em;text-transform:uppercase;color:var(--accent);
+    font-weight:600;display:flex;align-items:center;gap:8px}
+  .panel h2 .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+  ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+  .row{display:flex;align-items:center;gap:11px;font-size:.95rem;min-width:0}
+  .row .time{font-family:var(--mono);color:var(--accent);font-variant-numeric:tabular-nums;flex:none}
+  .row .txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip{margin-left:auto;flex:none;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;
+    padding:3px 9px;border-radius:999px;border:1px solid}
+  .on{color:var(--good);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+  .off{color:var(--muted);border-color:rgba(111,139,171,.3)}
+  .lock{color:var(--accent);border-color:var(--edge);background:rgba(57,192,255,.08)}
+  .status{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid rgba(86,180,255,.1)}
+  .status:first-child{border-top:0;padding-top:0}
+  .led{width:9px;height:9px;border-radius:50%;flex:none}
+  .led.ok{background:var(--good);box-shadow:0 0 10px var(--good)}
+  .led.crit{background:var(--crit);box-shadow:0 0 10px var(--crit)}
+  .muted{color:var(--muted)}
+  .empty{color:var(--muted);font-size:.9rem}
+  footer{color:var(--muted);font-size:.72rem;text-align:center;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
+  @media(max-width:560px){.clock{text-align:left}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="core"></div>
+      <div><h1>J.A.R.V.I.S.</h1><p id="link"><span class="live">●</span> en ligne</p></div>
+    </div>
+    <div class="clock"><div class="t" id="time">—</div><div class="d" id="date"></div></div>
+  </header>
+
+  <div class="listen">
+    <div class="mic"><span></span><span></span><span></span><b></b></div>
+    <div class="l1" id="hello">À votre écoute.</div>
+  </div>
+
+  <div class="grid">
+    <section class="panel" id="meteo-panel" hidden>
+      <h2><span class="dot"></span>Météo</h2>
+      <div id="meteo" class="muted"></div>
+    </section>
+    <section class="panel">
+      <h2><span class="dot"></span>Programme du jour</h2>
+      <ul id="rappels"><li class="empty">—</li></ul>
+    </section>
+    <section class="panel" id="maison-panel" hidden>
+      <h2><span class="dot"></span>Maison</h2>
+      <ul id="maison"></ul>
+    </section>
+    <section class="panel" id="secu-panel" hidden>
+      <h2><span class="dot"></span>Sécurité</h2>
+      <div id="securite"></div>
+    </section>
+    <section class="panel">
+      <h2><span class="dot"></span>Système</h2>
+      <div id="pc" class="muted">—</div>
+      <div id="courses" class="muted" style="margin-top:11px"></div>
+    </section>
+    <section class="panel" id="cam-panel" hidden>
+      <h2><span class="dot"></span>Caméras</h2>
+      <div id="cameras" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>
+    </section>
+  </div>
+
+  <footer>Tout tourne en local sur votre machine</footer>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+  function renderRappels(list){
+    const el = $("rappels");
+    if(!list.length){ el.innerHTML = '<li class="empty">Aucun rappel aujourd\'hui.</li>'; return; }
+    el.innerHTML = list.map(r =>
+      `<li class="row"><span class="time">${esc(r.heure)}</span><span class="txt">${esc(r.texte)}</span></li>`).join("");
+  }
+
+  function renderMaison(m){
+    const panel = $("maison-panel");
+    if(!m || !m.configure){ panel.hidden = true; return; }
+    panel.hidden = false;
+    const chip = d => d.etat==="on" ? '<span class="chip on">Allumé</span>'
+      : d.etat==="lock" ? '<span class="chip lock">Verrouillé</span>'
+      : d.etat==="unlock" ? '<span class="chip off">Ouvert</span>'
+      : '<span class="chip off">Éteint</span>';
+    const dev = (m.appareils||[]).map(d =>
+      `<li class="row"><span class="txt">${esc(d.nom)}</span>${chip(d)}</li>`);
+    const temp = (m.temperatures||[]).map(t =>
+      `<li class="row"><span class="txt">${esc(t.nom)}</span><span class="chip off">${esc(t.valeur)}</span></li>`);
+    const rows = dev.concat(temp);
+    $("maison").innerHTML = rows.length ? rows.join("") : '<li class="empty">Rien à afficher.</li>';
+  }
+
+  function renderSecurite(list){
+    const panel = $("secu-panel");
+    if(!list || !list.length){ panel.hidden = true; return; }
+    panel.hidden = false;
+    $("securite").innerHTML = list.map(s =>
+      `<div class="status"><span class="led ${s.niveau}"></span><div>${esc(s.libelle)}</div></div>`).join("");
+  }
+
+  let camNames = "";
+  function renderCameras(names){
+    const panel = $("cam-panel");
+    if(!names || !names.length){ panel.hidden = true; return; }
+    panel.hidden = false;
+    const key = names.join(",");
+    if(key !== camNames){            // ne reconstruit que si la liste change (pas de clignotement)
+      camNames = key;
+      $("cameras").innerHTML = names.map(n =>
+        `<figure style="margin:0"><img id="cam_${esc(n)}" alt="${esc(n)}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;background:#111;display:block">`
+        + `<figcaption class="muted" style="margin-top:6px">${esc(n)}</figcaption></figure>`).join("");
+    }
+    const q = location.search ? location.search.slice(1) + "&" : "";
+    const t = Date.now();            // rafraîchit l'image
+    names.forEach(n => { const img = document.getElementById("cam_"+n);
+      if(img) img.src = `/api/camera?nom=${encodeURIComponent(n)}&${q}t=${t}`; });
+  }
+
+  async function refresh(){
+    try{
+      const r = await fetch("/api/etat" + location.search, {cache:"no-store"});
+      if(!r.ok) throw new Error(r.status);
+      const s = await r.json();
+      $("time").textContent = s.heure;
+      $("date").textContent = s.date;
+      $("hello").textContent = s.salutation;
+      $("link").className = "";
+      $("link").innerHTML = '<span class="live">●</span> en ligne';
+      renderRappels(s.rappels || []);
+      renderMaison(s.maison);
+      renderSecurite(s.securite);
+      if(s.meteo && s.meteo.texte){ $("meteo-panel").hidden = false; $("meteo").textContent = s.meteo.texte; }
+      else { $("meteo-panel").hidden = true; }
+      $("pc").textContent = s.pc || "";
+      $("courses").textContent = s.courses ? `Liste de courses : ${s.courses} article(s)` : "";
+      renderCameras(s.cameras || []);
+    }catch(e){
+      $("link").className = "offline";
+      $("link").innerHTML = '<span class="live">●</span> hors connexion';
+    }
+  }
+  refresh();
+  setInterval(refresh, 5000);
+</script>
+</body>
+</html>

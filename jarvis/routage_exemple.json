@@ -1,0 +1,10 @@
+[
+  {"phrase": "il fait nuit, allume l'entrée", "outil_attendu": "allumer"},
+  {"phrase": "quelle heure est-il ?", "outil_attendu": "heure_et_date"},
+  {"phrase": "ouvre le portail", "outil_attendu": "ouvrir"},
+  {"phrase": "retiens que je suis allergique aux arachides", "outil_attendu": "retenir"},
+  {"phrase": "la plaque est-elle éteinte ?", "outil_attendu": "point_thermique"},
+  {"phrase": "quel avion passe au-dessus ?", "outil_attendu": "avion_au_dessus"},
+  {"phrase": "mode détente", "outil_attendu": "mode_detente"},
+  {"phrase": "comment tu vas ?", "outil_attendu": null}
+]

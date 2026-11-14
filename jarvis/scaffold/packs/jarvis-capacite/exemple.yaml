@@ -1,0 +1,21 @@
+# Exemple : une capacité « marées » pour Jarvis.
+pack: jarvis-capacite
+nom: marees
+description: "Horaires des marées et coefficients pour un port"
+auteur: "Enes"
+variables:
+  - nom: JARVIS_MAREES_PORT
+    defaut: "Brest"
+    description: "Port par défaut"
+actions:
+  - nom: horaires_marees
+    description: "Donne les horaires de pleine et basse mer pour un port et un jour."
+    parametres:
+      - {nom: port, type: string, description: "Nom du port", requis: false}
+      - {nom: jour, type: string, description: "Date AAAA-MM-JJ", requis: false}
+  - nom: alerte_grande_maree
+    description: "Programme une alerte avant une grande marée."
+    sensible: true
+    confirmation: "Je vais programmer une alerte de grande marée."
+    parametres:
+      - {nom: coefficient_min, type: integer, description: "Coefficient minimal"}

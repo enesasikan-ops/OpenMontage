@@ -1,0 +1,35 @@
+# Cerveau local + renfort Claude
+ollama>=0.6
+anthropic>=2.8
+python-dotenv>=1.0
+jinja2>=3.1
+pyyaml>=6.0
+ddgs>=6.0
+psutil>=6.0
+
+# Voix (mode --voix)
+faster-whisper>=1.1
+piper-tts>=1.2
+sounddevice>=0.5
+soundfile>=0.12
+numpy>=1.26
+
+# Bot Telegram (python telegram_bot.py)
+python-telegram-bot>=22.0
+
+# Reconnaissance de visages (JARVIS_VISAGES=1) — optionnel, lourd à installer
+# face-recognition>=1.3
+# pillow>=10
+
+# Annonces d'arrivée via caméras (JARVIS_MQTT=1) — optionnel
+# paho-mqtt>=2.1
+
+# Caméras motorisées (PTZ, outil tourner_camera) — optionnel
+# onvif-zeep>=0.2.12
+
+# Ouie analytique (JARVIS_OREILLE=1) — optionnel, lourd a installer
+# tensorflow>=2.15
+# tensorflow-hub>=0.16
+
+# Detection d objets personnalisee (JARVIS_YOLO_MODELE) — optionnel
+# ultralytics>=8.3

@@ -1,0 +1,58 @@
+description: "Nouvelle capacité Jarvis (extension : outils + tests + doc)"
+
+# Schéma de la configuration (validé AVANT toute écriture ; toutes les erreurs d'un coup).
+schema:
+  nom:
+    type: str
+    requis: true
+    motif: "[a-z][a-z0-9_]*"
+    aide: "minuscules, chiffres et _ — ex. meteo_marine"
+  description:
+    type: str
+    requis: true
+  auteur:
+    type: str
+    defaut: "Jarvis"
+  documentation:
+    type: bool
+    defaut: true
+  variables:          # réglages .env propres à la capacité
+    type: list
+    defaut: []
+    elements:
+      nom: {type: str, requis: true, motif: "[A-Z][A-Z0-9_]*", aide: "MAJUSCULES — ex. JARVIS_METEO_VILLE"}
+      defaut: {type: str, defaut: ""}
+      description: {type: str, defaut: ""}
+  actions:            # chaque action devient un outil que le cerveau peut appeler
+    type: list
+    requis: true
+    non_vide: true
+    unique: nom
+    elements:
+      nom: {type: str, requis: true, motif: "[a-z][a-z0-9_]*", aide: "minuscules et _"}
+      description: {type: str, requis: true}
+      sensible: {type: bool, defaut: false}    # true = confirmation avant d'agir
+      confirmation: {type: str, defaut: ""}
+      parametres:
+        type: list
+        defaut: []
+        unique: nom
+        elements:
+          nom: {type: str, requis: true, motif: "[a-z][a-z0-9_]*"}
+          type: {type: str, defaut: "string", choix: [string, integer, number, boolean]}
+          description: {type: str, defaut: ""}
+          requis: {type: bool, defaut: true}
+
+# Fichiers produits. « sortie » et « si » sont des expressions Jinja sur la config.
+fichiers:
+  - modele: capacite.py.j2
+    sortie: "plugins/{{ noms.snake }}/{{ noms.snake }}.py"
+  - modele: test_capacite.py.j2
+    sortie: "plugins/{{ noms.snake }}/test_{{ noms.snake }}.py"
+  - modele: README.md.j2
+    sortie: "plugins/{{ noms.snake }}/README.md"
+    si: "documentation"
+
+notes:
+  - "Complète les zones « # >>> manuel » (la logique métier), puis lance : python -m pytest plugins"
+  - "Si Jarvis tourne, la capacité est chargée à chaud en quelques secondes (sinon, au prochain démarrage)."

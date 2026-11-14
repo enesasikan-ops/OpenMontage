@@ -1,0 +1,257 @@
+"""Point d'entrée de Jarvis.
+
+    python main.py          # mode clavier (pour tester)
+    python main.py --voix   # mode vocal : micro + voix
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent / ".env")
+
+import config  # noqa: E402  (après load_dotenv pour lire le .env)
+import persona  # noqa: E402
+from brain import Brain  # noqa: E402
+from claude_bridge import ClaudeBridge, GeminiBackend, GeminiCliBackend  # noqa: E402
+from memory import Memory  # noqa: E402
+from proactive import Proactive  # noqa: E402
+from security import Sentinel  # noqa: E402
+from smarthome import SmartHome  # noqa: E402
+from skills import Lists, Reminders, ReminderWatcher  # noqa: E402
+from tools import build_tools  # noqa: E402
+
+STOP_WORDS = ("au revoir", "bonne nuit jarvis", "quitter", "exit", "stop jarvis")
+
+
+def model_installed(wanted: str, installed: set[str]) -> bool:
+    """« qwen3:30b-a3b » doit être installé tel quel ; « mistral-small3.2 » = « :latest »."""
+    full = wanted if ":" in wanted else f"{wanted}:latest"
+    return full in installed
+
+
+def make_cameras(gemini):
+    """Caméras par adresse de flux (publiques ou à toi), décrites par la vision locale/Gemini."""
+    import config as _c
+    from camera import CameraBook, CameraManager
+    from vision import VisionRouter
+
+    router = VisionRouter(gemini=gemini)
+    describe = router.describe if router.available else None
+    return CameraManager(CameraBook(_c.CAMERAS_FILE), describe=describe)
+
+
+def make_faces(drone):
+    """Reconnaissance de visages (locale), si activée. Regarde la vue du drone si présent."""
+    import config as _c
+    if not _c.FACES:
+        return None, None
+    from faces import FaceRecognitionEngine, FaceStore, Recognizer
+
+    recognizer = Recognizer(FaceRecognitionEngine(), FaceStore(_c.FACES_FILE))
+    frame = (lambda: drone.c.frame()) if drone is not None else None
+    return recognizer, frame
+
+
+def make_drone(gemini):
+    """Le drone : simulateur (démo) ou vrai Parrot ANAFI. La vision passe par Gemini si dispo."""
+    import config as _c
+    if _c.DRONE in ("0", ""):
+        return None
+    from drone import AnafiController, DronePilot, MavlinkController, SimDrone
+    if _c.DRONE == "sim":
+        controller = SimDrone()
+    elif _c.DRONE == "mavlink":
+        controller = MavlinkController()
+    else:
+        controller = AnafiController()
+    from vision import VisionRouter
+    router = VisionRouter(gemini=gemini)
+    describe = router.describe if router.available else None
+    inf = float("inf")
+    if _c.DRONE == "sim":
+        # Simulateur : aucune limite, rien à confirmer (c'est virtuel).
+        return DronePilot(controller, describe=describe, step_max=inf, alt_max=inf,
+                          alt_legal=inf, dist_legal=inf, dist_max=inf)
+    # Vrai vol : libre sous la limite légale ; au-dessus, Jarvis demande confirmation,
+    # jusqu'au plafond absolu.
+    return DronePilot(controller, describe=describe, step_max=_c.DRONE_STEP_MAX,
+                      alt_legal=_c.DRONE_ALT_MAX, alt_max=_c.DRONE_ALT_CEILING,
+                      dist_legal=_c.DRONE_DIST_MAX, dist_max=_c.DRONE_DIST_CEILING)
+
+
+def gemini_advisor():
+    """Gemini en « deuxième avis », à côté de Claude. Préfère la clé API, sinon l'abonnement (CLI)."""
+    import config as _c
+    if _c.RENFORT.startswith("gemini"):
+        return None  # Gemini est déjà le renfort principal
+    if _c.GEMINI_KEY:
+        return GeminiBackend()
+    if _c.GEMINI_CLI_ENABLE:
+        return GeminiCliBackend()
+    return None
+
+
+def check_ollama(wait_s: int = 0):
+    """Vérifie qu'Ollama répond et que le modèle est installé.
+
+    wait_s : au démarrage du PC, Ollama peut mettre un moment à se lancer ;
+    on patiente jusqu'à wait_s secondes avant d'abandonner.
+    """
+    import time
+
+    import ollama
+
+    client = ollama.Client(host=config.OLLAMA_HOST)
+    deadline = time.monotonic() + wait_s
+    while True:
+        try:
+            installed = {m.model for m in client.list().models}
+            break
+        except Exception:
+            if time.monotonic() >= deadline:
+                sys.exit("❌ Ollama ne répond pas. Ouvre l'app Ollama (ou lance « ollama serve »).")
+            time.sleep(5)
+    if not model_installed(config.LOCAL_MODEL, installed):
+        sys.exit(f"❌ Le modèle « {config.LOCAL_MODEL} » n'est pas installé.\n"
+                 f"   Lance : ollama pull {config.LOCAL_MODEL}")
+    return client
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Jarvis, assistant personnel")
+    parser.add_argument("--voix", action="store_true",
+                        help="mode vocal : Entrée pour parler, Entrée pour finir")
+    parser.add_argument("--mains-libres", action="store_true",
+                        help="mode vocal sans clavier : dis « Jarvis » dans ta phrase")
+    args = parser.parse_args()
+
+    client = check_ollama(wait_s=180 if args.mains_libres else 0)
+    memory = Memory(config.MEMORY_FILE)
+    claude = ClaudeBridge()
+
+    listener = speaker = hands = None
+    if args.voix or args.mains_libres:
+        from voice import Listener, Speaker, is_yes
+
+        listener, speaker = Listener(), Speaker()
+    if args.mains_libres:
+        from handsfree import HandsFree, MicSource, is_sleep
+
+        mic = MicSource()
+        hands = HandsFree(listener, mic.frames(), flush=mic.flush)
+
+    def say(text: str) -> None:
+        print(f"🤖 Jarvis : {text}")
+        if hands:
+            hands.mute()  # Jarvis ne doit pas s'écouter parler
+        try:
+            if speaker:
+                speaker.say(text)
+        finally:
+            if hands:
+                hands.spoke()
+
+    def hear() -> str | None:
+        if hands:
+            text = hands.next_command()
+        elif listener:
+            text = listener.listen()
+        else:
+            return input("🧑 Toi : ")
+        print(f"🧑 Toi : {text if text is not None else 'Jarvis ?'}")
+        return text
+
+    def confirm(description: str) -> bool:
+        say(f"{description} {persona.confirm_question()}")
+        if hands:
+            answer = hands.next_utterance()
+            print(f"🧑 Toi : {answer}")
+            return is_yes(answer)
+        answer = hear() or ""
+        return is_yes(answer) if listener else answer.strip().lower() in ("o", "oui", "y", "yes", "ok")
+
+    reminders, lists = Reminders(config.REMINDERS_FILE), Lists(config.LISTS_FILE)
+    sentinel = Sentinel(config.SENTINEL_FILE) if config.SENTINEL else None
+    home = SmartHome()
+    gemini = gemini_advisor()
+    drone = make_drone(gemini)
+    faces, face_frame = make_faces(drone)
+    cameras = make_cameras(gemini)
+    from growth import GrowthJournal, NightlyImprover, Proposals
+    growth = GrowthJournal(config.GROWTH_FILE)
+    proposals = Proposals(growth)
+    tools = build_tools(memory, claude, on_status=say, reminders=reminders, lists=lists,
+                            sentinel=sentinel, home=home,
+                            agent=claude if config.AGENT else None, gemini=gemini, drone=drone,
+                            faces=faces, face_frame=face_frame, cameras=cameras, growth=growth,
+                            proposals=proposals, plugins=not config.PLUGINS_HOT)
+    plugins = None
+    if config.PLUGINS_HOT:
+        from plugin_manager import PluginManager, build_plugin_tools
+
+        plugins = PluginManager(interval_s=config.PLUGINS_INTERVAL)
+        tools.update({t.name: t for t in build_plugin_tools(plugins)})
+    if config.VOICE_AUTH:   # les actions sensibles exigent la voix du propriétaire
+        from voiceprint import build_voice_tools, make_guard, proteger_outils
+        _guard = make_guard(source=lambda: getattr(listener, "derniere_voix", None))
+        if _guard is not None:
+            proteges = proteger_outils(tools, _guard, config.VOICE_ACTIONS)
+            tools.update({t.name: t for t in build_voice_tools(_guard)})
+            print(f"🔐 Auth vocale active sur : {', '.join(proteges) or 'aucun outil'}.")
+    brain = Brain(client, tools, memory, confirm)
+    if plugins is not None:
+        plugins.attach(brain)          # le cœur = les outils actuels ; les extensions s'y ajoutent
+        plugins.reload()
+        plugins.start()                # surveille plugins/ : charge, recharge, décharge à chaud
+        proposals.hot_reload = plugins.reload
+    ReminderWatcher(reminders, notify=lambda text: say(f"\n{text}")).start()
+    Proactive(reminders, lists, security=sentinel.check if sentinel else None,
+              notify=lambda text: say(f"\n{text}")).start()
+    if config.AGENT and config.IMPROVE_AT:
+        NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
+                        notify=lambda text, pid: say(
+                            f"\n{text} Dis « active l'amélioration {pid} » ou « rejette l'amélioration {pid} ».")
+                        ).start()
+
+    if claude.available:
+        renfort = f"renfort : {claude.name}"
+    else:
+        renfort = f"sans renfort ({claude.backend.unavailable_reason()})"
+    print(f"Jarvis prêt — cerveau local : {config.LOCAL_MODEL}, {renfort}.")
+    if config.OFFLINE:
+        print("🔒 Mode 100 % hors ligne : rien ne sort de cet ordinateur.")
+    if hands:
+        print("Mains libres : dis « Jarvis » dans ta phrase. « Merci Jarvis » termine la "
+              "conversation. Ctrl+C pour quitter.\n")
+    else:
+        print("Dis « au revoir » pour quitter.\n")
+    say(persona.greeting())
+
+    while True:
+        try:
+            text = hear()
+        except (KeyboardInterrupt, EOFError):
+            print()
+            break
+        if hands:
+            if text is None:  # on a juste dit « Jarvis »
+                say(persona.wake_ack())
+                continue
+            if is_sleep(text):  # « merci Jarvis » : il se met en veille, sans s'arrêter
+                say(persona.standby())
+                hands.sleep()
+                continue
+        text = (text or "").strip()
+        if not text:
+            continue
+        if not hands and any(w in text.lower() for w in STOP_WORDS):
+            say(persona.farewell())
+            break
+        say(brain.reply(text) or persona.not_understood())
+
+
+if __name__ == "__main__":
+    main()

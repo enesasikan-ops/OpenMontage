@@ -1,0 +1,51 @@
+"""{{ description }}
+
+Capacité Jarvis générée par scaffold (pack jarvis-capacite). Auteur : {{ auteur }}.
+Le code répétitif est généré ; écris la logique dans les zones « manuel » —
+elles sont conservées si tu régénères avec --update.
+"""
+
+import os
+
+from tools import Tool
+
+{% for v in variables %}
+# {{ v.description or v.nom }}
+{{ v.nom }} = os.environ.get({{ v.nom | pyrepr }}, {{ v.defaut | pyrepr }})
+{% endfor %}
+# >>> manuel: imports
+# <<< manuel: imports
+{% for a in actions %}
+
+
+def {{ a.nom }}({% for p in a.parametres %}{{ p.nom }}{% if not p.requis %}=None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) -> str:
+    """{{ a.description }}"""
+    # >>> manuel: {{ a.nom }}
+    return "La capacité « {{ a.nom }} » n'est pas encore implémentée."
+    # <<< manuel: {{ a.nom }}
+{% endfor %}
+
+
+def build_tools() -> list:
+    """Appelée par Jarvis au démarrage pour charger la capacité."""
+    return [
+{% for a in actions %}
+        Tool(
+            name={{ a.nom | pyrepr }},
+            description={{ a.description | pyrepr }},
+            parameters={
+                "type": "object",
+                "properties": {
+{% for p in a.parametres %}
+                    {{ p.nom | pyrepr }}: {"type": {{ p.type | pyrepr }}, "description": {{ p.description | pyrepr }}},
+{% endfor %}
+                },
+                "required": [{% for p in a.parametres if p.requis %}{{ p.nom | pyrepr }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            },
+            run={{ a.nom }},
+{% if a.sensible %}
+            confirm=lambda **_: {{ (a.confirmation or ("Je vais exécuter " ~ a.nom ~ ".")) | pyrepr }},
+{% endif %}
+        ),
+{% endfor %}
+    ]
