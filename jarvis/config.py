@@ -231,6 +231,15 @@ ARCHIVE_FILE = DATA_DIR / "archive.json"         # mémoire d'archive (cherchée
 CONSCIENCE_PROACTIVE = _env("JARVIS_CONSCIENCE_PROACTIVE", "0") == "1"
 CONSCIENCE_INTERVAL = float(_env("JARVIS_CONSCIENCE_SECONDES", "1800"))
 
+# --- Canal de commandement Matrix (matrix_notify.py) : alertes sur ton serveur chiffré ---
+# Jarvis poste ses alertes (texte + clips Frigate) sur TON serveur Matrix (Synapse), au
+# lieu de Telegram/Signal/WhatsApp. Le jeton est un SECRET (.env). 1 = activé.
+MATRIX = _env("JARVIS_MATRIX", "0") == "1"
+MATRIX_SERVEUR = _env("JARVIS_MATRIX_SERVEUR", "").strip()
+MATRIX_JETON = _env("JARVIS_MATRIX_JETON", "").strip()
+MATRIX_SALON = _env("JARVIS_MATRIX_SALON", "").strip()
+MATRIX_USER = _env("JARVIS_MATRIX_USER", "").strip()
+
 # --- Initiatives de Jarvis ---
 # Heure du briefing du matin (HH:MM). Vide = pas de briefing.
 BRIEFING_TIME = _env("JARVIS_BRIEFING", "08:00").strip()

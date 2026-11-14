@@ -368,6 +368,16 @@ def main() -> None:
 
     jarvis = TelegramJarvis(brain_factory, allowed_id, listener, speaker)
     _etat["jarvis"] = jarvis
+    if config.MATRIX:   # relaie aussi les alertes sur le canal Matrix chiffré (ton serveur)
+        from matrix_notify import make_matrix_notifier
+        _mx = make_matrix_notifier()
+        if _mx is not None:
+            _notify_origine = jarvis.notify_owner
+
+            def _notify_mx(texte, _o=_notify_origine, _m=_mx):
+                _o(texte)
+                _m.envoyer(texte)
+            jarvis.notify_owner = _notify_mx
     app = (Application.builder().token(token).concurrent_updates(True)
            .post_init(jarvis.on_startup).build())
     jarvis.register(app)
