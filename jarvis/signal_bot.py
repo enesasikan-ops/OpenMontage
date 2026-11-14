@@ -520,6 +520,12 @@ def main() -> None:
         if _wifi is not None:
             _wifi.demarrer()
 
+    if config.STARLINK:   # surveillance de la liaison Internet (coupure, obstruction)
+        from starlink import make_starlink_watcher
+        _star = make_starlink_watcher(jarvis.notify_owner)
+        if _star is not None:
+            _star.demarrer()
+
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
                         notify=jarvis.send_proposal).start()

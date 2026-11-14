@@ -382,6 +382,12 @@ WIFI_STABILITE_SEUIL = int(_env("JARVIS_WIFI_STABILITE_SEUIL", "4"))      # déc
 WIFI_STABILITE_FENETRE = float(_env("JARVIS_WIFI_STABILITE_FENETRE", "120"))  # fenêtre (s)
 WIFI_STABILITE_INTERVALLE = float(_env("JARVIS_WIFI_STABILITE_SECONDES", "20"))  # fréquence de vérif
 
+# --- Surveillance Starlink (starlink.py) : l'Internet de la maison (WAN) ---
+# Jarvis lit l'antenne Starlink en local (gRPC) et alerte sur une coupure, une
+# obstruction ou une alerte matériel. Nécessite starlink-grpc-tools. 1 = activé.
+STARLINK = _env("JARVIS_STARLINK", "0") == "1"
+STARLINK_INTERVALLE = float(_env("JARVIS_STARLINK_SECONDES", "60"))
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()

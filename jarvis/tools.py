@@ -168,6 +168,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from radius import build_radius_tools   # surveillance auth 802.1X (FreeRADIUS), si configuré
 
     tools += build_radius_tools()
+    from starlink import build_starlink_tools   # état de l'Internet Starlink (WAN), si configuré
+
+    tools += build_starlink_tools()
     from robot import build_robot_tools   # robot mobile (ROS 2), si des lieux sont configurés
 
     tools += build_robot_tools()
