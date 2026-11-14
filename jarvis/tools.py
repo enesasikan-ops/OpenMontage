@@ -162,6 +162,9 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
     from pwstrength import build_pwcheck_tools   # robustesse d'un mot de passe / clé Wi-Fi (local)
 
     tools += build_pwcheck_tools()
+    from sightings import build_sighting_tools   # « qui as-tu vu ? » (journal des reconnaissances)
+
+    tools += build_sighting_tools()
     from freebox import build_freebox_tools   # qui est sur le Wi-Fi (Freebox), si appairée
 
     tools += build_freebox_tools()

@@ -417,7 +417,10 @@ def main() -> None:
         _ptz = PtzController(JsonStore(config.PTZ_FILE, {}))
         _look = cameras.look if cameras is not None else None
 
+        from sightings import journal
+
         def _sur_arrivee(nom, cam, connu):
+            journal().noter(nom, cam, connu)               # mémorise pour « qui as-tu vu ? »
             texte = texte_arrivee(nom, cam, connu)
             if config.AUTO_REGARD and _look is not None:   # oriente la caméra et regarde
                 desc = regard_sur_zone(_ptz, _look, cam)
