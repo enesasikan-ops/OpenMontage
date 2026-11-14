@@ -368,6 +368,19 @@ THERMAL_ARME_ENTITE = _env("JARVIS_THERMIQUE_ARME", "").strip()  # input_boolean
 # JARVIS_PRESENCE_PIECES : {"salon":"binary_sensor.salon_presence","cuisine":"binary_sensor.cuisine_csi"}
 PRESENCE_PIECES: dict = _json_env("JARVIS_PRESENCE_PIECES")
 
+# --- Simulation de présence « organique » (presence_sim.py) : mode vacances ---
+# Quand TU armes le mode vacances, Jarvis rejoue ta vie : lumières/prises/volets/media
+# actifs selon le moment de la journée, avec une VARIATION aléatoire qui casse la
+# régularité mécanique (un cambrioleur qui observe plusieurs jours ne doit pas voir
+# « 20h00 pile »). JAMAIS de serrure/portail dans une simulation (on ne déverrouille pas
+# une maison vide — exclu par construction). Opt-in : rien ne bouge tant que tu n'armes pas.
+# JARVIS_SIMULATION_ZONES : {"salon":{"entite":"light.salon","moments":["soir","nuit"]},
+#                            "volet salon":{"entite":"cover.salon","moments":["matin","soir"]}}
+SIM = _env("JARVIS_SIMULATION", "0") == "1"
+SIM_ZONES: dict = _json_env("JARVIS_SIMULATION_ZONES")
+SIM_FILE = DATA_DIR / "simulation.json"
+SIM_INTERVALLE = float(_env("JARVIS_SIMULATION_SECONDES", "300"))  # fréquence d'un pas de simulation (s)
+
 # --- Radio logicielle (radio.py) : avions au-dessus (ADS-B) + météo radio locale ---
 # Clé RTL-SDR (~25 €). Données publiques (avions) ou à toi (tes capteurs rtl_433).
 # Pas de pistage TPMS, pas de ciblage d'un appareil d'autrui : voir radio.py.

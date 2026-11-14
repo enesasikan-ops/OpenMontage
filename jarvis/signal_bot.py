@@ -505,6 +505,12 @@ def main() -> None:
         if _suivi is not None:
             _suivi.demarrer()
 
+    if config.SIM:   # simulation de présence « vacances » (rejoue la vie, sans jamais déverrouiller)
+        from presence_sim import make_presence_watcher
+        _simu = make_presence_watcher(home)
+        if _simu is not None:
+            _simu.demarrer()
+
     if config.GLASSES:   # lunettes connectées : la caméra que tu portes interroge Jarvis
         from glasses import demarrer_lunettes
         demarrer_lunettes(gemini)
