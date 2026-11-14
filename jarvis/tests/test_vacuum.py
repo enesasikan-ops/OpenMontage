@@ -121,3 +121,21 @@ def test_aspirateur_nomme_introuvable():
 def test_etat_liste_tous_les_aspirateurs():
     out = VacuumControl(FauxMaisonMulti(), SEGMENTS).etat()
     assert "Robot du bas" in out and "Robot du haut" in out and "40%" in out
+
+
+# --- Backend Roborock (app_segment_clean) ---
+
+def test_segment_roborock():
+    h = FauxHome()
+    VacuumControl(h, SEGMENTS, backend="roborock").aspirer("salon")
+    appel = next(a for a in h.appels if a[1] == "send_command")
+    assert appel[3]["command"] == "app_segment_clean"
+    assert appel[3]["params"] == [16]            # liste d'entiers, pas {"segment_ids": [...]}
+
+
+def test_segment_valetudo_par_defaut():
+    h = FauxHome()
+    VacuumControl(h, SEGMENTS).aspirer("salon")   # backend valetudo par défaut
+    appel = next(a for a in h.appels if a[1] == "send_command")
+    assert appel[3]["command"] == "segment_clean"
+    assert appel[3]["params"] == {"segment_ids": ["16"]}

@@ -447,6 +447,8 @@ HA_TOKEN = _env("HOMEASSISTANT_TOKEN", "").strip()  # jeton d'accès longue dur�
 # Aspirateur robot (Valetudo via HA) : associe un nom de pièce à son « segment » Valetudo.
 # Ex. JARVIS_ASPIRATEUR_PIECES={"salon":"16","cuisine":"17"}
 VACUUM_SEGMENTS: dict = _json_env("JARVIS_ASPIRATEUR_PIECES")
+# Firmware : "valetudo" (dé-cloudé) ou "roborock" (app_segment_clean). Change la commande de pièce.
+VACUUM_BACKEND = _env("JARVIS_ASPIRATEUR_BACKEND", "valetudo").strip().lower()
 # Point de situation : capteurs à surveiller pour donner à Jarvis la « conscience » du moment
 # (détections caméra, état du drone, batteries…). Lecture seule. entity_id séparés par des virgules.
 TELEMETRIE = tuple(x.strip() for x in _env("JARVIS_TELEMETRIE", "").split(",") if x.strip())

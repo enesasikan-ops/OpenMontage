@@ -16,10 +16,23 @@ def _norm(t: str) -> str:
 
 
 class VacuumControl:
-    def __init__(self, home, segments: dict | None = None, segment_cmd: str = "segment_clean"):
+    def __init__(self, home, segments: dict | None = None, backend: str = "valetudo"):
         self.home = home
         self.segments = {_norm(k): str(v) for k, v in (segments or {}).items()}
-        self.segment_cmd = segment_cmd
+        self.backend = (backend or "valetudo").strip().lower()
+
+    def _envoyer_segment(self, ent: str, seg: str) -> None:
+        """La commande de nettoyage par pièce diffère selon le firmware."""
+        if self.backend == "roborock":
+            try:
+                sid: "int | str" = int(seg)
+            except (TypeError, ValueError):
+                sid = seg
+            self.home.call("vacuum", "send_command", ent,
+                           command="app_segment_clean", params=[sid])
+        else:   # Valetudo (dé-cloudé)
+            self.home.call("vacuum", "send_command", ent,
+                           command="segment_clean", params={"segment_ids": [seg]})
 
     def _etats_aspi(self) -> list:
         return [e for e in self.home.states() if e["entity_id"].startswith("vacuum.")]
@@ -62,8 +75,7 @@ class VacuumControl:
         if seg is None:
             connues = ", ".join(sorted(self.segments)) or "aucune pièce configurée"
             return f"Je ne sais pas où est « {zone} ». Pièces connues : {connues}."
-        self.home.call("vacuum", "send_command", cibles[0],
-                       command=self.segment_cmd, params={"segment_ids": [seg]})
+        self._envoyer_segment(cibles[0], seg)
         return f"Je nettoie {zone}, Monsieur."
 
     def arreter(self, nom: str = "") -> str:
@@ -99,7 +111,8 @@ class VacuumControl:
 def build_vacuum_tools(home, segments: dict | None = None) -> list:
     from tools import Tool
 
-    v = VacuumControl(home, segments if segments is not None else config.VACUUM_SEGMENTS)
+    v = VacuumControl(home, segments if segments is not None else config.VACUUM_SEGMENTS,
+                      backend=config.VACUUM_BACKEND)
     s = {"type": "string"}
 
     def obj(props, required):
