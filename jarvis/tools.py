@@ -91,10 +91,11 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
         Tool(
             name="demander_a_claude",
             description=("Pose la question à Claude, une IA beaucoup plus puissante, via internet. "
-                         "À utiliser pour : raisonnement complexe, maths, analyse, conseils "
-                         "importants, rédaction (mail, document), code, sujets où tu n'es pas sûr, "
-                         "ou quand l'utilisateur dit « demande à Claude ». Ne l'utilise PAS "
-                         "pour les questions simples ou la conversation courante."),
+                         "LE CHOIX POUR LA PRÉCISION : raisonnement complexe, maths, analyse fine, "
+                         "conseils importants, rédaction (mail, document), CODE et correctifs, "
+                         "sujets où tu n'es pas sûr, ou quand l'utilisateur dit « demande à Claude ». "
+                         "Pour éplucher de TRÈS longs documents/logs d'un coup, préfère Gemini "
+                         "(grand contexte). Ne l'utilise PAS pour les questions simples."),
             parameters={
                 "type": "object",
                 "properties": {
@@ -222,9 +223,11 @@ def build_tools(memory: Memory, claude: ClaudeBridge,
 
         tools.append(Tool(
             name="demander_a_gemini",
-            description=("Demande l'avis de Gemini, l'IA de Google. À utiliser pour un deuxième avis, "
-                         "pour comparer avec Claude, ou quand l'utilisateur demande explicitement Gemini. "
-                         "Gemini répond mais n'agit pas sur l'ordinateur."),
+            description=("Demande l'avis de Gemini, l'IA de Google. LE CHOIX POUR LE GRAND CONTEXTE : "
+                         "éplucher de longs documents ou des logs entiers (un mois d'historique), "
+                         "résumer de gros volumes. Aussi pour un deuxième avis, comparer avec Claude, "
+                         "ou quand l'utilisateur demande Gemini. Pour du code ou un raisonnement précis, "
+                         "préfère Claude. Gemini répond mais n'agit pas sur l'ordinateur."),
             parameters={"type": "object",
                         "properties": {
                             "question": {"type": "string", "description": "La question, reformulée clairement."},
