@@ -436,6 +436,10 @@ def main() -> None:
         if _suivi is not None:
             _suivi.demarrer()
 
+    if config.GLASSES:   # lunettes connectées : la caméra que tu portes interroge Jarvis
+        from glasses import demarrer_lunettes
+        demarrer_lunettes(gemini)
+
     if config.AGENT and config.IMPROVE_AT:
         NightlyImprover(growth, proposals, claude, at=config.IMPROVE_AT,
                         notify=jarvis.send_proposal).start()

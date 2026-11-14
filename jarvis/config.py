@@ -269,6 +269,16 @@ VISION = _env("JARVIS_VISION", "auto").strip().lower()
 # Modèle de vision local via Ollama (ex. qwen2.5-vl, llama3.2-vision, moondream). Vide = pas de vision locale.
 VISION_MODEL = _env("JARVIS_MODELE_VISION", "").strip()
 
+# --- Lunettes connectées (glasses.py) : la caméra que tu portes interroge Jarvis ---
+# Petit service HTTP local ; tes lunettes (OpenGlass / Monocle) postent l'image + la
+# question, Jarvis répond en une phrase courte à afficher sur le verre. 1 = activé.
+# Un jeton est EXIGÉ dès que l'hôte n'est pas local (sinon n'importe qui sur le Wi-Fi
+# pourrait faire analyser des images par ta vision).
+GLASSES = _env("JARVIS_LUNETTES", "0") == "1"
+GLASSES_HOST = _env("JARVIS_LUNETTES_HOTE", "127.0.0.1").strip()
+GLASSES_PORT = int(_env("JARVIS_LUNETTES_PORT", "8766"))
+GLASSES_TOKEN = _env("JARVIS_LUNETTES_JETON", "").strip()
+
 # --- Tableau de bord (écran/télé) ---
 # localhost = visible seulement sur ce PC. 0.0.0.0 = visible depuis le réseau (tablette...).
 DASHBOARD_HOST = _env("JARVIS_ECRAN_HOTE", "127.0.0.1").strip()
