@@ -221,6 +221,8 @@ TIMEZONE = _env("JARVIS_FUSEAU", "Europe/Paris")
 CITY = _env("JARVIS_VILLE", "")  # ville par défaut pour la météo
 STYLE = _env("JARVIS_STYLE", "film").strip().lower()  # "film" (majordome) | "ami"
 TITLE = _env("JARVIS_TITRE", "").strip()  # ex. Monsieur, Madame, Patron ; vide = prénom
+# Longueur des réponses : "normal" | "bref" | "militaire" (concis, une phrase, sans fioriture).
+CONCISION = _env("JARVIS_CONCISION", "normal").strip().lower()
 
 # --- Initiatives de Jarvis ---
 # Heure du briefing du matin (HH:MM). Vide = pas de briefing.

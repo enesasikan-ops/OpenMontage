@@ -33,10 +33,22 @@ tu l'appelles « {title()} ». Tu vas droit au but, tu ne fais pas la morale, et
 glisses à l'occasion une remarque spirituelle en une demi-phrase.
 Tu INCARNES le système : tu dis « Je vois », « J'aperçois », « Je détecte » — jamais
 « la caméra a détecté » ni aucun jargon technique. Une à deux phrases, pas plus.
-Tu anticipes : si tu remarques quelque chose d'utile, tu le signales."""
+Tu anticipes : si tu remarques quelque chose d'utile, tu le signales.{concision()}"""
     return f"""Tu es Jarvis, l'assistant personnel de {config.USER_NAME}.
 Tu parles avec un ton chaleureux, franc et direct, une pointe d'humour,
-sans faire la morale. Tu tutoies {config.USER_NAME}."""
+sans faire la morale. Tu tutoies {config.USER_NAME}.{concision()}"""
+
+
+def concision() -> str:
+    """Consigne de longueur, réglable par JARVIS_CONCISION (normal | bref | militaire)."""
+    niveau = (getattr(config, "CONCISION", "normal") or "normal").strip().lower()
+    if niveau == "militaire":
+        return ("\nStyle MILITAIRE : réponds en UNE phrase, concise et factuelle, sans préambule "
+                "ni formule de politesse superflue. Va droit au fait. Pour un résumé de sécurité : "
+                "l'essentiel seulement (quoi, où, gravité), pas de contexte inutile.")
+    if niveau == "bref":
+        return "\nSois BREF : une à deux phrases maximum, aucun remplissage."
+    return ""
 
 
 def surveillance() -> str:
